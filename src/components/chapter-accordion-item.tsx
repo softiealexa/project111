@@ -77,7 +77,7 @@ export default function ChapterAccordionItem({ chapter, index }: ChapterAccordio
             <div className="space-y-4">
               {Array.from({ length: chapter.lectureCount }, (_, i) => i + 1).map((lectureNum) => (
                 <div key={lectureNum} className="grid grid-cols-2 md:grid-cols-5 items-center gap-4 rounded-lg p-3 transition-colors hover:bg-muted/50">
-                   <p className="font-medium text-primary-foreground/90 col-span-2 md:col-span-1">Lecture {lectureNum}</p>
+                   <p className="font-medium text-foreground col-span-2 md:col-span-1">Lecture {lectureNum}</p>
                   {TASKS.map((task) => {
                     const id = `${chapter.name}-L${lectureNum}-${task}`;
                     return (
