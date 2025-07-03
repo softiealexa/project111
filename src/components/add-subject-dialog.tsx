@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FolderPlus } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface AddSubjectDialogProps {
   onAddSubject: (subjectName: string) => void;
@@ -53,12 +54,18 @@ export function AddSubjectDialog({ onAddSubject, existingSubjects }: AddSubjectD
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button variant="outline">
-          <FolderPlus className="mr-2 h-4 w-4" />
-          Add Subject
-        </Button>
-      </DialogTrigger>
+       <Tooltip>
+        <TooltipTrigger asChild>
+            <DialogTrigger asChild>
+                <Button variant="ghost" size="icon">
+                <FolderPlus className="h-5 w-5" />
+                </Button>
+            </DialogTrigger>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Add Subject</p>
+        </TooltipContent>
+      </Tooltip>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Add New Subject</DialogTitle>

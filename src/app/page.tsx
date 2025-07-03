@@ -13,6 +13,7 @@ import { Book, FolderPlus, PlusCircle, Trash2 } from 'lucide-react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 export default function Home() {
   const { activeProfile, updateSubjects } = useData();
@@ -108,41 +109,45 @@ export default function Home() {
               ))}
             </Tabs>
             
-            <div className="mt-8 flex justify-center">
-                <div className="flex items-center gap-1 p-2 shadow-lg border border-primary/20 bg-card/80 backdrop-blur-sm rounded-full">
-                    <AddSubjectDialog 
-                        onAddSubject={handleAddSubject} 
-                        existingSubjects={activeProfile.subjects.map(s => s.name)}
-                    />
-                    {activeProfile.subjects.length > 0 && (
-                        <RemoveSubjectDialog
-                            subjects={activeProfile.subjects}
-                            onConfirm={handleRemoveSubject}
-                        />
-                    )}
-                    
-                    {(activeProfile.subjects.length > 0) && <Separator orientation="vertical" className="h-6 mx-1 bg-border/50" />}
+            <TooltipProvider delayDuration={100}>
+              <div className="mt-8 flex justify-center">
+                  <div className="flex items-center gap-2 p-1.5 shadow-lg border border-primary/20 bg-card/80 backdrop-blur-sm rounded-full">
+                      <AddSubjectDialog 
+                          onAddSubject={handleAddSubject} 
+                          existingSubjects={activeProfile.subjects.map(s => s.name)}
+                      />
+                      {activeProfile.subjects.length > 0 && (
+                          <RemoveSubjectDialog
+                              subjects={activeProfile.subjects}
+                              onConfirm={handleRemoveSubject}
+                          />
+                      )}
+                      
+                      {(activeProfile.subjects.length > 0) && <Separator orientation="vertical" className="h-6 mx-1 bg-border/50" />}
 
-                    {activeSubject ? (
-                        <>
-                            <AddChapterDialog onAddChapter={handleAddChapter} />
-                            {activeSubject.chapters.length > 0 && (
-                                <RemoveChapterDialog
-                                    chapters={activeSubject.chapters}
-                                    onConfirm={handleRemoveChapter}
-                                />
-                            )}
-                        </>
-                    ) : (
-                        <>
-                            <Button variant="outline" disabled><PlusCircle className="mr-2 h-4 w-4" /> Add Chapter</Button>
-                            <Button variant="destructive" disabled className="border border-destructive bg-transparent text-destructive hover:bg-destructive hover:text-destructive-foreground">
-                                <Trash2 className="mr-2 h-4 w-4" /> Remove Chapter
-                            </Button>
-                        </>
-                    )}
-                </div>
-            </div>
+                      {activeSubject ? (
+                          <>
+                              <AddChapterDialog onAddChapter={handleAddChapter} />
+                              {activeSubject.chapters.length > 0 && (
+                                  <RemoveChapterDialog
+                                      chapters={activeSubject.chapters}
+                                      onConfirm={handleRemoveChapter}
+                                  />
+                              )}
+                          </>
+                      ) : (
+                          <>
+                              <Button variant="ghost" size="icon" disabled>
+                                <PlusCircle className="h-5 w-5" />
+                              </Button>
+                              <Button variant="ghost" size="icon" disabled>
+                                  <Trash2 className="h-5 w-5" />
+                              </Button>
+                          </>
+                      )}
+                  </div>
+              </div>
+            </TooltipProvider>
           </>
         ) : (
           <div className="text-center py-12 flex flex-col items-center gap-4">
