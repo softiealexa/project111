@@ -25,7 +25,7 @@ interface ChapterAccordionItemProps {
 const TASKS = ["Lecture", "DPP", "Module", "Class Qs"];
 
 export default function ChapterAccordionItem({ chapter, subjectName, index, id }: ChapterAccordionItemProps) {
-  const { subjects, updateSubjects } = useData();
+  const { activeProfile, updateSubjects } = useData();
   const [checkedState, setCheckedState] = useState<Record<string, boolean>>(chapter.checkedState || {});
   
   const {
@@ -49,8 +49,10 @@ export default function ChapterAccordionItem({ chapter, subjectName, index, id }
   const handleCheckboxChange = (checkboxId: string, checked: boolean) => {
     const newCheckedState = { ...checkedState, [checkboxId]: checked };
     setCheckedState(newCheckedState);
+    
+    if (!activeProfile) return;
 
-    const newSubjects = subjects.map(s => {
+    const newSubjects = activeProfile.subjects.map(s => {
       if (s.name === subjectName) {
         const newChapters = s.chapters.map((c, i) => {
           if (i === index) {
