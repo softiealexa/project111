@@ -10,7 +10,7 @@ export interface User {
     displayName: string | null;
 }
 
-const FIREBASE_NOT_CONFIGURED_ERROR = "Firebase is not configured. Please add your project credentials to a .env.local file.";
+const FIREBASE_NOT_CONFIGURED_ERROR = "Firebase is not configured. Please ensure you have a .env.local file with the correct NEXT_PUBLIC_ prefixed variables.";
 
 export const signInWithUsername = async (username: string, password: string): Promise<FirebaseUser | null> => {
     if (!auth || !db) {

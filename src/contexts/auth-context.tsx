@@ -28,9 +28,13 @@ const FirebaseNotConfiguredAlert = () => (
             <Terminal className="h-4 w-4" />
             <AlertTitle>Firebase Not Configured</AlertTitle>
             <AlertDescription>
-                It looks like your Firebase credentials are not set up. Please create a 
-                <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold mx-1">.env.local</code> 
-                file in your project's root directory and add your Firebase project details to connect to the database. The app will not work until this is done.
+                It looks like your Firebase credentials are not set up correctly. Please check the following:
+                <ol className="list-decimal list-inside mt-2 space-y-1">
+                    <li>Ensure you have a <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold mx-1">.env.local</code> file in your project's root directory.</li>
+                    <li>Make sure all Firebase variables in that file start with <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold mx-1">NEXT_PUBLIC_</code>.</li>
+                    <li>Verify the credential values are correct from your Firebase project settings.</li>
+                </ol>
+                The app will not work until this is done. You may need to restart the server after updating the file.
             </AlertDescription>
         </Alert>
     </div>
