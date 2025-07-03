@@ -33,6 +33,9 @@ export const signInWithUsername = async (username: string, password: string): Pr
         const result = await signInWithEmailAndPassword(auth!, email, password);
         return result.user;
     } catch (error: any) {
+        if (error.code === 'auth/configuration-not-found') {
+            throw new Error(FIREBASE_NOT_CONFIGURED_ERROR);
+        }
         if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
             throw new Error("Invalid username or password.");
         }
@@ -69,6 +72,9 @@ export const register = async (username: string, password: string): Promise<Fire
 
         return user;
     } catch (error: any) {
+        if (error.code === 'auth/configuration-not-found') {
+            throw new Error(FIREBASE_NOT_CONFIGURED_ERROR);
+        }
         if (error.code === 'auth/email-already-in-use') {
             throw new Error('This username might be too similar to an existing one. Please try another.');
         }
