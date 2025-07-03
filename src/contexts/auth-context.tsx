@@ -3,9 +3,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { User, login as apiLogin, logout as apiLogout, register as apiRegister, getCurrentUser, saveUserData, getUserData } from '@/lib/auth';
+import { isFirebaseConfigured } from '@/lib/firebase';
 import { subjects as initialSubjects } from "@/lib/data";
 import type { Subject } from '@/lib/types';
-import { BookOpenCheck } from 'lucide-react';
+import { BookOpenCheck, Terminal } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface AuthContextType {
   user: User | null;
@@ -18,6 +20,21 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const FirebaseNotConfiguredAlert = () => (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+        <Alert className="max-w-md">
+            <Terminal className="h-4 w-4" />
+            <AlertTitle>Firebase Not Configured</AlertTitle>
+            <AlertDescription>
+                It looks like your Firebase credentials are not set up. Please create a 
+                <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold mx-1">.env.local</code> 
+                file in your project's root directory and add your Firebase project details to connect to the database. The app will not work until this is done.
+            </AlertDescription>
+        </Alert>
+    </div>
+);
+
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -47,10 +64,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const initializeAuth = async () => {
-      const currentUser = getCurrentUser();
-      if (currentUser) {
-        setUser(currentUser);
-        await loadUserAndSubjects(currentUser.username);
+      if (isFirebaseConfigured) {
+        const currentUser = getCurrentUser();
+        if (currentUser) {
+          setUser(currentUser);
+          await loadUserAndSubjects(currentUser.username);
+        }
       }
       setLoading(false);
     };
@@ -58,10 +77,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!loading && !user && pathname !== '/login' && pathname !== '/register') {
+    if (loading || !isFirebaseConfigured) return;
+
+    if (!user && pathname !== '/login' && pathname !== '/register') {
       router.push('/login');
     }
-    if (!loading && user && (pathname === '/login' || pathname === '/register')) {
+    if (user && (pathname === '/login' || pathname === '/register')) {
       router.push('/');
     }
   }, [user, loading, pathname, router]);
@@ -85,7 +106,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const currentUser = getCurrentUser();
       setUser(currentUser);
       if (currentUser) {
-        // This will now save the initial subjects to Firestore
         await loadUserAndSubjects(currentUser.username);
       }
       return true;
@@ -97,6 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     apiLogout();
     setUser(null);
     setSubjects([]);
+    router.push('/login');
   };
   
   const updateSubjects = async (newSubjects: Subject[]) => {
@@ -107,6 +128,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const value = { user, subjects, login: handleLogin, register: handleRegister, logout: handleLogout, updateSubjects, loading };
+  
+  if (!loading && !isFirebaseConfigured) {
+    return <FirebaseNotConfiguredAlert />;
+  }
 
   return (
     <AuthContext.Provider value={value}>

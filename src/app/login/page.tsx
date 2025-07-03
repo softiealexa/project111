@@ -26,8 +26,9 @@ export default function LoginPage() {
         description: "Invalid username or password.",
         variant: "destructive",
       });
+      setLoading(false);
     }
-    setLoading(false);
+    // On success, the auth context will handle redirection.
   };
 
   return (

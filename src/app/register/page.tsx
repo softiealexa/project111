@@ -34,8 +34,9 @@ export default function RegisterPage() {
         description: "Username may already be taken.",
         variant: "destructive",
       });
+      setLoading(false);
     }
-    setLoading(false);
+    // On success, the auth context will handle redirection.
   };
 
   return (

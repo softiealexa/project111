@@ -9,7 +9,7 @@ export interface User {
 const SESSION_KEY = 'trackademic_session';
 
 export const register = async (username: string, password: string): Promise<boolean> => {
-    if (typeof window === 'undefined' || !username || !password) return false;
+    if (typeof window === 'undefined' || !username || !password || !db) return false;
 
     const usersRef = collection(db, 'users');
     const q = query(usersRef, where("username", "==", username.toLowerCase()));
@@ -28,7 +28,7 @@ export const register = async (username: string, password: string): Promise<bool
 };
 
 export const login = async (username: string, password: string): Promise<boolean> => {
-    if (typeof window === 'undefined') return false;
+    if (typeof window === 'undefined' || !db) return false;
     
     const userDocRef = doc(db, 'users', username.toLowerCase());
     const userDoc = await getDoc(userDocRef);
@@ -53,6 +53,7 @@ export const getCurrentUser = (): User | null => {
 };
 
 export const getUserData = async (username: string): Promise<Subject[] | null> => {
+    if (!db) return null;
     const userDocRef = doc(db, 'users', username.toLowerCase());
     const userDoc = await getDoc(userDocRef);
 
@@ -64,6 +65,7 @@ export const getUserData = async (username: string): Promise<Subject[] | null> =
 }
 
 export const saveUserData = async (username: string, subjects: Subject[]) => {
+    if (!db) return;
     const userDocRef = doc(db, 'users', username.toLowerCase());
     // Remove icon component before storing in Firestore
     const subjectsToStore = subjects.map(({ icon, ...rest }) => rest);
