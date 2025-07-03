@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -19,44 +19,32 @@ interface ChapterAccordionItemProps {
 const TASKS = ["Lecture", "DPP", "Module", "Class Qs"];
 
 export default function ChapterAccordionItem({ chapter, subjectName, index }: ChapterAccordionItemProps) {
-  const { user } = useAuth();
-  const storageKey = user ? `chapter-${user.username}-${subjectName}-${chapter.name}` : null;
-  const totalTasks = chapter.lectureCount * TASKS.length;
-  const [completedTasks, setCompletedTasks] = useState(0);
-  const [checkedState, setCheckedState] = useState<Record<string, boolean>>({});
-
-  useEffect(() => {
-    if (!storageKey) return;
-    try {
-      const savedState = localStorage.getItem(storageKey);
-      if (savedState) {
-        const parsedState = JSON.parse(savedState);
-        setCheckedState(parsedState);
-        setCompletedTasks(Object.values(parsedState).filter(Boolean).length);
-      } else {
-        setCheckedState({});
-        setCompletedTasks(0);
-      }
-    } catch (error)
-    {
-      console.error("Failed to load state from localStorage", error);
-    }
-  }, [storageKey]);
-
-  const handleCheckboxChange = (id: string, checked: boolean) => {
-    if (!storageKey) return;
-    const newState = { ...checkedState, [id]: checked };
-    setCheckedState(newState);
-    setCompletedTasks(Object.values(newState).filter(Boolean).length);
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(newState));
-    } catch (error) {
-      console.error("Failed to save state to localStorage", error);
-    }
-  };
-
-  const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+  const { subjects, updateSubjects } = useAuth();
+  const [checkedState, setCheckedState] = useState<Record<string, boolean>>(chapter.checkedState || {});
   
+  const totalTasks = chapter.lectureCount * TASKS.length;
+  const completedTasks = Object.values(checkedState).filter(Boolean).length;
+  
+  const handleCheckboxChange = (id: string, checked: boolean) => {
+    const newCheckedState = { ...checkedState, [id]: checked };
+    setCheckedState(newCheckedState);
+
+    const newSubjects = subjects.map(subject => {
+      if (subject.name === subjectName) {
+        const newChapters = subject.chapters.map(c => {
+          if (c.name === chapter.name) {
+            return { ...c, checkedState: newCheckedState };
+          }
+          return c;
+        });
+        return { ...subject, chapters: newChapters };
+      }
+      return subject;
+    });
+    updateSubjects(newSubjects);
+  };
+  
+  const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
   const isCompleted = progress === 100;
 
   return (
@@ -88,7 +76,7 @@ export default function ChapterAccordionItem({ chapter, subjectName, index }: Ch
                 <div key={lectureNum} className="grid grid-cols-2 md:grid-cols-5 items-center gap-4 rounded-lg p-3 transition-colors hover:bg-muted/50">
                    <p className="font-medium text-foreground col-span-2 md:col-span-1">Lecture {lectureNum}</p>
                   {TASKS.map((task) => {
-                    const id = `${chapter.name}-L${lectureNum}-${task}`;
+                    const id = `${subjectName}-${chapter.name}-L${lectureNum}-${task}`;
                     return (
                         <div key={task} className="flex items-center space-x-2">
                             <Checkbox id={id} checked={!!checkedState[id]} onCheckedChange={(checked) => handleCheckboxChange(id, !!checked)} />

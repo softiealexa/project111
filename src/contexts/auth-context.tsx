@@ -13,7 +13,7 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<boolean>;
   register: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
-  updateSubjects: (newSubjects: Subject[]) => void;
+  updateSubjects: (newSubjects: Subject[]) => Promise<void>;
   loading: boolean;
 }
 
@@ -26,9 +26,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   
-  const restoreSubjectsForUser = (username: string) => {
-    const userData = getUserData(username);
-    const restoredSubjects = (userData || initialSubjects).map((savedSubject: any) => {
+  const loadUserAndSubjects = async (username: string) => {
+    const userData = await getUserData(username);
+    
+    const userSubjects = userData || initialSubjects;
+
+    const restoredSubjects = userSubjects.map((savedSubject: any) => {
         const originalSubject = initialSubjects.find(s => s.name === savedSubject.name);
         return {
           ...savedSubject,
@@ -36,15 +39,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
       });
     setSubjects(restoredSubjects);
+    
+    if (!userData && user) {
+        await saveUserData(user.username, restoredSubjects);
+    }
   };
 
   useEffect(() => {
-    const currentUser = getCurrentUser();
-    if (currentUser) {
-      setUser(currentUser);
-      restoreSubjectsForUser(currentUser.username);
-    }
-    setLoading(false);
+    const initializeAuth = async () => {
+      const currentUser = getCurrentUser();
+      if (currentUser) {
+        setUser(currentUser);
+        await loadUserAndSubjects(currentUser.username);
+      }
+      setLoading(false);
+    };
+    initializeAuth();
   }, []);
 
   useEffect(() => {
@@ -62,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const currentUser = getCurrentUser();
       setUser(currentUser);
       if(currentUser) {
-          restoreSubjectsForUser(currentUser.username);
+          await loadUserAndSubjects(currentUser.username);
       }
       return true;
     }
@@ -74,9 +84,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (success) {
       const currentUser = getCurrentUser();
       setUser(currentUser);
-      setSubjects(initialSubjects);
       if (currentUser) {
-        saveUserData(currentUser.username, initialSubjects);
+        // This will now save the initial subjects to Firestore
+        await loadUserAndSubjects(currentUser.username);
       }
       return true;
     }
@@ -89,10 +99,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSubjects([]);
   };
   
-  const updateSubjects = (newSubjects: Subject[]) => {
+  const updateSubjects = async (newSubjects: Subject[]) => {
       setSubjects(newSubjects);
       if(user) {
-          saveUserData(user.username, newSubjects);
+          await saveUserData(user.username, newSubjects);
       }
   }
 

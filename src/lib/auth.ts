@@ -1,46 +1,39 @@
+import { db } from './firebase';
+import { collection, doc, getDoc, setDoc, query, where, getDocs } from 'firebase/firestore';
 import type { Subject } from './types';
 
 export interface User {
     username: string;
 }
 
-const USERS_KEY = 'trackademic_users';
 const SESSION_KEY = 'trackademic_session';
-const DATA_PREFIX = 'trackademic_data_';
-
-const getUsers = (): any[] => {
-    if (typeof window === 'undefined') return [];
-    const users = localStorage.getItem(USERS_KEY);
-    return users ? JSON.parse(users) : [];
-};
-
-const saveUsers = (users: any[]) => {
-    if (typeof window === 'undefined') return;
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
-};
 
 export const register = async (username: string, password: string): Promise<boolean> => {
     if (typeof window === 'undefined' || !username || !password) return false;
-    const users = getUsers();
-    const existingUser = users.find(u => u.username.toLowerCase() === username.toLowerCase());
 
-    if (existingUser) {
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where("username", "==", username.toLowerCase()));
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
         return false; 
     }
 
-    users.push({ username, password });
-    saveUsers(users);
-    
+    // In a real app, you should hash the password before storing it!
+    const userDocRef = doc(db, 'users', username.toLowerCase());
+    await setDoc(userDocRef, { username, password });
+
     sessionStorage.setItem(SESSION_KEY, JSON.stringify({ username }));
     return true;
 };
 
 export const login = async (username: string, password: string): Promise<boolean> => {
     if (typeof window === 'undefined') return false;
-    const users = getUsers();
-    const user = users.find(u => u.username === username && u.password === password);
+    
+    const userDocRef = doc(db, 'users', username.toLowerCase());
+    const userDoc = await getDoc(userDocRef);
 
-    if (user) {
+    if (userDoc.exists() && userDoc.data().password === password) {
         sessionStorage.setItem(SESSION_KEY, JSON.stringify({ username }));
         return true;
     }
@@ -59,14 +52,20 @@ export const getCurrentUser = (): User | null => {
     return user ? JSON.parse(user) : null;
 };
 
-export const getUserData = (username: string): Subject[] | null => {
-    if (typeof window === 'undefined') return null;
-    const data = localStorage.getItem(`${DATA_PREFIX}${username}`);
-    return data ? JSON.parse(data) : null;
+export const getUserData = async (username: string): Promise<Subject[] | null> => {
+    const userDocRef = doc(db, 'users', username.toLowerCase());
+    const userDoc = await getDoc(userDocRef);
+
+    if (userDoc.exists()) {
+        const userData = userDoc.data();
+        return userData.subjects || null;
+    }
+    return null;
 }
 
-export const saveUserData = (username: string, subjects: Subject[]) => {
-    if (typeof window === 'undefined') return;
+export const saveUserData = async (username: string, subjects: Subject[]) => {
+    const userDocRef = doc(db, 'users', username.toLowerCase());
+    // Remove icon component before storing in Firestore
     const subjectsToStore = subjects.map(({ icon, ...rest }) => rest);
-    localStorage.setItem(`${DATA_PREFIX}${username}`, JSON.stringify(subjectsToStore));
+    await setDoc(userDocRef, { subjects: subjectsToStore }, { merge: true });
 }
