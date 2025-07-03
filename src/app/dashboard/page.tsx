@@ -14,7 +14,6 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { ProgressSummary } from '@/components/progress-summary';
 
 export default function DashboardPage() {
   const { activeProfile, updateSubjects } = useData();
@@ -92,8 +91,7 @@ export default function DashboardPage() {
         <div className="w-full max-w-5xl flex-1 px-4 pt-8">
           {activeProfile.subjects.length > 0 ? (
             <>
-              <ProgressSummary profile={activeProfile} />
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-8">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <div className="flex items-center justify-between gap-4">
                   <ScrollArea className="flex-1 whitespace-nowrap rounded-md pb-2.5">
                     <TabsList className="bg-muted h-auto justify-start sm:h-10">
