@@ -100,8 +100,8 @@ export default function Home() {
         {activeProfile.subjects.length > 0 ? (
           <>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <ScrollArea className="w-full whitespace-nowrap rounded-md pb-2.5">
-                <TabsList className="bg-muted h-auto sm:h-10 justify-start">
+              <ScrollArea className="w-full whitespace-nowrap rounded-md pb-2.5 text-center">
+                <TabsList className="bg-muted h-auto sm:h-10 justify-start text-left">
                   {activeProfile.subjects.map((subject) => (
                     <TabsTrigger key={subject.name} value={subject.name} className="flex items-center gap-2">
                       {subject.icon && <subject.icon className="h-5 w-5" />}
