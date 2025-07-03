@@ -30,23 +30,25 @@ export default function RegisterPage() {
       return;
     }
     setIsLoading(true);
-    try {
-      await register(username, password);
-      toast({
-        title: 'Success',
-        description: 'Account created successfully. Logging you in...',
-      });
-      router.push('/dashboard');
-    } catch (error: any) {
-      console.error(error);
-      toast({
+
+    const { error } = await register(username, password);
+
+    if (error) {
+       console.error(error);
+       toast({
         title: 'Registration Failed',
-        description: error.message || 'An unexpected error occurred.',
+        description: error,
         variant: 'destructive',
       });
-    } finally {
-      setIsLoading(false);
+    } else {
+        toast({
+            title: 'Success',
+            description: 'Account created successfully. Logging you in...',
+        });
+        router.push('/dashboard');
     }
+
+    setIsLoading(false);
   };
 
   return (

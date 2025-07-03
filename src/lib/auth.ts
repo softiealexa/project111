@@ -5,21 +5,23 @@ import type { Profile } from './types';
 
 const FIREBASE_NOT_CONFIGURED_ERROR = "Firebase is not configured. Please add your credentials to a .env.local file for local development, and to your Vercel project's Environment Variables for deployment.";
 
-const checkFirebaseConfig = () => {
-    if (!isFirebaseConfigured || !auth || !db) {
-        throw new Error(FIREBASE_NOT_CONFIGURED_ERROR);
-    }
+interface AuthResult {
+    user?: FirebaseUser | null;
+    error?: string | null;
 }
 
-export const signInWithUsername = async (username: string, password: string): Promise<FirebaseUser> => {
-    checkFirebaseConfig();
+export const signInWithUsername = async (username: string, password: string): Promise<AuthResult> => {
+    if (!isFirebaseConfigured || !auth || !db) {
+        return { error: FIREBASE_NOT_CONFIGURED_ERROR };
+    }
+
     try {
         const usersRef = collection(db!, 'users');
         const q = query(usersRef, where("username", "==", username));
         const querySnapshot = await getDocs(q);
 
         if (querySnapshot.empty) {
-            throw new Error("Invalid username or password.");
+            return { error: "Invalid username or password." };
         }
 
         const userDoc = querySnapshot.docs[0];
@@ -27,33 +29,35 @@ export const signInWithUsername = async (username: string, password: string): Pr
         const email = userData.email;
 
         if (!email) {
-            throw new Error("No email associated with this username.");
+            return { error: "No email associated with this username." };
         }
 
         const result = await signInWithEmailAndPassword(auth!, email, password);
-        return result.user;
+        return { user: result.user };
     } catch (error: any) {
         if (error.code === 'auth/configuration-not-found') {
-            throw new Error(FIREBASE_NOT_CONFIGURED_ERROR);
+            return { error: FIREBASE_NOT_CONFIGURED_ERROR };
         }
         if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-            throw new Error("Invalid username or password.");
+            return { error: "Invalid username or password." };
         }
-        throw error;
+        return { error: error.message || "An unexpected error occurred." };
     }
 };
 
-export const register = async (username: string, password: string): Promise<FirebaseUser> => {
-    checkFirebaseConfig();
-    
-    const usersRef = collection(db!, 'users');
-    const q = query(usersRef, where("username", "==", username.toLowerCase()));
-    const querySnapshot = await getDocs(q);
-    if (!querySnapshot.empty) {
-        throw new Error("Username is already taken.");
+export const register = async (username: string, password: string): Promise<AuthResult> => {
+    if (!isFirebaseConfigured || !auth || !db) {
+        return { error: FIREBASE_NOT_CONFIGURED_ERROR };
     }
     
     try {
+        const usersRef = collection(db!, 'users');
+        const q = query(usersRef, where("username", "==", username.toLowerCase()));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+            return { error: "Username is already taken." };
+        }
+    
         const email = `${username.toLowerCase().replace(/\s/g, '')}@trackademic.local`;
         const result = await createUserWithEmailAndPassword(auth!, email, password);
         const user = result.user;
@@ -70,31 +74,32 @@ export const register = async (username: string, password: string): Promise<Fire
             activeProfileName: null,
         });
 
-        return user;
+        return { user };
     } catch (error: any) {
         if (error.code === 'auth/configuration-not-found') {
-            throw new Error(FIREBASE_NOT_CONFIGURED_ERROR);
+            return { error: FIREBASE_NOT_CONFIGURED_ERROR };
         }
         if (error.code === 'auth/email-already-in-use') {
-            throw new Error('This username might be too similar to an existing one. Please try another.');
+            return { error: 'This username might be too similar to an existing one. Please try another.' };
         }
         if (error.code === 'auth/invalid-email') {
-            throw new Error('Username contains invalid characters.');
+            return { error: 'Username contains invalid characters.' };
         }
         if (error.code === 'auth/weak-password') {
-            throw new Error('Password should be at least 6 characters.');
+            return { error: 'Password should be at least 6 characters.' };
         }
-        throw error;
+        return { error: error.message || "An unexpected error occurred." };
     }
 };
 
 export const signOut = () => {
-    checkFirebaseConfig();
+    if (!isFirebaseConfigured || !auth) {
+        throw new Error(FIREBASE_NOT_CONFIGURED_ERROR);
+    }
     return firebaseSignOut(auth!);
 };
 
 export const onAuthChanged = (callback: (user: FirebaseUser | null) => void) => {
-    // Guard against running this on the server during build.
     if (typeof window === 'undefined') {
         return () => {};
     }
@@ -112,7 +117,9 @@ interface UserData {
 }
 
 export const getUserData = async (uid: string): Promise<UserData | null> => {
-    checkFirebaseConfig();
+    if (!isFirebaseConfigured || !db) {
+        throw new Error(FIREBASE_NOT_CONFIGURED_ERROR);
+    }
     const userDocRef = doc(db!, 'users', uid);
     const userDoc = await getDoc(userDocRef);
 
@@ -134,7 +141,9 @@ const stripIcons = (profiles: Profile[]) => {
 };
 
 export const saveUserData = async (uid: string, profiles: Profile[], activeProfileName: string | null) => {
-    checkFirebaseConfig();
+    if (!isFirebaseConfigured || !db) {
+        throw new Error(FIREBASE_NOT_CONFIGURED_ERROR);
+    }
     const userDocRef = doc(db!, 'users', uid);
     await setDoc(userDocRef, { 
         profiles: stripIcons(profiles),

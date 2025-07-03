@@ -21,23 +21,25 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    try {
-      await signInWithUsername(username, password);
+
+    const { error } = await signInWithUsername(username, password);
+
+    if (error) {
+      console.error(error);
+      toast({
+        title: 'Login Failed',
+        description: error,
+        variant: 'destructive',
+      });
+    } else {
       toast({
         title: 'Success',
         description: 'Logged in successfully.',
       });
       router.push('/dashboard');
-    } catch (error: any) {
-      console.error(error);
-      toast({
-        title: 'Login Failed',
-        description: error.message || 'An unexpected error occurred.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
     }
+
+    setIsLoading(false);
   };
 
   return (
