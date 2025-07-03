@@ -1,5 +1,5 @@
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged as onFirebaseAuthStateChanged, signOut as firebaseSignOut, updateProfile, User as FirebaseUser } from 'firebase/auth';
-import { doc, getDoc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db, auth, isFirebaseConfigured } from './firebase';
 import type { Profile } from './types';
 
@@ -11,35 +11,17 @@ interface AuthResult {
 }
 
 export const signInWithUsername = async (username: string, password: string): Promise<AuthResult> => {
-    if (!isFirebaseConfigured || !auth || !db) {
+    if (!isFirebaseConfigured || !auth) {
         return { error: FIREBASE_NOT_CONFIGURED_ERROR };
     }
 
     try {
-        const usersRef = collection(db!, 'users');
-        const q = query(usersRef, where("username", "==", username));
-        const querySnapshot = await getDocs(q);
-
-        if (querySnapshot.empty) {
-            return { error: "Invalid username or password." };
-        }
-
-        const userDoc = querySnapshot.docs[0];
-        const userData = userDoc.data();
-        const email = userData.email;
-
-        if (!email) {
-            return { error: "No email associated with this username." };
-        }
-
-        const result = await signInWithEmailAndPassword(auth!, email, password);
+        const email = `${username.toLowerCase().replace(/\s/g, '')}@trackademic.local`;
+        const result = await signInWithEmailAndPassword(auth, email, password);
         return { user: result.user };
     } catch (error: any) {
         if (error.code === 'auth/configuration-not-found') {
             return { error: FIREBASE_NOT_CONFIGURED_ERROR };
-        }
-        if (error.code === 'permission-denied') {
-            return { error: "Database permission denied. Please check your Firestore security rules in the Firebase console to allow reading user data." };
         }
         if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
             return { error: "Invalid username or password." };
@@ -55,12 +37,12 @@ export const register = async (username: string, password: string): Promise<Auth
     
     try {
         const email = `${username.toLowerCase().replace(/\s/g, '')}@trackademic.local`;
-        const result = await createUserWithEmailAndPassword(auth!, email, password);
+        const result = await createUserWithEmailAndPassword(auth, email, password);
         const user = result.user;
 
         await updateProfile(user, { displayName: username });
 
-        const userDocRef = doc(db!, 'users', user.uid);
+        const userDocRef = doc(db, 'users', user.uid);
         await setDoc(userDocRef, {
             uid: user.uid,
             email: user.email,
@@ -76,7 +58,7 @@ export const register = async (username: string, password: string): Promise<Auth
             return { error: FIREBASE_NOT_CONFIGURED_ERROR };
         }
         if (error.code === 'permission-denied') {
-            return { error: "Database permission denied. Please check your Firestore security rules in the Firebase console." };
+             return { error: "Database permission denied. Please check your Firestore security rules in the Firebase console." };
         }
         if (error.code === 'auth/email-already-in-use') {
             return { error: 'Username is already taken.' };
@@ -95,7 +77,7 @@ export const signOut = () => {
     if (!isFirebaseConfigured || !auth) {
         throw new Error(FIREBASE_NOT_CONFIGURED_ERROR);
     }
-    return firebaseSignOut(auth!);
+    return firebaseSignOut(auth);
 };
 
 export const onAuthChanged = (callback: (user: FirebaseUser | null) => void) => {
@@ -119,7 +101,7 @@ export const getUserData = async (uid: string): Promise<UserData | null> => {
     if (!isFirebaseConfigured || !db) {
         throw new Error(FIREBASE_NOT_CONFIGURED_ERROR);
     }
-    const userDocRef = doc(db!, 'users', uid);
+    const userDocRef = doc(db, 'users', uid);
     const userDoc = await getDoc(userDocRef);
 
     if (userDoc.exists()) {
@@ -133,6 +115,7 @@ export const getUserData = async (uid: string): Promise<UserData | null> => {
 }
 
 const stripIcons = (profiles: Profile[]) => {
+    if (!profiles) return [];
     return profiles.map(p => ({
         ...p,
         subjects: p.subjects.map(({ icon, ...rest }) => rest)
@@ -143,7 +126,7 @@ export const saveUserData = async (uid: string, profiles: Profile[], activeProfi
     if (!isFirebaseConfigured || !db) {
         throw new Error(FIREBASE_NOT_CONFIGURED_ERROR);
     }
-    const userDocRef = doc(db!, 'users', uid);
+    const userDocRef = doc(db, 'users', uid);
     await setDoc(userDocRef, { 
         profiles: stripIcons(profiles),
         activeProfileName: activeProfileName 
