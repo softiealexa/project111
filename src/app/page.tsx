@@ -2,13 +2,13 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { BookOpenCheck, ArrowRight } from 'lucide-react';
+import { Book, ArrowRight } from 'lucide-react';
 
 export default function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4 text-center">
       <div className="mb-8 flex items-center gap-3">
-        <BookOpenCheck className="h-12 w-12 text-primary" />
+        <Book className="h-12 w-12 text-primary" />
         <h1 className="font-headline text-5xl font-bold">TrackAcademic</h1>
       </div>
       <p className="max-w-xl text-lg text-muted-foreground">
