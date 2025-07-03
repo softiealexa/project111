@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useData } from '@/contexts/data-context';
 import { Button } from '@/components/ui/button';
-import { BookOpenCheck, Download, Upload, ChevronsUpDown, Check, Settings } from 'lucide-react';
+import { BookOpenCheck, Download, Upload, ChevronsUpDown, Check, Settings, LogOut, UserPlus, LogIn } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useRef } from 'react';
 import {
   DropdownMenu,
@@ -16,8 +17,9 @@ import {
 import { AddProfileDialog } from './add-profile-dialog';
 
 export default function Navbar() {
-  const { profiles, activeProfile, switchProfile, exportData, importData } = useData();
+  const { profiles, activeProfile, switchProfile, exportData, importData, user, signOutUser } = useData();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   const handleImportClick = () => {
     fileInputRef.current?.click();
@@ -28,45 +30,51 @@ export default function Navbar() {
     if (file) {
       importData(file);
     }
-    // Reset file input to allow importing the same file again
-    if(fileInputRef.current) {
+    if (fileInputRef.current) {
         fileInputRef.current.value = '';
     }
   };
+  
+  const handleSignOut = async () => {
+    await signOutUser();
+    router.push('/');
+  }
 
   return (
     <header className="bg-background/80 border-b border-border/50 backdrop-blur-sm sticky top-0 z-50">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <Link href="/" className="flex items-center gap-2.5 text-foreground hover:text-primary transition-colors">
+          <Link href="/dashboard" className="flex items-center gap-2.5 text-foreground hover:text-primary transition-colors">
             <BookOpenCheck className="h-7 w-7 text-primary" />
             <span className="font-headline text-2xl font-bold bg-gradient-to-r from-primary via-foreground/90 to-primary bg-clip-text text-transparent">
               Trackademic
             </span>
           </Link>
           <div className="flex items-center gap-2 sm:gap-4">
-            {activeProfile && (
+            {user ? (
               <>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-[180px] justify-between">
-                      {activeProfile.name}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-[180px]">
-                    <DropdownMenuLabel>Switch Profile</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {profiles.map((profile) => (
-                       <DropdownMenuItem key={profile.name} onSelect={() => switchProfile(profile.name)}>
-                         <Check className={`mr-2 h-4 w-4 ${activeProfile.name === profile.name ? 'opacity-100' : 'opacity-0'}`} />
-                         {profile.name}
-                       </DropdownMenuItem>
-                    ))}
-                    <DropdownMenuSeparator />
-                    <AddProfileDialog />
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                {activeProfile && (
+                    <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="w-auto sm:w-[180px] justify-between">
+                        <span className="truncate">{activeProfile.name}</span>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-[180px]">
+                        <DropdownMenuLabel>Switch Profile</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {profiles.map((profile) => (
+                        <DropdownMenuItem key={profile.name} onSelect={() => switchProfile(profile.name)}>
+                            <Check className={`mr-2 h-4 w-4 ${activeProfile.name === profile.name ? 'opacity-100' : 'opacity-0'}`} />
+                            {profile.name}
+                        </DropdownMenuItem>
+                        ))}
+                        <DropdownMenuSeparator />
+                        <AddProfileDialog />
+                    </DropdownMenuContent>
+                    </DropdownMenu>
+                )}
 
                 <input
                     type="file"
@@ -92,9 +100,23 @@ export default function Navbar() {
                       <Download className="mr-2 h-4 w-4" />
                       <span>Export Data</span>
                     </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={handleSignOut} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Logout</span>
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </>
+            ) : (
+              <div className="flex items-center gap-2">
+                 <Button asChild variant="ghost">
+                    <Link href="/login"><LogIn /> Login</Link>
+                 </Button>
+                 <Button asChild>
+                    <Link href="/register"><UserPlus/> Register</Link>
+                 </Button>
+              </div>
             )}
           </div>
         </div>

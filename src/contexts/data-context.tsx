@@ -1,20 +1,23 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
-import { subjects as initialSubjects } from "@/lib/data";
+import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import type { User as FirebaseUser } from 'firebase/auth';
+import { Book, BookOpenCheck } from 'lucide-react';
 import type { Subject, Profile } from '@/lib/types';
-import { BookOpenCheck } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
+import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
+import { subjects as initialSubjects } from "@/lib/data";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { useToast } from "@/hooks/use-toast";
-import Navbar from '@/components/navbar';
 
-// --- Local Storage Key ---
-const DATA_KEY = 'trackademic_data_v2';
+// --- Local Storage Keys ---
+const LOCAL_PROFILE_KEY_PREFIX = 'trackademic_profile_';
 
 interface DataContextType {
+  user: FirebaseUser | null;
   profiles: Profile[];
   activeProfile: Profile | undefined;
   addProfile: (name: string) => void;
@@ -22,19 +25,41 @@ interface DataContextType {
   updateSubjects: (newSubjects: Subject[]) => void;
   exportData: () => void;
   importData: (file: File) => void;
+  signOutUser: () => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-// --- Create Profile Screen (Internal to the provider) ---
+// --- Helper Functions ---
+const getLocalKey = (username: string | null) => {
+    return username ? `${LOCAL_PROFILE_KEY_PREFIX}${username}` : LOCAL_PROFILE_KEY_PREFIX + 'guest';
+}
+
+const restoreIcons = (profiles: Profile[]): Profile[] => {
+    if (!profiles) return [];
+    return profiles.map(profile => ({
+        ...profile,
+        subjects: profile.subjects.map(subject => ({
+            ...subject,
+            icon: initialSubjects.find(s => s.name === subject.name)?.icon || Book
+        }))
+    }));
+};
+
+const stripIcons = (profiles: Profile[]) => {
+    return profiles.map(p => ({
+        ...p,
+        subjects: p.subjects.map(({ icon, ...rest }) => rest)
+    }));
+};
+
+
+// --- Create Profile Screen ---
 function CreateProfileScreen({ onProfileCreate }: { onProfileCreate: (name: string) => void }) {
     const [name, setName] = useState('');
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (name.trim()) {
-            onProfileCreate(name.trim());
-        }
+        if (name.trim()) onProfileCreate(name.trim());
     };
 
     return (
@@ -42,26 +67,15 @@ function CreateProfileScreen({ onProfileCreate }: { onProfileCreate: (name: stri
             <Card className="w-full max-w-sm">
                 <CardHeader className="text-center">
                     <CardTitle className="text-2xl">Welcome to Trackademic!</CardTitle>
-                    <CardDescription>
-                        Create a profile to get started. You'll be able to add your own subjects and track your progress.
-                    </CardDescription>
+                    <CardDescription>Create a profile to get started.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSubmit} className="grid gap-4">
                         <div className="grid gap-2">
                             <Label htmlFor="profile-name">Profile Name</Label>
-                            <Input
-                                id="profile-name"
-                                type="text"
-                                placeholder="e.g., Course-1, My Studies"
-                                required
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                            />
+                            <Input id="profile-name" type="text" placeholder="e.g., JEE Prep" required value={name} onChange={(e) => setName(e.target.value)} />
                         </div>
-                        <Button type="submit" className="w-full">
-                            Create Profile
-                        </Button>
+                        <Button type="submit" className="w-full">Create Profile</Button>
                     </form>
                 </CardContent>
             </Card>
@@ -69,68 +83,83 @@ function CreateProfileScreen({ onProfileCreate }: { onProfileCreate: (name: stri
     );
 }
 
+
 // --- Data Provider ---
 export function DataProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<FirebaseUser | null>(null);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [activeProfileName, setActiveProfileName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const pathname = usePathname();
 
-  const saveData = (profilesToSave: Profile[], activeNameToSave: string | null) => {
+  const saveData = useCallback(async (profilesToSave: Profile[], activeNameToSave: string | null) => {
     if (typeof window === 'undefined') return;
-    try {
-        const dataToStore = {
-            profiles: profilesToSave.map(p => ({
-                ...p,
-                subjects: p.subjects.map(({ icon, ...rest }) => rest)
-            })),
-            activeProfileName: activeNameToSave
-        };
-        localStorage.setItem(DATA_KEY, JSON.stringify(dataToStore));
-    } catch (error) {
-        console.error("Failed to save data to local storage", error);
-        toast({
-            title: "Error",
-            description: "Could not save your progress.",
-            variant: "destructive",
-        });
-    }
-  };
 
-  // Load data from localStorage on initial mount
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-        setLoading(false);
-        return;
-    }
-    try {
-      const storedData = localStorage.getItem(DATA_KEY);
+    // Always save to local storage for offline access
+    const localKey = getLocalKey(user?.displayName || null);
+    const dataToStore = { profiles: stripIcons(profilesToSave), activeProfileName: activeNameToSave };
+    localStorage.setItem(localKey, JSON.stringify(dataToStore));
 
-      if (storedData) {
-        const parsedData = JSON.parse(storedData);
-        if (parsedData.profiles && parsedData.profiles.length > 0 && parsedData.activeProfileName) {
-            // Restore icons
-            const restoredProfiles = parsedData.profiles.map((savedProfile: any) => ({
-                ...savedProfile,
-                subjects: savedProfile.subjects.map((savedSubject: any) => {
-                    const originalSubject = initialSubjects.find(s => s.name === savedSubject.name);
-                    return {
-                        ...savedSubject,
-                        icon: originalSubject ? originalSubject.icon : BookOpenCheck,
-                    };
-                })
-            }));
-
-            setProfiles(restoredProfiles);
-            setActiveProfileName(parsedData.activeProfileName);
+    // If logged in, also save to Firestore
+    if (user) {
+        try {
+            await saveUserData(user.uid, profilesToSave, activeNameToSave);
+        } catch (error) {
+            console.error("Failed to save data to Firestore", error);
+            toast({ title: "Sync Error", description: "Could not save progress to the cloud.", variant: "destructive" });
         }
-      }
-    } catch (error) {
-      console.error("Failed to load data from local storage", error);
-      localStorage.removeItem(DATA_KEY);
     }
-    setLoading(false);
-  }, []);
+  }, [user, toast]);
+
+  // Auth state change listener
+  useEffect(() => {
+    const unsubscribe = onAuthChanged(async (firebaseUser) => {
+      setLoading(true);
+      setUser(firebaseUser);
+
+      if (firebaseUser) { // User is logged in
+          try {
+              const firestoreData = await getUserData(firebaseUser.uid);
+              if (firestoreData && firestoreData.profiles && firestoreData.profiles.length > 0) {
+                  const restored = restoreIcons(firestoreData.profiles);
+                  setProfiles(restored);
+                  setActiveProfileName(firestoreData.activeProfileName);
+              } else {
+                  setProfiles([]);
+                  setActiveProfileName(null);
+              }
+          } catch (error) {
+              console.error("Failed to fetch user data:", error);
+              setProfiles([]);
+              setActiveProfileName(null);
+              toast({ title: "Error", description: "Could not fetch your data from the cloud.", variant: "destructive" });
+          }
+      } else { // User is logged out or "guest"
+          const localKey = getLocalKey(null);
+          const storedData = localStorage.getItem(localKey);
+          if (storedData) {
+              try {
+                const parsed = JSON.parse(storedData);
+                const restored = restoreIcons(parsed.profiles);
+                setProfiles(restored);
+                setActiveProfileName(parsed.activeProfileName);
+              } catch {
+                setProfiles([]);
+                setActiveProfileName(null);
+                localStorage.removeItem(localKey);
+              }
+          } else {
+              setProfiles([]);
+              setActiveProfileName(null);
+          }
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [toast]);
+  
 
   const addProfile = (name: string) => {
     const newProfile: Profile = { name, subjects: [] };
@@ -147,107 +176,77 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const updateSubjects = (newSubjects: Subject[]) => {
       if (!activeProfileName) return;
-
-      const newProfiles = profiles.map(p => 
-          p.name === activeProfileName ? { ...p, subjects: newSubjects } : p
-      );
+      const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, subjects: newSubjects } : p);
       setProfiles(newProfiles);
       saveData(newProfiles, activeProfileName);
   };
   
   const exportData = () => {
-    if (typeof window === 'undefined') return;
-    try {
-        const dataToStore = {
-            profiles: profiles.map(p => ({
-                ...p,
-                subjects: p.subjects.map(({ icon, ...rest }) => rest)
-            })),
-            activeProfileName,
-        };
-        const dataStr = JSON.stringify(dataToStore, null, 2);
-        const dataBlob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(dataBlob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'trackademic_profiles.json';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        toast({
-            title: "Export Successful",
-            description: "Your progress has been downloaded."
-        });
-    } catch (error) {
-        console.error("Export failed", error);
-        toast({
-            title: "Export Failed",
-            description: "Could not export your data.",
-            variant: "destructive",
-        });
-    }
+    if (typeof window === 'undefined' || profiles.length === 0) {
+        toast({ title: "Export Failed", description: "No data to export.", variant: "destructive" });
+        return;
+    };
+    const dataToStore = { profiles: stripIcons(profiles), activeProfileName };
+    const dataStr = JSON.stringify(dataToStore, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `trackademic_data_${user ? user.displayName : 'guest'}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast({ title: "Export Successful", description: "Your data has been downloaded." });
   };
 
   const importData = (file: File) => {
       const reader = new FileReader();
       reader.onload = (e) => {
           try {
-              const text = e.target?.result as string;
-              const data = JSON.parse(text);
-              if (data.profiles && Array.isArray(data.profiles) && data.activeProfileName) {
-                   const restoredProfiles = data.profiles.map((savedProfile: any) => ({
-                        ...savedProfile,
-                        subjects: savedProfile.subjects.map((savedSubject: any) => {
-                           const originalSubject = initialSubjects.find(s => s.name === savedSubject.name);
-                           return {
-                               ...savedSubject,
-                               icon: originalSubject ? originalSubject.icon : BookOpenCheck,
-                           };
-                        })
-                   }));
-                  setProfiles(restoredProfiles);
+              const data = JSON.parse(e.target?.result as string);
+              if (data.profiles && Array.isArray(data.profiles) && 'activeProfileName' in data) {
+                  const restored = restoreIcons(data.profiles);
+                  setProfiles(restored);
                   setActiveProfileName(data.activeProfileName);
-                  saveData(restoredProfiles, data.activeProfileName);
-                  toast({
-                      title: "Import Successful",
-                      description: "Your progress has been restored.",
-                  });
+                  saveData(restored, data.activeProfileName);
+                  toast({ title: "Import Successful", description: "Your data has been restored." });
               } else {
                   throw new Error("Invalid file format.");
               }
           } catch (error) {
-              console.error("Import failed", error);
-              toast({
-                  title: "Import Failed",
-                  description: "The selected file is not valid.",
-                  variant: "destructive",
-              });
+              toast({ title: "Import Failed", description: "The selected file is not valid.", variant: "destructive" });
           }
       };
       reader.readAsText(file);
   };
+  
+  const signOutUser = async () => {
+    await signOut();
+    setProfiles([]);
+    setActiveProfileName(null);
+    localStorage.removeItem(getLocalKey(null)); // Clear guest data on logout
+  }
 
   const activeProfile = useMemo(() => {
     return profiles.find(p => p.name === activeProfileName);
   }, [profiles, activeProfileName]);
   
-  const value = { profiles, activeProfile, addProfile, switchProfile, updateSubjects, exportData, importData };
+  const value = { user, profiles, activeProfile, addProfile, switchProfile, updateSubjects, exportData, importData, signOutUser };
   
   if (loading) {
-      return null; // Or a loading spinner
+      return <div className="flex min-h-screen items-center justify-center"><p>Loading...</p></div>;
   }
   
-  if (profiles.length === 0 || !activeProfile) {
-      return <CreateProfileScreen onProfileCreate={addProfile} />;
+  if (pathname.startsWith('/dashboard') && profiles.length === 0) {
+      return (
+        <DataContext.Provider value={value}>
+            <CreateProfileScreen onProfileCreate={addProfile} />
+        </DataContext.Provider>
+      );
   }
 
-  return (
-    <DataContext.Provider value={value}>
-        <Navbar />
-        <main>{children}</main>
-    </DataContext.Provider>
-  );
+  return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }
 
 export function useData() {
