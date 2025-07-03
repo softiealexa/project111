@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 
 // --- Local Storage Keys ---
-const LOCAL_PROFILE_KEY_PREFIX = 'trackademic_profile_';
+const LOCAL_PROFILE_KEY_PREFIX = 'trackacademic_profile_';
 
 interface DataContextType {
   user: FirebaseUser | null;
@@ -66,7 +66,7 @@ function CreateProfileScreen({ onProfileCreate }: { onProfileCreate: (name: stri
         <div className="flex items-center justify-center min-h-screen bg-background p-4">
             <Card className="w-full max-w-sm">
                 <CardHeader className="text-center">
-                    <CardTitle className="text-2xl">Welcome to Trackademic!</CardTitle>
+                    <CardTitle className="text-2xl">Welcome to TrackAcademic!</CardTitle>
                     <CardDescription>Create a profile to get started.</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -192,7 +192,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `trackademic_data_${user ? user.displayName : 'guest'}.json`;
+    link.download = `trackacademic_data_${user ? user.displayName : 'guest'}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

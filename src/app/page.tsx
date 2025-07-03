@@ -9,7 +9,7 @@ export default function LandingPage() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4 text-center">
       <div className="mb-8 flex items-center gap-3">
         <BookOpenCheck className="h-12 w-12 text-primary" />
-        <h1 className="font-headline text-5xl font-bold">Trackademic</h1>
+        <h1 className="font-headline text-5xl font-bold">TrackAcademic</h1>
       </div>
       <p className="max-w-xl text-lg text-muted-foreground">
         The simplest way to track your academic progress, chapter by chapter. Stay organized, stay motivated, and conquer your courses.

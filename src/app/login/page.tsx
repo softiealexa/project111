@@ -49,7 +49,7 @@ export default function LoginPage() {
         <CardHeader className="text-center">
             <Link href="/" className="mx-auto mb-4 flex w-fit items-center gap-2 text-foreground transition-colors hover:text-primary">
                 <BookOpenCheck className="h-8 w-8 text-primary" />
-                 <span className="font-headline text-3xl font-bold">Trackademic</span>
+                 <span className="font-headline text-3xl font-bold">TrackAcademic</span>
             </Link>
           <CardTitle className="text-2xl">Login</CardTitle>
           <CardDescription>Enter your username and password to access your account.</CardDescription>

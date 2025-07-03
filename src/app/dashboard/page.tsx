@@ -163,7 +163,7 @@ export default function DashboardPage() {
       </TooltipProvider>
 
       <footer className="w-full max-w-5xl px-4 py-6 mt-8 text-center text-sm text-muted-foreground">
-        <p>Built for focused learners. &copy; {new Date().getFullYear()} Trackademic.</p>
+        <p>Built for focused learners. &copy; {new Date().getFullYear()} TrackAcademic.</p>
       </footer>
     </div>
   );
