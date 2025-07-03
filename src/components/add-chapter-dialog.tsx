@@ -68,20 +68,19 @@ export function AddChapterDialog({ onAddChapter }: AddChapterDialogProps) {
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="name" className="text-right">
+          <div className="grid gap-2">
+            <Label htmlFor="name">
               Chapter Name
             </Label>
             <Input
               id="name"
               value={chapterName}
               onChange={(e) => setChapterName(e.target.value)}
-              className="col-span-3"
               placeholder="e.g. Conic Sections"
             />
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="lectures" className="text-right">
+          <div className="grid gap-2">
+            <Label htmlFor="lectures">
               Lectures
             </Label>
             <Input
@@ -89,13 +88,12 @@ export function AddChapterDialog({ onAddChapter }: AddChapterDialogProps) {
               type="number"
               value={lectureCount}
               onChange={(e) => setLectureCount(e.target.value)}
-              className="col-span-3"
               placeholder="1-25"
               min="1"
               max="25"
             />
           </div>
-          {error && <p className="col-span-4 text-center pt-2 text-sm text-destructive">{error}</p>}
+          {error && <p className="pt-2 text-sm text-center text-destructive">{error}</p>}
         </div>
         <DialogFooter>
            <DialogClose asChild>
