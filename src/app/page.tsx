@@ -87,24 +87,24 @@ export default function Home() {
 
   return (
     <div className="flex w-full flex-col items-center bg-background text-foreground pb-12">
-      <div className="w-full max-w-5xl flex-1 px-4 pt-8">
-        {activeProfile.subjects.length > 0 ? (
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <div className="flex items-center justify-between gap-4">
-              <ScrollArea className="flex-1 whitespace-nowrap rounded-md pb-2.5">
-                <TabsList className="bg-muted h-auto justify-start sm:h-10">
-                  {activeProfile.subjects.map((subject) => (
-                    <TabsTrigger key={subject.name} value={subject.name} className="flex items-center gap-2">
-                      {subject.icon && <subject.icon className="h-5 w-5" />}
-                      <span>{subject.name}</span>
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
-              
-              <div className="shrink-0">
-                <TooltipProvider delayDuration={100}>
+      <TooltipProvider delayDuration={100}>
+        <div className="w-full max-w-5xl flex-1 px-4 pt-8">
+          {activeProfile.subjects.length > 0 ? (
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <div className="flex items-center justify-between gap-4">
+                <ScrollArea className="flex-1 whitespace-nowrap rounded-md pb-2.5">
+                  <TabsList className="bg-muted h-auto justify-start sm:h-10">
+                    {activeProfile.subjects.map((subject) => (
+                      <TabsTrigger key={subject.name} value={subject.name} className="flex items-center gap-2">
+                        {subject.icon && <subject.icon className="h-5 w-5" />}
+                        <span>{subject.name}</span>
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                  <ScrollBar orientation="horizontal" />
+                </ScrollArea>
+                
+                <div className="shrink-0">
                   <div className="flex items-center gap-1 p-1.5 shadow-lg border border-primary/20 bg-card/80 backdrop-blur-sm rounded-full">
                       <AddSubjectDialog 
                           onAddSubject={handleAddSubject} 
@@ -140,27 +140,27 @@ export default function Home() {
                           </>
                       )}
                   </div>
-                </TooltipProvider>
+                </div>
               </div>
-            </div>
 
-            {activeProfile.subjects.map((subject) => (
-              <TabsContent key={subject.name} value={subject.name} className="mt-6">
-                <LectureTracker subject={subject} />
-              </TabsContent>
-            ))}
-          </Tabs>
-        ) : (
-          <div className="text-center py-12 flex flex-col items-center gap-4">
-            <h2 className="text-2xl font-headline">No Subjects Yet!</h2>
-            <p className="text-muted-foreground">Get started by adding your first subject.</p>
-            <AddSubjectDialog
-              onAddSubject={handleAddSubject}
-              existingSubjects={[]}
-            />
-          </div>
-        )}
-      </div>
+              {activeProfile.subjects.map((subject) => (
+                <TabsContent key={subject.name} value={subject.name} className="mt-6">
+                  <LectureTracker subject={subject} />
+                </TabsContent>
+              ))}
+            </Tabs>
+          ) : (
+            <div className="text-center py-12 flex flex-col items-center gap-4">
+              <h2 className="text-2xl font-headline">No Subjects Yet!</h2>
+              <p className="text-muted-foreground">Get started by adding your first subject.</p>
+              <AddSubjectDialog
+                onAddSubject={handleAddSubject}
+                existingSubjects={[]}
+              />
+            </div>
+          )}
+        </div>
+      </TooltipProvider>
 
       <footer className="w-full max-w-5xl px-4 py-6 mt-8 text-center text-sm text-muted-foreground">
         <p>Built for focused learners. &copy; {new Date().getFullYear()} Trackademic.</p>
