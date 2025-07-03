@@ -3,7 +3,7 @@ import { doc, getDoc, setDoc, collection, query, where, getDocs } from 'firebase
 import { db, auth, isFirebaseConfigured } from './firebase';
 import type { Profile } from './types';
 
-const FIREBASE_NOT_CONFIGURED_ERROR = "Firebase is not configured. Please ensure you have a .env.local file with the correct NEXT_PUBLIC_ prefixed variables.";
+const FIREBASE_NOT_CONFIGURED_ERROR = "Firebase is not configured. Please add your credentials to a .env.local file for local development, and to your Vercel project's Environment Variables for deployment.";
 
 const checkFirebaseConfig = () => {
     if (!isFirebaseConfigured || !auth || !db) {
@@ -88,7 +88,15 @@ export const signOut = () => {
 };
 
 export const onAuthChanged = (callback: (user: FirebaseUser | null) => void) => {
-    if (!isFirebaseConfigured || !auth) return () => {};
+    // Guard against running this on the server during build.
+    if (typeof window === 'undefined') {
+        return () => {};
+    }
+    
+    if (!isFirebaseConfigured || !auth) {
+        console.error(FIREBASE_NOT_CONFIGURED_ERROR);
+        return () => {};
+    }
     return onFirebaseAuthStateChanged(auth, callback);
 };
 
