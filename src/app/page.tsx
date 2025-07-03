@@ -34,7 +34,7 @@ export default function Home() {
       <div className="w-full max-w-5xl flex-1 px-4 pb-12">
         {subjects.length > 0 ? (
           <Tabs defaultValue={subjects[0]?.name} className="w-full">
-            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 bg-muted">
+            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 bg-muted h-auto sm:h-10">
               {subjects.map((subject) => (
                 <TabsTrigger key={subject.name} value={subject.name} className="flex items-center gap-2">
                   {subject.icon && <subject.icon className="h-5 w-5" />}
