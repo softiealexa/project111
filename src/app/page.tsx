@@ -29,7 +29,7 @@ export default function Home() {
       <header className="w-full max-w-5xl px-4 py-8 md:py-12">
         <div className="flex items-center gap-4">
           <h1 className="font-headline text-4xl md:text-5xl font-bold text-foreground">
-            Welcome, {user.username}!
+            Welcome, {user.displayName || 'Friend'}!
           </h1>
         </div>
         <p className="mt-2 text-lg text-foreground/80">

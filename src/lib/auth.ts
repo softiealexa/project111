@@ -1,60 +1,40 @@
-import { db } from './firebase';
-import { collection, doc, getDoc, setDoc, query, where, getDocs } from 'firebase/firestore';
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged as onFirebaseAuthStateChanged, signOut as firebaseSignOut, User as FirebaseUser } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db, auth, isFirebaseConfigured } from './firebase';
 import type { Subject } from './types';
 
 export interface User {
-    username: string;
+    uid: string;
+    displayName: string | null;
+    photoURL: string | null;
 }
 
-const SESSION_KEY = 'trackademic_session';
+const provider = new GoogleAuthProvider();
 
-export const register = async (username: string, password: string): Promise<boolean> => {
-    if (typeof window === 'undefined' || !username || !password || !db) return false;
-
-    const usersRef = collection(db, 'users');
-    const q = query(usersRef, where("username", "==", username.toLowerCase()));
-    const querySnapshot = await getDocs(q);
-
-    if (!querySnapshot.empty) {
-        return false; 
+export const signIn = async (): Promise<FirebaseUser | null> => {
+    if (!auth) return null;
+    try {
+        const result = await signInWithPopup(auth, provider);
+        return result.user;
+    } catch (error) {
+        console.error("Authentication failed:", error);
+        return null;
     }
-
-    // In a real app, you should hash the password before storing it!
-    const userDocRef = doc(db, 'users', username.toLowerCase());
-    await setDoc(userDocRef, { username, password });
-
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ username }));
-    return true;
 };
 
-export const login = async (username: string, password: string): Promise<boolean> => {
-    if (typeof window === 'undefined' || !db) return false;
-    
-    const userDocRef = doc(db, 'users', username.toLowerCase());
-    const userDoc = await getDoc(userDocRef);
-
-    if (userDoc.exists() && userDoc.data().password === password) {
-        sessionStorage.setItem(SESSION_KEY, JSON.stringify({ username }));
-        return true;
-    }
-
-    return false;
+export const signOut = () => {
+    if (!auth) return;
+    firebaseSignOut(auth);
 };
 
-export const logout = () => {
-    if (typeof window === 'undefined') return;
-    sessionStorage.removeItem(SESSION_KEY);
+export const onAuthChanged = (callback: (user: FirebaseUser | null) => void) => {
+    if (!auth) return () => {};
+    return onFirebaseAuthStateChanged(auth, callback);
 };
 
-export const getCurrentUser = (): User | null => {
-    if (typeof window === 'undefined') return null;
-    const user = sessionStorage.getItem(SESSION_KEY);
-    return user ? JSON.parse(user) : null;
-};
-
-export const getUserData = async (username: string): Promise<Subject[] | null> => {
+export const getUserData = async (uid: string): Promise<Subject[] | null> => {
     if (!db) return null;
-    const userDocRef = doc(db, 'users', username.toLowerCase());
+    const userDocRef = doc(db, 'users', uid);
     const userDoc = await getDoc(userDocRef);
 
     if (userDoc.exists()) {
@@ -64,10 +44,9 @@ export const getUserData = async (username: string): Promise<Subject[] | null> =
     return null;
 }
 
-export const saveUserData = async (username: string, subjects: Subject[]) => {
+export const saveUserData = async (uid: string, subjects: Subject[]) => {
     if (!db) return;
-    const userDocRef = doc(db, 'users', username.toLowerCase());
-    // Remove icon component before storing in Firestore
+    const userDocRef = doc(db, 'users', uid);
     const subjectsToStore = subjects.map(({ icon, ...rest }) => rest);
     await setDoc(userDocRef, { subjects: subjectsToStore }, { merge: true });
 }
