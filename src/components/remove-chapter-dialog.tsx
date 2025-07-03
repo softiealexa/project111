@@ -56,7 +56,7 @@ export function RemoveChapterDialog({ chapter, onConfirm, children }: RemoveChap
 
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
-      <AlertDialogTrigger asChild onClick={(e) => e.stopPropagation()}>
+      <AlertDialogTrigger asChild>
         {children}
       </AlertDialogTrigger>
       <AlertDialogContent>

@@ -1,19 +1,21 @@
 "use client";
 
 import { useState } from 'react';
-import { AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { AccordionContent, AccordionItem } from "@/components/ui/accordion";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { Chapter } from "@/lib/types";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle2, Circle, GripVertical, Trash2 } from 'lucide-react';
+import { CheckCircle2, Circle, GripVertical, Trash2, ChevronDown } from 'lucide-react';
 import { useData } from '@/contexts/data-context';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 import { RemoveChapterDialog } from './remove-chapter-dialog';
 import { Button } from './ui/button';
+import * as AccordionPrimitive from "@radix-ui/react-accordion";
+
 
 interface ChapterAccordionItemProps {
   chapter: Chapter;
@@ -78,8 +80,8 @@ export default function ChapterAccordionItem({ chapter, subjectName, index, id, 
           isDragging && "border-primary/50"
       )}>
         <AccordionItem value={`item-${index}`} className="border-b-0">
-           <AccordionTrigger className="p-4 hover:no-underline group-hover:bg-primary/5">
-            <div className="flex w-full items-center justify-between gap-4">
+          <AccordionPrimitive.Header className="flex items-center group-hover:bg-primary/5">
+            <AccordionPrimitive.Trigger className="flex flex-1 items-center justify-between gap-4 p-4 hover:no-underline [&[data-state=open]>svg.accordion-chevron]:rotate-180">
               <div className="flex items-center gap-2" {...attributes}>
                  <div {...listeners} className="cursor-grab p-2 -ml-2 text-muted-foreground hover:text-foreground touch-none">
                     <GripVertical className="h-5 w-5" />
@@ -97,20 +99,22 @@ export default function ChapterAccordionItem({ chapter, subjectName, index, id, 
               <div className="flex items-center gap-2">
                   <span className="hidden sm:inline-block text-sm font-medium text-muted-foreground w-20 text-right">{completedTasks} / {totalTasks}</span>
                   <Progress value={progress} className="w-32 hidden sm:inline-block" />
-                   <RemoveChapterDialog chapter={chapter} onConfirm={onRemoveChapter}>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => e.stopPropagation()}
-                            className="h-8 w-8 shrink-0 rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                        >
-                            <Trash2 className="h-4 w-4" />
-                            <span className="sr-only">Remove {chapter.name}</span>
-                        </Button>
-                    </RemoveChapterDialog>
               </div>
+              <ChevronDown className="accordion-chevron h-4 w-4 shrink-0 transition-transform duration-200" />
+            </AccordionPrimitive.Trigger>
+            <div className="pr-4">
+              <RemoveChapterDialog chapter={chapter} onConfirm={onRemoveChapter}>
+                  <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0 rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                  >
+                      <Trash2 className="h-4 w-4" />
+                      <span className="sr-only">Remove {chapter.name}</span>
+                  </Button>
+              </RemoveChapterDialog>
             </div>
-          </AccordionTrigger>
+          </AccordionPrimitive.Header>
           <AccordionContent className="p-0">
             <div className="border-t border-border bg-background/50 p-4">
               <div className="space-y-4">
