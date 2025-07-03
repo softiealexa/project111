@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from "@/hooks/use-toast";
 
 export default function RegisterPage() {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
@@ -18,20 +18,20 @@ export default function RegisterPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password.length < 4) {
+    if (password.length < 6) {
       toast({
         title: "Registration Failed",
-        description: "Password must be at least 4 characters long.",
+        description: "Password must be at least 6 characters long.",
         variant: "destructive",
       });
       return;
     }
     setLoading(true);
-    const success = await register(username, password);
+    const success = await register(email, password);
     if (!success) {
        toast({
         title: "Registration Failed",
-        description: "Username may already be taken.",
+        description: "Could not create account. The email may already be in use.",
         variant: "destructive",
       });
       setLoading(false);
@@ -51,14 +51,14 @@ export default function RegisterPage() {
         <CardContent>
           <form onSubmit={handleRegister} className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="username"
-                type="text"
-                placeholder="Choose a username"
+                id="email"
+                type="email"
+                placeholder="your@email.com"
                 required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}
               />
             </div>
@@ -68,7 +68,7 @@ export default function RegisterPage() {
                 id="password" 
                 type="password" 
                 required 
-                placeholder="4+ characters"
+                placeholder="6+ characters"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}

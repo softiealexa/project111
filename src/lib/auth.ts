@@ -1,23 +1,31 @@
-import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged as onFirebaseAuthStateChanged, signOut as firebaseSignOut, User as FirebaseUser } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged as onFirebaseAuthStateChanged, signOut as firebaseSignOut, User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db, auth, isFirebaseConfigured } from './firebase';
+import { db, auth } from './firebase';
 import type { Subject } from './types';
 
 export interface User {
     uid: string;
-    displayName: string | null;
-    photoURL: string | null;
+    email: string | null;
 }
 
-const provider = new GoogleAuthProvider();
-
-export const signIn = async (): Promise<FirebaseUser | null> => {
+export const signIn = async (email: string, password: string): Promise<FirebaseUser | null> => {
     if (!auth) return null;
     try {
-        const result = await signInWithPopup(auth, provider);
+        const result = await signInWithEmailAndPassword(auth, email, password);
         return result.user;
     } catch (error) {
         console.error("Authentication failed:", error);
+        return null;
+    }
+};
+
+export const register = async (email: string, password: string): Promise<FirebaseUser | null> => {
+    if (!auth) return null;
+    try {
+        const result = await createUserWithEmailAndPassword(auth, email, password);
+        return result.user;
+    } catch (error) {
+        console.error("Registration failed:", error);
         return null;
     }
 };

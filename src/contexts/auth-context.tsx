@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { onAuthChanged, signIn as apiSignIn, signOut as apiSignOut, saveUserData, getUserData, User } from '@/lib/auth';
+import { onAuthChanged, signIn as apiSignIn, signOut as apiSignOut, register as apiRegister, saveUserData, getUserData, User } from '@/lib/auth';
 import { isFirebaseConfigured } from '@/lib/firebase';
 import { subjects as initialSubjects } from "@/lib/data";
 import type { Subject } from '@/lib/types';
@@ -12,7 +12,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 interface AuthContextType {
   user: User | null;
   subjects: Subject[];
-  signIn: () => Promise<boolean>;
+  signIn: (email: string, password: string) => Promise<boolean>;
+  register: (email: string, password: string) => Promise<boolean>;
   signOut: () => void;
   updateSubjects: (newSubjects: Subject[]) => Promise<void>;
   loading: boolean;
@@ -55,8 +56,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     setSubjects(restoredSubjects);
     
-    if (!userData && user) {
-        await saveUserData(user.uid, restoredSubjects);
+    const currentUser = auth.currentUser;
+    if (!userData && currentUser) {
+        await saveUserData(currentUser.uid, restoredSubjects);
     }
   };
 
@@ -67,8 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (authUser) {
           const formattedUser: User = { 
             uid: authUser.uid, 
-            displayName: authUser.displayName, 
-            photoURL: authUser.photoURL 
+            email: authUser.email,
           };
           setUser(formattedUser);
           await loadUserAndSubjects(formattedUser.uid);
@@ -89,17 +90,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (loading || !isFirebaseConfigured) return;
+    
+    const isAuthPage = pathname === '/login' || pathname === '/register';
 
-    if (!user && pathname !== '/login') {
+    if (!user && !isAuthPage) {
       router.push('/login');
     }
-    if (user && pathname === '/login') {
+    if (user && isAuthPage) {
       router.push('/');
     }
   }, [user, loading, pathname, router]);
 
-  const handleSignIn = async () => {
-    const user = await apiSignIn();
+  const handleSignIn = async (email: string, password: string) => {
+    const user = await apiSignIn(email, password);
+    return !!user;
+  };
+  
+  const handleRegister = async (email: string, password: string) => {
+    const user = await apiRegister(email, password);
     return !!user;
   };
 
@@ -117,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
   }
 
-  const value = { user, subjects, signIn: handleSignIn, signOut: handleSignOut, updateSubjects, loading };
+  const value = { user, subjects, signIn: handleSignIn, register: handleRegister, signOut: handleSignOut, updateSubjects, loading };
   
   if (!loading && !isFirebaseConfigured) {
     return <FirebaseNotConfiguredAlert />;
