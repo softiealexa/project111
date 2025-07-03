@@ -9,3 +9,8 @@ export interface Subject {
   icon: React.ComponentType<{ className?: string }>;
   chapters: Chapter[];
 }
+
+export interface Profile {
+  name: string;
+  subjects: Subject[];
+}

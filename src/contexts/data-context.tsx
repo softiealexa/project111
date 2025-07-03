@@ -1,8 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
 import { subjects as initialSubjects } from "@/lib/data";
-import type { Subject } from '@/lib/types';
+import type { Subject, Profile } from '@/lib/types';
 import { BookOpenCheck } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,14 +11,14 @@ import { Label } from '@/components/ui/label';
 import { useToast } from "@/hooks/use-toast";
 import Navbar from '@/components/navbar';
 
-// --- Local Storage Keys ---
-const NICKNAME_KEY = 'trackademic_nickname';
-const SUBJECTS_KEY = 'trackademic_subjects';
+// --- Local Storage Key ---
+const DATA_KEY = 'trackademic_data_v2';
 
 interface DataContextType {
-  nickname: string | null;
-  subjects: Subject[];
-  setNickname: (name: string) => void;
+  profiles: Profile[];
+  activeProfile: Profile | undefined;
+  addProfile: (name: string) => void;
+  switchProfile: (name: string) => void;
   updateSubjects: (newSubjects: Subject[]) => void;
   exportData: () => void;
   importData: (file: File) => void;
@@ -26,14 +26,14 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-// --- Welcome Screen Component (Internal to the provider) ---
-function WelcomeScreen({ onNicknameSet }: { onNicknameSet: (name:string) => void }) {
+// --- Create Profile Screen (Internal to the provider) ---
+function CreateProfileScreen({ onProfileCreate }: { onProfileCreate: (name: string) => void }) {
     const [name, setName] = useState('');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (name.trim()) {
-            onNicknameSet(name.trim());
+            onProfileCreate(name.trim());
         }
     };
 
@@ -43,24 +43,24 @@ function WelcomeScreen({ onNicknameSet }: { onNicknameSet: (name:string) => void
                 <CardHeader className="text-center">
                     <CardTitle className="text-2xl">Welcome to Trackademic!</CardTitle>
                     <CardDescription>
-                        Please enter a nickname to get started.
+                        Create a profile to get started. You can manage multiple profiles later.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSubmit} className="grid gap-4">
                         <div className="grid gap-2">
-                            <Label htmlFor="nickname">Nickname</Label>
+                            <Label htmlFor="profile-name">Profile Name</Label>
                             <Input
-                                id="nickname"
+                                id="profile-name"
                                 type="text"
-                                placeholder="Your Nickname"
+                                placeholder="e.g., Course-1, My Studies"
                                 required
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                             />
                         </div>
                         <Button type="submit" className="w-full">
-                            Save and Continue
+                            Create Profile
                         </Button>
                     </form>
                 </CardContent>
@@ -69,77 +69,101 @@ function WelcomeScreen({ onNicknameSet }: { onNicknameSet: (name:string) => void
     );
 }
 
-
 // --- Data Provider ---
 export function DataProvider({ children }: { children: ReactNode }) {
-  const [nickname, setNicknameState] = useState<string | null>(null);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [activeProfileName, setActiveProfileName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+
+  const saveData = (profilesToSave: Profile[], activeNameToSave: string | null) => {
+    try {
+        const dataToStore = {
+            profiles: profilesToSave.map(p => ({
+                ...p,
+                subjects: p.subjects.map(({ icon, ...rest }) => rest)
+            })),
+            activeProfileName: activeNameToSave
+        };
+        localStorage.setItem(DATA_KEY, JSON.stringify(dataToStore));
+    } catch (error) {
+        console.error("Failed to save data to local storage", error);
+        toast({
+            title: "Error",
+            description: "Could not save your progress.",
+            variant: "destructive",
+        });
+    }
+  };
 
   // Load data from localStorage on initial mount
   useEffect(() => {
     try {
-      const storedNickname = localStorage.getItem(NICKNAME_KEY);
-      const storedSubjects = localStorage.getItem(SUBJECTS_KEY);
+      const storedData = localStorage.getItem(DATA_KEY);
 
-      if (storedNickname) {
-        setNicknameState(storedNickname);
-        if (storedSubjects) {
-          const parsedSubjects = JSON.parse(storedSubjects);
-          // Restore icons
-          const restoredSubjects = parsedSubjects.map((savedSubject: any) => {
-            const originalSubject = initialSubjects.find(s => s.name === savedSubject.name);
-            return {
-              ...savedSubject,
-              icon: originalSubject ? originalSubject.icon : BookOpenCheck,
-            };
-          });
-          setSubjects(restoredSubjects);
-        } else {
-          setSubjects(initialSubjects);
+      if (storedData) {
+        const parsedData = JSON.parse(storedData);
+        if (parsedData.profiles && parsedData.activeProfileName) {
+            // Restore icons
+            const restoredProfiles = parsedData.profiles.map((savedProfile: any) => ({
+                ...savedProfile,
+                subjects: savedProfile.subjects.map((savedSubject: any) => {
+                    const originalSubject = initialSubjects.find(s => s.name === savedSubject.name);
+                    return {
+                        ...savedSubject,
+                        icon: originalSubject ? originalSubject.icon : BookOpenCheck,
+                    };
+                })
+            }));
+
+            setProfiles(restoredProfiles);
+            setActiveProfileName(parsedData.activeProfileName);
         }
       }
     } catch (error) {
       console.error("Failed to load data from local storage", error);
-      setSubjects(initialSubjects); // Fallback to initial data
     }
     setLoading(false);
   }, []);
 
-  const setNickname = (name: string) => {
-      localStorage.setItem(NICKNAME_KEY, name);
-      setNicknameState(name);
-      if(subjects.length === 0){
-          localStorage.setItem(SUBJECTS_KEY, JSON.stringify(initialSubjects));
-          setSubjects(initialSubjects);
-      }
+  const addProfile = (name: string) => {
+    const newProfile: Profile = { name, subjects: initialSubjects };
+    const newProfiles = [...profiles, newProfile];
+    setProfiles(newProfiles);
+    setActiveProfileName(name);
+    saveData(newProfiles, name);
+  };
+
+  const switchProfile = (name: string) => {
+    setActiveProfileName(name);
+    saveData(profiles, name);
   };
 
   const updateSubjects = (newSubjects: Subject[]) => {
-      setSubjects(newSubjects);
-      try {
-        const subjectsToStore = newSubjects.map(({ icon, ...rest }) => rest);
-        localStorage.setItem(SUBJECTS_KEY, JSON.stringify(subjectsToStore));
-      } catch (error) {
-          console.error("Failed to save subjects to local storage", error);
-          toast({
-              title: "Error",
-              description: "Could not save your progress.",
-              variant: "destructive",
-          });
-      }
+      if (!activeProfileName) return;
+
+      const newProfiles = profiles.map(p => 
+          p.name === activeProfileName ? { ...p, subjects: newSubjects } : p
+      );
+      setProfiles(newProfiles);
+      saveData(newProfiles, activeProfileName);
   };
   
   const exportData = () => {
     try {
-        const subjectsToStore = subjects.map(({ icon, ...rest }) => rest);
-        const dataStr = JSON.stringify({ nickname, subjects: subjectsToStore }, null, 2);
+        const dataToStore = {
+            profiles: profiles.map(p => ({
+                ...p,
+                subjects: p.subjects.map(({ icon, ...rest }) => rest)
+            })),
+            activeProfileName,
+        };
+        const dataStr = JSON.stringify(dataToStore, null, 2);
         const dataBlob = new Blob([dataStr], { type: 'application/json' });
         const url = URL.createObjectURL(dataBlob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = 'trackademic_progress.json';
+        link.download = 'trackademic_profiles.json';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -164,16 +188,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
           try {
               const text = e.target?.result as string;
               const data = JSON.parse(text);
-              if (data.nickname && Array.isArray(data.subjects)) {
-                   const restoredSubjects = data.subjects.map((savedSubject: any) => {
-                        const originalSubject = initialSubjects.find(s => s.name === savedSubject.name);
-                        return {
-                        ...savedSubject,
-                        icon: originalSubject ? originalSubject.icon : BookOpenCheck,
-                        };
-                    });
-                  setNickname(data.nickname);
-                  updateSubjects(restoredSubjects);
+              if (data.profiles && Array.isArray(data.profiles) && data.activeProfileName) {
+                   const restoredProfiles = data.profiles.map((savedProfile: any) => ({
+                        ...savedProfile,
+                        subjects: savedProfile.subjects.map((savedSubject: any) => {
+                           const originalSubject = initialSubjects.find(s => s.name === savedSubject.name);
+                           return {
+                               ...savedSubject,
+                               icon: originalSubject ? originalSubject.icon : BookOpenCheck,
+                           };
+                        })
+                   }));
+                  setProfiles(restoredProfiles);
+                  setActiveProfileName(data.activeProfileName);
+                  saveData(restoredProfiles, data.activeProfileName);
                   toast({
                       title: "Import Successful",
                       description: "Your progress has been restored.",
@@ -193,14 +221,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
       reader.readAsText(file);
   };
 
-  const value = { nickname, subjects, setNickname, updateSubjects, exportData, importData };
+  const activeProfile = useMemo(() => {
+    return profiles.find(p => p.name === activeProfileName);
+  }, [profiles, activeProfileName]);
+  
+  const value = { profiles, activeProfile, addProfile, switchProfile, updateSubjects, exportData, importData };
   
   if (loading) {
       return null; // Or a loading spinner
   }
   
-  if (!nickname) {
-      return <DataContext.Provider value={value}><WelcomeScreen onNicknameSet={setNickname} /></DataContext.Provider>;
+  if (profiles.length === 0) {
+      return <DataContext.Provider value={value}><CreateProfileScreen onProfileCreate={addProfile} /></DataContext.Provider>;
   }
 
   return (
