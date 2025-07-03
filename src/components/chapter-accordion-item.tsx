@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import type { Chapter } from "@/lib/types";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle2, Circle, GripVertical } from 'lucide-react';
-import { useAuth } from '@/contexts/auth-context';
+import { useData } from '@/contexts/data-context';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -22,7 +22,7 @@ interface ChapterAccordionItemProps {
 const TASKS = ["Lecture", "DPP", "Module", "Class Qs"];
 
 export default function ChapterAccordionItem({ chapter, subjectName, index, id }: ChapterAccordionItemProps) {
-  const { subjects, updateSubjects } = useAuth();
+  const { subjects, updateSubjects } = useData();
   const [checkedState, setCheckedState] = useState<Record<string, boolean>>(chapter.checkedState || {});
   
   const {

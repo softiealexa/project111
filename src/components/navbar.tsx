@@ -1,28 +1,29 @@
 'use client';
 
 import Link from 'next/link';
-import { useAuth } from '@/contexts/auth-context';
+import { useData } from '@/contexts/data-context';
 import { Button } from '@/components/ui/button';
-import { BookOpenCheck, LogIn, LogOut, UserPlus } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { usePathname } from 'next/navigation';
+import { BookOpenCheck, Download, Upload, User } from 'lucide-react';
+import { useRef } from 'react';
 
 export default function Navbar() {
-  const { user, signOut } = useAuth();
-  const pathname = usePathname();
-  
-  const getAvatarFallback = () => {
-      if (!user) return 'U';
-      return (user.displayName || user.email || 'U').charAt(0).toUpperCase();
-  }
+  const { nickname, exportData, importData } = useData();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      importData(file);
+    }
+    // Reset file input to allow importing the same file again
+    if(fileInputRef.current) {
+        fileInputRef.current.value = '';
+    }
+  };
 
   return (
     <header className="bg-card border-b border-border sticky top-0 z-50">
@@ -33,49 +34,29 @@ export default function Navbar() {
             <span className="font-headline text-2xl font-bold">Trackademic</span>
           </Link>
           <div className="flex items-center gap-2 sm:gap-4">
-            {user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <Avatar className="h-8 w-8">
-                       <AvatarImage src={''} alt={user.displayName || 'User'} />
-                       <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{user.displayName}</p>
-                      <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={signOut}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-               <div className="flex items-center gap-2">
-                    {pathname !== '/login' && (
-                        <Button asChild variant="ghost">
-                            <Link href="/login">
-                            <LogIn className="mr-2 h-4 w-4" />
-                            Login
-                            </Link>
-                        </Button>
-                    )}
-                    {pathname !== '/register' && (
-                        <Button asChild>
-                            <Link href="/register">
-                            <UserPlus className="mr-2 h-4 w-4" />
-                            Sign Up
-                            </Link>
-                        </Button>
-                    )}
-               </div>
+            {nickname && (
+              <>
+                <div className="flex items-center gap-2">
+                    <User className="h-5 w-5 text-muted-foreground" />
+                    <span className="font-medium text-foreground">{nickname}</span>
+                </div>
+
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    className="hidden"
+                    accept=".json"
+                />
+                <Button variant="outline" size="sm" onClick={handleImportClick}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Import
+                </Button>
+                <Button variant="outline" size="sm" onClick={exportData}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Export
+                </Button>
+              </>
             )}
           </div>
         </div>

@@ -9,10 +9,3 @@ export interface Subject {
   icon: React.ComponentType<{ className?: string }>;
   chapters: Chapter[];
 }
-
-export interface User {
-    uid: string;
-    email: string | null;
-    username: string | null;
-    displayName: string | null;
-}

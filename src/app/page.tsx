@@ -1,13 +1,12 @@
 'use client';
 
-import { useAuth } from '@/contexts/auth-context';
-import { BookOpenCheck } from 'lucide-react';
-import type { Chapter, Subject } from '@/lib/types';
+import { useData } from '@/contexts/data-context';
+import type { Chapter } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LectureTracker from "@/components/lecture-tracker";
 
 export default function Home() {
-  const { user, subjects, updateSubjects, loading } = useAuth();
+  const { nickname, subjects, updateSubjects } = useData();
 
   const handleAddChapter = (subjectName: string, newChapter: Chapter) => {
     const newSubjects = subjects.map(subject => {
@@ -20,16 +19,12 @@ export default function Home() {
     updateSubjects(newSubjects);
   };
   
-  if (loading || !user) {
-    return null; 
-  }
-  
   return (
     <div className="flex w-full flex-col items-center bg-background text-foreground">
       <header className="w-full max-w-5xl px-4 py-8 md:py-12">
         <div className="flex items-center gap-4">
           <h1 className="font-headline text-4xl md:text-5xl font-bold text-foreground">
-            Welcome, {user.displayName || 'Friend'}!
+            Welcome, {nickname || 'Friend'}!
           </h1>
         </div>
         <p className="mt-2 text-lg text-foreground/80">

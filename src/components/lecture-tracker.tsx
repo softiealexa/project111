@@ -5,7 +5,7 @@ import type { Subject, Chapter } from "@/lib/types";
 import { Accordion } from "@/components/ui/accordion";
 import ChapterAccordionItem from "./chapter-accordion-item";
 import { AddChapterDialog } from "./add-chapter-dialog";
-import { useAuth } from '@/contexts/auth-context';
+import { useData } from '@/contexts/data-context';
 import {
   DndContext,
   closestCenter,
@@ -28,7 +28,7 @@ interface LectureTrackerProps {
 }
 
 export default function LectureTracker({ subject, onAddChapter }: LectureTrackerProps) {
-  const { subjects, updateSubjects } = useAuth();
+  const { subjects, updateSubjects } = useData();
   
   const chapterIds = useMemo(() => subject.chapters.map((c, i) => `${subject.name}-${c.name}-${i}`), [subject.chapters, subject.name]);
 
