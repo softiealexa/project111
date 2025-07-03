@@ -7,22 +7,25 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { Chapter } from "@/lib/types";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle2, Circle, GripVertical } from 'lucide-react';
+import { CheckCircle2, Circle, GripVertical, Trash2 } from 'lucide-react';
 import { useData } from '@/contexts/data-context';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
+import { RemoveChapterDialog } from './remove-chapter-dialog';
+import { Button } from './ui/button';
 
 interface ChapterAccordionItemProps {
   chapter: Chapter;
   subjectName: string;
   index: number;
   id: string;
+  onRemoveChapter: () => void;
 }
 
 const TASKS = ["Lecture", "DPP", "Module", "Class Qs"];
 
-export default function ChapterAccordionItem({ chapter, subjectName, index, id }: ChapterAccordionItemProps) {
+export default function ChapterAccordionItem({ chapter, subjectName, index, id, onRemoveChapter }: ChapterAccordionItemProps) {
   const { subjects, updateSubjects } = useData();
   const [checkedState, setCheckedState] = useState<Record<string, boolean>>(chapter.checkedState || {});
   
@@ -91,9 +94,20 @@ export default function ChapterAccordionItem({ chapter, subjectName, index, id }
                   </p>
                 </div>
               </div>
-              <div className="hidden md:flex items-center gap-4">
-                  <span className="text-sm font-medium text-muted-foreground w-20 text-right">{completedTasks} / {totalTasks}</span>
-                  <Progress value={progress} className="w-32" />
+              <div className="flex items-center gap-2">
+                  <span className="hidden sm:inline-block text-sm font-medium text-muted-foreground w-20 text-right">{completedTasks} / {totalTasks}</span>
+                  <Progress value={progress} className="w-32 hidden sm:inline-block" />
+                   <RemoveChapterDialog chapter={chapter} onConfirm={onRemoveChapter}>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => e.stopPropagation()}
+                            className="h-8 w-8 shrink-0 rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                        >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Remove {chapter.name}</span>
+                        </Button>
+                    </RemoveChapterDialog>
               </div>
             </div>
           </AccordionTrigger>

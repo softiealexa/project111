@@ -39,6 +39,17 @@ export default function LectureTracker({ subject, onAddChapter }: LectureTracker
     })
   );
 
+  const handleRemoveChapter = (chapterIndexToRemove: number) => {
+    const newSubjects = subjects.map(s => {
+      if (s.name === subject.name) {
+        const updatedChapters = s.chapters.filter((_, index) => index !== chapterIndexToRemove);
+        return { ...s, chapters: updatedChapters };
+      }
+      return s;
+    });
+    updateSubjects(newSubjects);
+  };
+
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
 
@@ -74,7 +85,9 @@ export default function LectureTracker({ subject, onAddChapter }: LectureTracker
                 id={`${subject.name}-${chapter.name}-${index}`}
                 chapter={chapter} 
                 subjectName={subject.name} 
-                index={index} />
+                index={index}
+                onRemoveChapter={() => handleRemoveChapter(index)}
+              />
             ))}
           </Accordion>
         </SortableContext>
