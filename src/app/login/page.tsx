@@ -26,9 +26,10 @@ export default function LoginPage() {
 
     if (error) {
       console.error(error);
+      const errorMessage = typeof error === 'string' ? error : 'An unexpected error occurred during login.';
       toast({
         title: 'Login Failed',
-        description: error,
+        description: errorMessage,
         variant: 'destructive',
       });
     } else {

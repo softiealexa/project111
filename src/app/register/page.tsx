@@ -35,9 +35,10 @@ export default function RegisterPage() {
 
     if (error) {
        console.error(error);
+       const errorMessage = typeof error === 'string' ? error : 'An unexpected error occurred during registration.';
        toast({
         title: 'Registration Failed',
-        description: error,
+        description: errorMessage,
         variant: 'destructive',
       });
     } else {
