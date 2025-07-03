@@ -34,8 +34,8 @@ export function AddChapterDialog({ onAddChapter }: AddChapterDialogProps) {
         setError("Chapter name is required.");
         return;
     }
-    if (isNaN(lectures) || lectures <= 0) {
-        setError("Please enter a valid number of lectures (must be > 0).");
+    if (isNaN(lectures) || lectures < 1 || lectures > 25) {
+        setError("Please enter a valid number of lectures (between 1 and 25).");
         return;
     }
 
@@ -90,7 +90,9 @@ export function AddChapterDialog({ onAddChapter }: AddChapterDialogProps) {
               value={lectureCount}
               onChange={(e) => setLectureCount(e.target.value)}
               className="col-span-3"
-              placeholder="e.g. 5"
+              placeholder="1-25"
+              min="1"
+              max="25"
             />
           </div>
           {error && <p className="col-span-4 text-sm text-destructive">{error}</p>}
