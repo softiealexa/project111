@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import type { Chapter } from "@/lib/types";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle2, Circle } from 'lucide-react';
+import { useAuth } from '@/contexts/auth-context';
 
 interface ChapterAccordionItemProps {
   chapter: Chapter;
@@ -18,12 +19,14 @@ interface ChapterAccordionItemProps {
 const TASKS = ["Lecture", "DPP", "Module", "Class Qs"];
 
 export default function ChapterAccordionItem({ chapter, subjectName, index }: ChapterAccordionItemProps) {
-  const storageKey = `chapter-${subjectName}-${chapter.name}`;
+  const { user } = useAuth();
+  const storageKey = user ? `chapter-${user.username}-${subjectName}-${chapter.name}` : null;
   const totalTasks = chapter.lectureCount * TASKS.length;
   const [completedTasks, setCompletedTasks] = useState(0);
   const [checkedState, setCheckedState] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
+    if (!storageKey) return;
     try {
       const savedState = localStorage.getItem(storageKey);
       if (savedState) {
@@ -34,12 +37,14 @@ export default function ChapterAccordionItem({ chapter, subjectName, index }: Ch
         setCheckedState({});
         setCompletedTasks(0);
       }
-    } catch (error) {
+    } catch (error)
+    {
       console.error("Failed to load state from localStorage", error);
     }
   }, [storageKey]);
 
   const handleCheckboxChange = (id: string, checked: boolean) => {
+    if (!storageKey) return;
     const newState = { ...checkedState, [id]: checked };
     setCheckedState(newState);
     setCompletedTasks(Object.values(newState).filter(Boolean).length);

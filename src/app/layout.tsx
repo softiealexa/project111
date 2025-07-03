@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
+import { AuthProvider } from '@/contexts/auth-context';
+import Navbar from '@/components/navbar';
 
 export const metadata: Metadata = {
   title: 'Trackademic',
@@ -20,8 +22,11 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        {children}
-        <Toaster />
+        <AuthProvider>
+            <Navbar />
+            <main>{children}</main>
+            <Toaster />
+        </AuthProvider>
       </body>
     </html>
   );
