@@ -73,7 +73,7 @@ export function RemoveChapterDialog({ chapters, onConfirm }: RemoveChapterDialog
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="destructive" className="bg-destructive/90 hover:bg-destructive">
+        <Button variant="destructive" className="border border-destructive bg-transparent text-destructive hover:bg-destructive hover:text-destructive-foreground">
             <Trash2 className="mr-2 h-4 w-4" />
             Remove Chapter
         </Button>
