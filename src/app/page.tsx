@@ -86,22 +86,12 @@ export default function Home() {
 
   return (
     <div className="flex w-full flex-col items-center bg-background text-foreground pb-12">
-      <header className="w-full max-w-5xl px-4 py-8 md:py-12 border-b border-border/50 mb-8">
-        <div className="flex items-center gap-4">
-          <h1 className="font-headline text-4xl md:text-5xl font-bold bg-gradient-to-br from-foreground to-muted-foreground bg-clip-text text-transparent">
-            Profile: {activeProfile.name}
-          </h1>
-        </div>
-        <p className="mt-2 text-lg text-foreground/80">
-          Your daily guide to mastering concepts, one lecture at a time.
-        </p>
-      </header>
-      <div className="w-full max-w-5xl flex-1 px-4">
+      <div className="w-full max-w-5xl flex-1 px-4 pt-8">
         {activeProfile.subjects.length > 0 ? (
           <>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <ScrollArea className="w-full whitespace-nowrap rounded-md pb-2.5 text-center">
-                <TabsList className="bg-muted h-auto sm:h-10 justify-start text-left">
+              <ScrollArea className="w-full whitespace-nowrap rounded-md pb-2.5">
+                <TabsList className="bg-muted h-auto justify-center sm:h-10">
                   {activeProfile.subjects.map((subject) => (
                     <TabsTrigger key={subject.name} value={subject.name} className="flex items-center gap-2">
                       {subject.icon && <subject.icon className="h-5 w-5" />}

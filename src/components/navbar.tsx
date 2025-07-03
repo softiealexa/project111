@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useData } from '@/contexts/data-context';
 import { Button } from '@/components/ui/button';
-import { BookOpenCheck, Download, Upload, ChevronsUpDown, Check } from 'lucide-react';
+import { BookOpenCheck, Download, Upload, ChevronsUpDown, Check, Settings } from 'lucide-react';
 import { useRef } from 'react';
 import {
   DropdownMenu,
@@ -35,12 +35,14 @@ export default function Navbar() {
   };
 
   return (
-    <header className="bg-card/80 border-b border-border backdrop-blur-sm sticky top-0 z-50">
+    <header className="bg-background/80 border-b border-border/50 backdrop-blur-sm sticky top-0 z-50">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <Link href="/" className="flex items-center gap-2 text-foreground hover:text-primary transition-colors">
-            <BookOpenCheck className="h-7 w-7" />
-            <span className="font-headline text-2xl font-bold">Trackademic</span>
+          <Link href="/" className="flex items-center gap-2.5 text-foreground hover:text-primary transition-colors">
+            <BookOpenCheck className="h-7 w-7 text-primary" />
+            <span className="font-headline text-2xl font-bold bg-gradient-to-r from-primary via-foreground/90 to-primary bg-clip-text text-transparent">
+              Trackademic
+            </span>
           </Link>
           <div className="flex items-center gap-2 sm:gap-4">
             {activeProfile && (
@@ -73,14 +75,25 @@ export default function Navbar() {
                     className="hidden"
                     accept=".json"
                 />
-                <Button variant="outline" size="sm" onClick={handleImportClick} className="hidden sm:inline-flex">
-                    <Upload className="mr-2 h-4 w-4" />
-                    Import
-                </Button>
-                <Button variant="outline" size="sm" onClick={exportData} className="hidden sm:inline-flex">
-                    <Download className="mr-2 h-4 w-4" />
-                    Export
-                </Button>
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                     <Button variant="ghost" size="icon">
+                        <Settings className="h-5 w-5" />
+                        <span className="sr-only">Data Options</span>
+                     </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onSelect={handleImportClick}>
+                      <Upload className="mr-2 h-4 w-4" />
+                      <span>Import Data</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={exportData}>
+                      <Download className="mr-2 h-4 w-4" />
+                      <span>Export Data</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
             )}
           </div>
