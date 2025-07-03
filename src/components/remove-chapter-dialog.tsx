@@ -3,40 +3,50 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import type { Chapter } from "@/lib/types";
+import { Trash2 } from "lucide-react";
 
 interface RemoveChapterDialogProps {
-  chapter: Chapter;
-  onConfirm: () => void;
-  children: React.ReactNode;
+  chapters: Chapter[];
+  onConfirm: (chapterName: string) => void;
 }
 
-export function RemoveChapterDialog({ chapter, onConfirm, children }: RemoveChapterDialogProps) {
+export function RemoveChapterDialog({ chapters, onConfirm }: RemoveChapterDialogProps) {
   const [open, setOpen] = useState(false);
+  const [selectedChapterName, setSelectedChapterName] = useState("");
   const [confirmationText, setConfirmationText] = useState("");
   const { toast } = useToast();
 
+  const selectedChapter = chapters.find(c => c.name === selectedChapterName);
+
   const handleRemove = () => {
-    if (confirmationText === chapter.name) {
-      onConfirm();
+    if (selectedChapter && confirmationText === selectedChapter.name) {
+      onConfirm(selectedChapter.name);
       toast({
         title: "Chapter Removed",
-        description: `"${chapter.name}" has been successfully removed.`,
+        description: `"${selectedChapter.name}" has been successfully removed.`,
       });
       setOpen(false);
+      setSelectedChapterName("");
       setConfirmationText("");
     } else {
       toast({
@@ -50,47 +60,76 @@ export function RemoveChapterDialog({ chapter, onConfirm, children }: RemoveChap
   const handleOpenChange = (isOpen: boolean) => {
     setOpen(isOpen);
     if (!isOpen) {
+        setSelectedChapterName("");
         setConfirmationText("");
     }
   }
 
+  const handleSelectChange = (value: string) => {
+      setSelectedChapterName(value);
+      setConfirmationText("");
+  }
+
   return (
-    <AlertDialog open={open} onOpenChange={handleOpenChange}>
-      <AlertDialogTrigger asChild>
-        {children}
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete the chapter 
-            <span className="font-bold text-foreground"> {chapter.name}</span> and all its associated progress.
-            <br /><br />
-            To confirm, please type the chapter name below.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <div className="grid gap-2 py-2">
-            <Label htmlFor="confirmation" className="sr-only">
-              Chapter Name
-            </Label>
-            <Input
-              id="confirmation"
-              value={confirmationText}
-              onChange={(e) => setConfirmationText(e.target.value)}
-              placeholder={chapter.name}
-              autoComplete="off"
-            />
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger asChild>
+        <Button variant="destructive" className="bg-destructive/90 hover:bg-destructive">
+            <Trash2 className="mr-2 h-4 w-4" />
+            Remove Chapter
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Remove a Chapter</DialogTitle>
+          <DialogDescription>
+            Select a chapter to remove. This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-2">
+            <div className="grid gap-2">
+                <Label htmlFor="chapter-select">Chapter</Label>
+                <Select value={selectedChapterName} onValueChange={handleSelectChange}>
+                    <SelectTrigger id="chapter-select">
+                        <SelectValue placeholder="Select a chapter to remove" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {chapters.map(chapter => (
+                            <SelectItem key={chapter.name} value={chapter.name}>
+                                {chapter.name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+
+            {selectedChapter && (
+                <div className="grid gap-2 pt-4">
+                    <Label htmlFor="confirmation">
+                        To confirm, type <span className="font-bold text-foreground">{selectedChapter.name}</span> below.
+                    </Label>
+                    <Input
+                        id="confirmation"
+                        value={confirmationText}
+                        onChange={(e) => setConfirmationText(e.target.value)}
+                        placeholder="Type chapter name to confirm"
+                        autoComplete="off"
+                    />
+                </div>
+            )}
         </div>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="outline">Cancel</Button>
+          </DialogClose>
+          <Button
             onClick={handleRemove}
-            disabled={confirmationText !== chapter.name}
+            disabled={!selectedChapter || confirmationText !== selectedChapter.name}
+            variant="destructive"
           >
             Remove Chapter
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

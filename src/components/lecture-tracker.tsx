@@ -5,6 +5,7 @@ import type { Subject, Chapter } from "@/lib/types";
 import { Accordion } from "@/components/ui/accordion";
 import ChapterAccordionItem from "./chapter-accordion-item";
 import { AddChapterDialog } from "./add-chapter-dialog";
+import { RemoveChapterDialog } from "./remove-chapter-dialog";
 import { useData } from '@/contexts/data-context';
 import {
   DndContext,
@@ -39,10 +40,10 @@ export default function LectureTracker({ subject, onAddChapter }: LectureTracker
     })
   );
 
-  const handleRemoveChapter = (chapterIndexToRemove: number) => {
+  const handleRemoveChapter = (chapterNameToRemove: string) => {
     const newSubjects = subjects.map(s => {
       if (s.name === subject.name) {
-        const updatedChapters = s.chapters.filter((_, index) => index !== chapterIndexToRemove);
+        const updatedChapters = s.chapters.filter((chapter) => chapter.name !== chapterNameToRemove);
         return { ...s, chapters: updatedChapters };
       }
       return s;
@@ -86,14 +87,16 @@ export default function LectureTracker({ subject, onAddChapter }: LectureTracker
                 chapter={chapter} 
                 subjectName={subject.name} 
                 index={index}
-                onRemoveChapter={() => handleRemoveChapter(index)}
               />
             ))}
           </Accordion>
         </SortableContext>
       </DndContext>
-      <div className="mt-4 flex justify-center">
+      <div className="mt-8 flex justify-center gap-4">
         <AddChapterDialog onAddChapter={onAddChapter} />
+        {subject.chapters.length > 0 && (
+          <RemoveChapterDialog chapters={subject.chapters} onConfirm={handleRemoveChapter} />
+        )}
       </div>
     </div>
   );
