@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
@@ -27,16 +28,25 @@ export default function RegisterPage() {
       return;
     }
     setLoading(true);
-    const success = await register(email, password);
-    if (!success) {
-       toast({
-        title: "Registration Failed",
-        description: "Could not create account. The email may already be in use.",
-        variant: "destructive",
-      });
-      setLoading(false);
+    try {
+      const success = await register(email, password, username);
+      if (!success) {
+        toast({
+            title: "Registration Failed",
+            description: "Could not create account. Please try again.",
+            variant: "destructive",
+        });
+        setLoading(false);
+      }
+      // On success, the auth context will handle redirection.
+    } catch (error: any) {
+        toast({
+            title: "Registration Failed",
+            description: error.message || "An unexpected error occurred.",
+            variant: "destructive",
+        });
+        setLoading(false);
     }
-    // On success, the auth context will handle redirection.
   };
 
   return (
@@ -51,11 +61,23 @@ export default function RegisterPage() {
         <CardContent>
           <form onSubmit={handleRegister} className="grid gap-4">
             <div className="grid gap-2">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                type="text"
+                placeholder="Choose a unique username"
+                required
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                disabled={loading}
+              />
+            </div>
+            <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="your@email.com"
+                placeholder="your@email.com (for recovery)"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}

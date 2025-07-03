@@ -2,7 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { onAuthChanged, signIn as apiSignIn, signOut as apiSignOut, register as apiRegister, saveUserData, getUserData, User } from '@/lib/auth';
+import { onAuthChanged, signInWithUsername as apiSignIn, signOut as apiSignOut, register as apiRegister, saveUserData, getUserData, User } from '@/lib/auth';
+import { auth as firebaseAuthInstance } from '@/lib/firebase';
 import { isFirebaseConfigured } from '@/lib/firebase';
 import { subjects as initialSubjects } from "@/lib/data";
 import type { Subject } from '@/lib/types';
@@ -12,8 +13,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 interface AuthContextType {
   user: User | null;
   subjects: Subject[];
-  signIn: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string) => Promise<boolean>;
+  signIn: (username: string, password: string) => Promise<boolean>;
+  register: (email: string, password: string, username: string) => Promise<boolean>;
   signOut: () => void;
   updateSubjects: (newSubjects: Subject[]) => Promise<void>;
   loading: boolean;
@@ -45,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   const loadUserAndSubjects = async (userId: string) => {
     const userData = await getUserData(userId);
-    const userSubjects = userData || initialSubjects;
+    const userSubjects = userData?.subjects || initialSubjects;
 
     const restoredSubjects = userSubjects.map((savedSubject: any) => {
         const originalSubject = initialSubjects.find(s => s.name === savedSubject.name);
@@ -56,8 +57,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     setSubjects(restoredSubjects);
     
-    const currentUser = auth.currentUser;
-    if (!userData && currentUser) {
+    const currentUser = firebaseAuthInstance?.currentUser;
+    if (!userData?.subjects && currentUser) {
         await saveUserData(currentUser.uid, restoredSubjects);
     }
   };
@@ -67,9 +68,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isFirebaseConfigured) {
       unsubscribe = onAuthChanged(async (authUser) => {
         if (authUser) {
+          const userData = await getUserData(authUser.uid);
           const formattedUser: User = { 
             uid: authUser.uid, 
             email: authUser.email,
+            displayName: authUser.displayName,
+            username: userData?.username || null
           };
           setUser(formattedUser);
           await loadUserAndSubjects(formattedUser.uid);
@@ -101,13 +105,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, loading, pathname, router]);
 
-  const handleSignIn = async (email: string, password: string) => {
-    const user = await apiSignIn(email, password);
+  const handleSignIn = async (username: string, password: string) => {
+    const user = await apiSignIn(username, password);
     return !!user;
   };
   
-  const handleRegister = async (email: string, password: string) => {
-    const user = await apiRegister(email, password);
+  const handleRegister = async (email: string, password: string, username: string) => {
+    const user = await apiRegister(email, password, username);
     return !!user;
   };
 
