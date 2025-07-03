@@ -11,7 +11,6 @@ import { AddChapterDialog } from '@/components/add-chapter-dialog';
 import { RemoveChapterDialog } from '@/components/remove-chapter-dialog';
 import { Book, FolderPlus, PlusCircle, Trash2 } from 'lucide-react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 
@@ -86,7 +85,7 @@ export default function Home() {
   }
 
   return (
-    <div className="flex w-full flex-col items-center bg-background text-foreground pb-24">
+    <div className="flex w-full flex-col items-center bg-background text-foreground pb-12">
       <header className="w-full max-w-5xl px-4 py-8 md:py-12 border-b border-border/50 mb-8">
         <div className="flex items-center gap-4">
           <h1 className="font-headline text-4xl md:text-5xl font-bold bg-gradient-to-br from-foreground to-muted-foreground bg-clip-text text-transparent">
@@ -97,26 +96,64 @@ export default function Home() {
           Your daily guide to mastering concepts, one lecture at a time.
         </p>
       </header>
-      <div className="w-full max-w-5xl flex-1 px-4 pb-12">
+      <div className="w-full max-w-5xl flex-1 px-4">
         {activeProfile.subjects.length > 0 ? (
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <ScrollArea className="w-full whitespace-nowrap rounded-md pb-2.5">
-              <TabsList className="bg-muted h-auto sm:h-10 justify-start">
-                {activeProfile.subjects.map((subject) => (
-                  <TabsTrigger key={subject.name} value={subject.name} className="flex items-center gap-2">
-                    {subject.icon && <subject.icon className="h-5 w-5" />}
-                    <span>{subject.name}</span>
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
-            {activeProfile.subjects.map((subject) => (
-              <TabsContent key={subject.name} value={subject.name} className="mt-6">
-                <LectureTracker subject={subject} />
-              </TabsContent>
-            ))}
-          </Tabs>
+          <>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <ScrollArea className="w-full whitespace-nowrap rounded-md pb-2.5">
+                <TabsList className="bg-muted h-auto sm:h-10 justify-start">
+                  {activeProfile.subjects.map((subject) => (
+                    <TabsTrigger key={subject.name} value={subject.name} className="flex items-center gap-2">
+                      {subject.icon && <subject.icon className="h-5 w-5" />}
+                      <span>{subject.name}</span>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
+              {activeProfile.subjects.map((subject) => (
+                <TabsContent key={subject.name} value={subject.name} className="mt-6">
+                  <LectureTracker subject={subject} />
+                </TabsContent>
+              ))}
+            </Tabs>
+            
+            <div className="mt-8 flex justify-center">
+                <div className="flex items-center gap-1 p-2 shadow-lg border border-primary/20 bg-card/80 backdrop-blur-sm rounded-full">
+                    <AddSubjectDialog 
+                        onAddSubject={handleAddSubject} 
+                        existingSubjects={activeProfile.subjects.map(s => s.name)}
+                    />
+                    {activeProfile.subjects.length > 0 && (
+                        <RemoveSubjectDialog
+                            subjects={activeProfile.subjects}
+                            onConfirm={handleRemoveSubject}
+                        />
+                    )}
+                    
+                    {(activeProfile.subjects.length > 0) && <Separator orientation="vertical" className="h-6 mx-1 bg-border/50" />}
+
+                    {activeSubject ? (
+                        <>
+                            <AddChapterDialog onAddChapter={handleAddChapter} />
+                            {activeSubject.chapters.length > 0 && (
+                                <RemoveChapterDialog
+                                    chapters={activeSubject.chapters}
+                                    onConfirm={handleRemoveChapter}
+                                />
+                            )}
+                        </>
+                    ) : (
+                        <>
+                            <Button variant="outline" disabled><PlusCircle className="mr-2 h-4 w-4" /> Add Chapter</Button>
+                            <Button variant="destructive" disabled className="border border-destructive bg-transparent text-destructive hover:bg-destructive hover:text-destructive-foreground">
+                                <Trash2 className="mr-2 h-4 w-4" /> Remove Chapter
+                            </Button>
+                        </>
+                    )}
+                </div>
+            </div>
+          </>
         ) : (
           <div className="text-center py-12 flex flex-col items-center gap-4">
             <h2 className="text-2xl font-headline">No Subjects Yet!</h2>
@@ -128,44 +165,8 @@ export default function Home() {
           </div>
         )}
       </div>
-      
-      <Card className="fixed bottom-4 right-1/2 translate-x-1/2 z-50 p-2 shadow-2xl border-primary/20 bg-card/80 backdrop-blur-sm rounded-full">
-        <div className="flex items-center gap-1">
-            <AddSubjectDialog 
-                onAddSubject={handleAddSubject} 
-                existingSubjects={activeProfile.subjects.map(s => s.name)}
-            />
-            {activeProfile.subjects.length > 0 && (
-                <RemoveSubjectDialog
-                    subjects={activeProfile.subjects}
-                    onConfirm={handleRemoveSubject}
-                />
-            )}
-            
-            {(activeProfile.subjects.length > 0) && <Separator orientation="vertical" className="h-6 mx-1 bg-border/50" />}
 
-            {activeSubject ? (
-                <>
-                    <AddChapterDialog onAddChapter={handleAddChapter} />
-                    {activeSubject.chapters.length > 0 && (
-                        <RemoveChapterDialog
-                            chapters={activeSubject.chapters}
-                            onConfirm={handleRemoveChapter}
-                        />
-                    )}
-                </>
-            ) : (
-                <>
-                    <Button variant="outline" disabled><PlusCircle className="mr-2 h-4 w-4" /> Add Chapter</Button>
-                    <Button variant="destructive" disabled className="border border-destructive bg-transparent text-destructive hover:bg-destructive hover:text-destructive-foreground">
-                        <Trash2 className="mr-2 h-4 w-4" /> Remove Chapter
-                    </Button>
-                </>
-            )}
-        </div>
-      </Card>
-
-      <footer className="w-full max-w-5xl px-4 py-6 text-center text-sm text-muted-foreground">
+      <footer className="w-full max-w-5xl px-4 py-6 mt-8 text-center text-sm text-muted-foreground">
         <p>Built for focused learners. &copy; {new Date().getFullYear()} Trackademic.</p>
       </footer>
     </div>
