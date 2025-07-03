@@ -95,7 +95,7 @@ export function AddChapterDialog({ onAddChapter }: AddChapterDialogProps) {
               max="25"
             />
           </div>
-          {error && <p className="col-span-4 text-sm text-destructive">{error}</p>}
+          {error && <p className="col-span-4 text-center pt-2 text-sm text-destructive">{error}</p>}
         </div>
         <DialogFooter>
            <DialogClose asChild>
