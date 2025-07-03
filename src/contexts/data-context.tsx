@@ -77,6 +77,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
 
   const saveData = (profilesToSave: Profile[], activeNameToSave: string | null) => {
+    if (typeof window === 'undefined') return;
     try {
         const dataToStore = {
             profiles: profilesToSave.map(p => ({
@@ -98,12 +99,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   // Load data from localStorage on initial mount
   useEffect(() => {
+    if (typeof window === 'undefined') {
+        setLoading(false);
+        return;
+    }
     try {
       const storedData = localStorage.getItem(DATA_KEY);
 
       if (storedData) {
         const parsedData = JSON.parse(storedData);
-        if (parsedData.profiles && parsedData.activeProfileName) {
+        if (parsedData.profiles && parsedData.profiles.length > 0 && parsedData.activeProfileName) {
             // Restore icons
             const restoredProfiles = parsedData.profiles.map((savedProfile: any) => ({
                 ...savedProfile,
@@ -122,6 +127,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error("Failed to load data from local storage", error);
+      localStorage.removeItem(DATA_KEY);
     }
     setLoading(false);
   }, []);
@@ -150,6 +156,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
   
   const exportData = () => {
+    if (typeof window === 'undefined') return;
     try {
         const dataToStore = {
             profiles: profiles.map(p => ({
@@ -231,8 +238,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       return null; // Or a loading spinner
   }
   
-  if (profiles.length === 0) {
-      return <DataContext.Provider value={value}><CreateProfileScreen onProfileCreate={addProfile} /></DataContext.Provider>;
+  if (profiles.length === 0 || !activeProfile) {
+      return <CreateProfileScreen onProfileCreate={addProfile} />;
   }
 
   return (
