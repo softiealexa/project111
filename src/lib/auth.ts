@@ -38,6 +38,9 @@ export const signInWithUsername = async (username: string, password: string): Pr
         if (error.code === 'auth/configuration-not-found') {
             return { error: FIREBASE_NOT_CONFIGURED_ERROR };
         }
+        if (error.code === 'permission-denied') {
+            return { error: "Database permission denied. Please check your Firestore security rules in the Firebase console to allow reading user data." };
+        }
         if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
             return { error: "Invalid username or password." };
         }
@@ -78,6 +81,9 @@ export const register = async (username: string, password: string): Promise<Auth
     } catch (error: any) {
         if (error.code === 'auth/configuration-not-found') {
             return { error: FIREBASE_NOT_CONFIGURED_ERROR };
+        }
+        if (error.code === 'permission-denied') {
+            return { error: "Database permission denied. Please check your Firestore security rules in the Firebase console." };
         }
         if (error.code === 'auth/email-already-in-use') {
             return { error: 'This username might be too similar to an existing one. Please try another.' };
