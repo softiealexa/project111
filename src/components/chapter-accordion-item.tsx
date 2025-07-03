@@ -58,7 +58,7 @@ export default function ChapterAccordionItem({ chapter, index }: ChapterAccordio
             <div className="flex items-center gap-4">
                {isCompleted ? <CheckCircle2 className="h-6 w-6 text-green-500" /> : <div className="h-6 w-6 p-0.5"><Circle className="h-5 w-5 text-muted-foreground"/></div>}
               <div className="text-left">
-                <h3 className="font-headline text-lg font-medium text-primary-foreground">
+                <h3 className="font-headline text-lg font-medium text-foreground">
                   {chapter.name}
                 </h3>
                 <p className="text-sm text-muted-foreground">

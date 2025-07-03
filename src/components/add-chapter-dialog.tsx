@@ -1,0 +1,100 @@
+"use client";
+
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { PlusCircle } from "lucide-react";
+import type { Chapter } from "@/lib/types";
+
+interface AddChapterDialogProps {
+  onAddChapter: (newChapter: Chapter) => void;
+}
+
+export function AddChapterDialog({ onAddChapter }: AddChapterDialogProps) {
+  const [open, setOpen] = useState(false);
+  const [chapterName, setChapterName] = useState("");
+  const [lectureCount, setLectureCount] = useState("");
+  const [error, setError] = useState("");
+
+  const handleSubmit = () => {
+    const lectures = parseInt(lectureCount, 10);
+    if (!chapterName.trim()) {
+        setError("Chapter name is required.");
+        return;
+    }
+    if (isNaN(lectures) || lectures <= 0) {
+        setError("Please enter a valid number of lectures (must be > 0).");
+        return;
+    }
+
+    onAddChapter({ name: chapterName, lectureCount: lectures });
+    setChapterName("");
+    setLectureCount("");
+    setError("");
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline">
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Add Chapter
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Add New Chapter</DialogTitle>
+          <DialogDescription>
+            Enter the details for the new chapter. Click save when you're done.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="name" className="text-right">
+              Chapter Name
+            </Label>
+            <Input
+              id="name"
+              value={chapterName}
+              onChange={(e) => setChapterName(e.target.value)}
+              className="col-span-3"
+              placeholder="e.g. Conic Sections"
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="lectures" className="text-right">
+              Lectures
+            </Label>
+            <Input
+              id="lectures"
+              type="number"
+              value={lectureCount}
+              onChange={(e) => setLectureCount(e.target.value)}
+              className="col-span-3"
+              placeholder="e.g. 5"
+            />
+          </div>
+          {error && <p className="col-span-4 text-sm text-destructive">{error}</p>}
+        </div>
+        <DialogFooter>
+           <DialogClose asChild>
+            <Button variant="outline">Cancel</Button>
+          </DialogClose>
+          <Button type="submit" onClick={handleSubmit}>Save Chapter</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
