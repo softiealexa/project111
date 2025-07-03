@@ -18,7 +18,7 @@ export default function LectureTracker({ subject, onAddChapter }: LectureTracker
       </div>
       <Accordion type="single" collapsible className="w-full space-y-4">
         {subject.chapters.map((chapter, index) => (
-          <ChapterAccordionItem key={`${subject.name}-${chapter.name}-${index}`} chapter={chapter} index={index} />
+          <ChapterAccordionItem key={`${subject.name}-${chapter.name}-${index}`} chapter={chapter} subjectName={subject.name} index={index} />
         ))}
       </Accordion>
     </div>

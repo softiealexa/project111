@@ -11,36 +11,40 @@ import { CheckCircle2, Circle } from 'lucide-react';
 
 interface ChapterAccordionItemProps {
   chapter: Chapter;
+  subjectName: string;
   index: number;
 }
 
 const TASKS = ["Lecture", "DPP", "Module", "Class Qs"];
 
-export default function ChapterAccordionItem({ chapter, index }: ChapterAccordionItemProps) {
+export default function ChapterAccordionItem({ chapter, subjectName, index }: ChapterAccordionItemProps) {
+  const storageKey = `chapter-${subjectName}-${chapter.name}`;
   const totalTasks = chapter.lectureCount * TASKS.length;
   const [completedTasks, setCompletedTasks] = useState(0);
   const [checkedState, setCheckedState] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    // This effect runs only on the client after hydration
     try {
-      const savedState = localStorage.getItem(`chapter-${chapter.name}`);
+      const savedState = localStorage.getItem(storageKey);
       if (savedState) {
         const parsedState = JSON.parse(savedState);
         setCheckedState(parsedState);
         setCompletedTasks(Object.values(parsedState).filter(Boolean).length);
+      } else {
+        setCheckedState({});
+        setCompletedTasks(0);
       }
     } catch (error) {
       console.error("Failed to load state from localStorage", error);
     }
-  }, [chapter.name]);
+  }, [storageKey]);
 
   const handleCheckboxChange = (id: string, checked: boolean) => {
     const newState = { ...checkedState, [id]: checked };
     setCheckedState(newState);
     setCompletedTasks(Object.values(newState).filter(Boolean).length);
     try {
-      localStorage.setItem(`chapter-${chapter.name}`, JSON.stringify(newState));
+      localStorage.setItem(storageKey, JSON.stringify(newState));
     } catch (error) {
       console.error("Failed to save state to localStorage", error);
     }

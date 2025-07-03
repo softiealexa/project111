@@ -1,14 +1,48 @@
 'use client';
 
-import { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { subjects as initialSubjects } from "@/lib/data"
+import { useState, useEffect } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { subjects as initialSubjects } from "@/lib/data";
 import LectureTracker from "@/components/lecture-tracker";
 import { BookOpenCheck } from "lucide-react";
-import type { Chapter } from '@/lib/types';
+import type { Chapter, Subject } from '@/lib/types';
 
 export default function Home() {
-  const [subjects, setSubjects] = useState(initialSubjects);
+  const [subjects, setSubjects] = useState<Subject[]>(initialSubjects);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+    try {
+      const savedSubjectsJSON = localStorage.getItem('trackademic_subjects');
+      if (savedSubjectsJSON) {
+        const savedSubjects = JSON.parse(savedSubjectsJSON);
+        const restoredSubjects = savedSubjects.map((savedSubject: Omit<Subject, 'icon'>) => {
+            const originalSubject = initialSubjects.find(s => s.name === savedSubject.name);
+            return {
+                ...savedSubject,
+                icon: originalSubject ? originalSubject.icon : BookOpenCheck,
+            };
+        });
+        setSubjects(restoredSubjects);
+      }
+    } catch (error) {
+      console.error("Failed to load subjects from localStorage", error);
+      setSubjects(initialSubjects);
+    }
+  }, []);
+  
+  useEffect(() => {
+    if (isClient) {
+        try {
+            const subjectsToStore = subjects.map(({ icon, ...rest }) => rest);
+            localStorage.setItem('trackademic_subjects', JSON.stringify(subjectsToStore));
+        } catch (error) {
+            console.error("Failed to save subjects to localStorage", error);
+        }
+    }
+  }, [subjects, isClient]);
+
 
   const handleAddChapter = (subjectName: string, newChapter: Chapter) => {
     setSubjects(currentSubjects => 
@@ -21,6 +55,10 @@ export default function Home() {
       })
     );
   };
+  
+  if (!isClient) {
+    return null;
+  }
   
   return (
     <div className="flex min-h-screen w-full flex-col items-center bg-background text-foreground">
@@ -36,7 +74,7 @@ export default function Home() {
         </p>
       </header>
       <main className="w-full max-w-5xl flex-1 px-4 pb-12">
-        <Tabs defaultValue={subjects[0].name} className="w-full">
+        <Tabs defaultValue={subjects[0]?.name} className="w-full">
           <TabsList className="grid w-full grid-cols-3 bg-muted">
             {subjects.map((subject) => (
               <TabsTrigger key={subject.name} value={subject.name} className="flex items-center gap-2">
