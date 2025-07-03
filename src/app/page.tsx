@@ -1,9 +1,12 @@
 'use client';
 
 import { useData } from '@/contexts/data-context';
-import type { Chapter } from '@/lib/types';
+import type { Chapter, Subject } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LectureTracker from "@/components/lecture-tracker";
+import { AddSubjectDialog } from '@/components/add-subject-dialog';
+import { Book } from 'lucide-react';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 export default function Home() {
   const { activeProfile, updateSubjects } = useData();
@@ -31,6 +34,17 @@ export default function Home() {
     updateSubjects(newSubjects);
   };
   
+  const handleAddSubject = (subjectName: string) => {
+    if (!activeProfile) return;
+    const newSubject: Subject = {
+      name: subjectName,
+      icon: Book,
+      chapters: [],
+    };
+    const newSubjects = [...activeProfile.subjects, newSubject];
+    updateSubjects(newSubjects);
+  };
+
   return (
     <div className="flex w-full flex-col items-center bg-background text-foreground">
       <header className="w-full max-w-5xl px-4 py-8 md:py-12 border-b border-border/50 mb-8">
@@ -45,24 +59,40 @@ export default function Home() {
       </header>
       <div className="w-full max-w-5xl flex-1 px-4 pb-12">
         {activeProfile.subjects.length > 0 ? (
-          <Tabs defaultValue={activeProfile.subjects[0]?.name} className="w-full">
-            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 bg-muted h-auto sm:h-10">
+          <>
+            <div className="flex justify-end mb-4">
+              <AddSubjectDialog
+                onAddSubject={handleAddSubject}
+                existingSubjects={activeProfile.subjects.map(s => s.name)}
+              />
+            </div>
+            <Tabs defaultValue={activeProfile.subjects[0]?.name} className="w-full">
+              <ScrollArea className="w-full whitespace-nowrap rounded-md pb-2.5">
+                <TabsList className="bg-muted h-auto sm:h-10 justify-start">
+                  {activeProfile.subjects.map((subject) => (
+                    <TabsTrigger key={subject.name} value={subject.name} className="flex items-center gap-2">
+                      {subject.icon && <subject.icon className="h-5 w-5" />}
+                      <span>{subject.name}</span>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
               {activeProfile.subjects.map((subject) => (
-                <TabsTrigger key={subject.name} value={subject.name} className="flex items-center gap-2">
-                  {subject.icon && <subject.icon className="h-5 w-5" />}
-                  <span>{subject.name}</span>
-                </TabsTrigger>
+                <TabsContent key={subject.name} value={subject.name} className="mt-6">
+                  <LectureTracker subject={subject} onAddChapter={(newChapter) => handleAddChapter(subject.name, newChapter)} />
+                </TabsContent>
               ))}
-            </TabsList>
-            {activeProfile.subjects.map((subject) => (
-              <TabsContent key={subject.name} value={subject.name} className="mt-6">
-                <LectureTracker subject={subject} onAddChapter={(newChapter) => handleAddChapter(subject.name, newChapter)} />
-              </TabsContent>
-            ))}
-          </Tabs>
+            </Tabs>
+          </>
         ) : (
-          <div className="text-center py-12">
-            <p>No subjects found. Get started by adding some!</p>
+          <div className="text-center py-12 flex flex-col items-center gap-4">
+            <h2 className="text-2xl font-headline">No Subjects Yet!</h2>
+            <p className="text-muted-foreground">Get started by adding your first subject.</p>
+            <AddSubjectDialog
+              onAddSubject={handleAddSubject}
+              existingSubjects={[]}
+            />
           </div>
         )}
       </div>

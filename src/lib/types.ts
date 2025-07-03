@@ -5,7 +5,7 @@ export interface Chapter {
 }
 
 export interface Subject {
-  name: "Physics" | "Chemistry" | "Maths";
+  name: string;
   icon: React.ComponentType<{ className?: string }>;
   chapters: Chapter[];
 }

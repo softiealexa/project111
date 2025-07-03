@@ -43,7 +43,7 @@ function CreateProfileScreen({ onProfileCreate }: { onProfileCreate: (name: stri
                 <CardHeader className="text-center">
                     <CardTitle className="text-2xl">Welcome to Trackademic!</CardTitle>
                     <CardDescription>
-                        Create a profile to get started. You can manage multiple profiles later.
+                        Create a profile to get started. You'll be able to add your own subjects and track your progress.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -133,7 +133,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addProfile = (name: string) => {
-    const newProfile: Profile = { name, subjects: initialSubjects };
+    const newProfile: Profile = { name, subjects: [] };
     const newProfiles = [...profiles, newProfile];
     setProfiles(newProfiles);
     setActiveProfileName(name);
