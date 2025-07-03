@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useData } from '@/contexts/data-context';
 import { Button } from '@/components/ui/button';
-import { BookOpenCheck, Download, Upload, ChevronsUpDown, Check, Settings, LogOut, UserPlus, LogIn } from 'lucide-react';
+import { Book, Download, Upload, ChevronsUpDown, Check, Settings, LogOut, UserPlus, LogIn } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useRef } from 'react';
 import {
@@ -45,7 +45,7 @@ export default function Navbar() {
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <Link href="/dashboard" className="flex items-center gap-2.5 text-foreground hover:text-primary transition-colors">
-            <BookOpenCheck className="h-7 w-7 text-primary" />
+            <Book className="h-7 w-7 text-primary" />
             <span className="font-headline text-2xl font-bold bg-gradient-to-r from-primary via-foreground/90 to-primary bg-clip-text text-transparent">
               TrackAcademic
             </span>

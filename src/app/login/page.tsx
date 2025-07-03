@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { BookOpenCheck } from 'lucide-react';
+import { Book } from 'lucide-react';
 import { signInWithUsername } from '@/lib/auth';
 
 export default function LoginPage() {
@@ -48,7 +48,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
             <Link href="/" className="mx-auto mb-4 flex w-fit items-center gap-2 text-foreground transition-colors hover:text-primary">
-                <BookOpenCheck className="h-8 w-8 text-primary" />
+                <Book className="h-8 w-8 text-primary" />
                  <span className="font-headline text-3xl font-bold">TrackAcademic</span>
             </Link>
           <CardTitle className="text-2xl">Login</CardTitle>
