@@ -19,16 +19,25 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const success = await signIn(username, password);
-    if (!success) {
-      toast({
-        title: "Login Failed",
-        description: "Invalid username or password. Please try again.",
-        variant: "destructive",
-      });
-      setLoading(false);
+    try {
+        const success = await signIn(username, password);
+        if (!success) {
+            toast({
+                title: "Login Failed",
+                description: "An unexpected error occurred. Please try again.",
+                variant: "destructive",
+            });
+            setLoading(false);
+        }
+        // On success, the auth context will handle redirection.
+    } catch (error: any) {
+        toast({
+            title: "Login Failed",
+            description: error.message || "Invalid username or password. Please try again.",
+            variant: "destructive",
+        });
+        setLoading(false);
     }
-    // On success, the auth context will handle redirection.
   };
 
   return (
