@@ -46,7 +46,7 @@ export const signInWithUsername = async (username: string, password: string): Pr
     }
 };
 
-export const register = async (email: string, password: string, username: string): Promise<FirebaseUser | null> => {
+export const register = async (username: string, password: string): Promise<FirebaseUser | null> => {
     if (!auth || !db) {
         throw new Error(FIREBASE_NOT_CONFIGURED_ERROR);
     }
@@ -59,6 +59,7 @@ export const register = async (email: string, password: string, username: string
     }
     
     try {
+        const email = `${username.toLowerCase().replace(/\s/g, '')}@trackademic.local`;
         const result = await createUserWithEmailAndPassword(auth, email, password);
         const user = result.user;
 
@@ -75,10 +76,13 @@ export const register = async (email: string, password: string, username: string
         return user;
     } catch (error: any) {
         if (error.code === 'auth/email-already-in-use') {
-            throw new Error('This email address is already in use.');
+            throw new Error('This username might be too similar to an existing one. Please try another.');
         }
         if (error.code === 'auth/configuration-not-found') {
             throw new Error(FIREBASE_NOT_CONFIGURED_ERROR);
+        }
+        if (error.code === 'auth/invalid-email') {
+            throw new Error('Username contains invalid characters.');
         }
         throw error;
     }

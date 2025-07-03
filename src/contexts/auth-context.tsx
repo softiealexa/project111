@@ -14,7 +14,7 @@ interface AuthContextType {
   user: User | null;
   subjects: Subject[];
   signIn: (username: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string, username: string) => Promise<boolean>;
+  register: (username: string, password: string) => Promise<boolean>;
   signOut: () => void;
   updateSubjects: (newSubjects: Subject[]) => Promise<void>;
   loading: boolean;
@@ -110,8 +110,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return !!user;
   };
   
-  const handleRegister = async (email: string, password: string, username: string) => {
-    const user = await apiRegister(email, password, username);
+  const handleRegister = async (username: string, password: string) => {
+    const user = await apiRegister(username, password);
     return !!user;
   };
 

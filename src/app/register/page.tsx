@@ -10,7 +10,6 @@ import { Label } from '@/components/ui/label';
 import { useToast } from "@/hooks/use-toast";
 
 export default function RegisterPage() {
-  const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,7 +28,7 @@ export default function RegisterPage() {
     }
     setLoading(true);
     try {
-      const success = await register(email, password, username);
+      const success = await register(username, password);
       if (!success) {
         toast({
             title: "Registration Failed",
@@ -69,18 +68,6 @@ export default function RegisterPage() {
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                disabled={loading}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="your@email.com (for recovery)"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}
               />
             </div>
