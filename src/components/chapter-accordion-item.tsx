@@ -11,6 +11,7 @@ import { CheckCircle2, Circle, GripVertical } from 'lucide-react';
 import { useData } from '@/contexts/data-context';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { cn } from '@/lib/utils';
 
 interface ChapterAccordionItemProps {
   chapter: Chapter;
@@ -66,21 +67,26 @@ export default function ChapterAccordionItem({ chapter, subjectName, index, id }
   const isCompleted = progress === 100;
 
   return (
-    <div ref={setNodeRef} style={style} className="relative">
-      <Card className="overflow-hidden border-border bg-card/50 transition-all hover:border-primary/50">
+    <div ref={setNodeRef} style={style} className={cn("relative", isDragging && "shadow-2xl shadow-primary/20")}>
+       <Card className={cn(
+          "overflow-hidden border bg-card transition-all group",
+          "hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10",
+          isCompleted && "bg-primary/10 border-primary/30",
+          isDragging && "border-primary/50"
+      )}>
         <AccordionItem value={`item-${index}`} className="border-b-0">
-          <AccordionTrigger className="p-4 hover:no-underline">
+           <AccordionTrigger className="p-4 hover:no-underline group-hover:bg-primary/5">
             <div className="flex w-full items-center justify-between gap-4">
               <div className="flex items-center gap-2" {...attributes}>
                  <div {...listeners} className="cursor-grab p-2 -ml-2 text-muted-foreground hover:text-foreground touch-none">
                     <GripVertical className="h-5 w-5" />
                  </div>
-                 {isCompleted ? <CheckCircle2 className="h-6 w-6 text-green-500" /> : <div className="h-6 w-6 p-0.5"><Circle className="h-5 w-5 text-muted-foreground"/></div>}
+                 {isCompleted ? <CheckCircle2 className="h-6 w-6 text-primary" /> : <div className="h-6 w-6 p-0.5"><Circle className="h-5 w-5 text-muted-foreground"/></div>}
                 <div className="text-left">
                   <h3 className="font-headline text-lg font-medium text-foreground">
                     {chapter.name}
                   </h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className={cn("text-sm text-muted-foreground", isCompleted && "text-primary/80")}>
                     {chapter.lectureCount} lectures
                   </p>
                 </div>

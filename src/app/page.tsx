@@ -21,9 +21,9 @@ export default function Home() {
   
   return (
     <div className="flex w-full flex-col items-center bg-background text-foreground">
-      <header className="w-full max-w-5xl px-4 py-8 md:py-12">
+      <header className="w-full max-w-5xl px-4 py-8 md:py-12 border-b border-border/50 mb-8">
         <div className="flex items-center gap-4">
-          <h1 className="font-headline text-4xl md:text-5xl font-bold text-foreground">
+          <h1 className="font-headline text-4xl md:text-5xl font-bold bg-gradient-to-br from-foreground to-muted-foreground bg-clip-text text-transparent">
             Welcome, {nickname || 'Friend'}!
           </h1>
         </div>
