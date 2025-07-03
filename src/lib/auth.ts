@@ -54,13 +54,6 @@ export const register = async (username: string, password: string): Promise<Auth
     }
     
     try {
-        const usersRef = collection(db!, 'users');
-        const q = query(usersRef, where("username", "==", username.toLowerCase()));
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-            return { error: "Username is already taken." };
-        }
-    
         const email = `${username.toLowerCase().replace(/\s/g, '')}@trackademic.local`;
         const result = await createUserWithEmailAndPassword(auth!, email, password);
         const user = result.user;
@@ -86,7 +79,7 @@ export const register = async (username: string, password: string): Promise<Auth
             return { error: "Database permission denied. Please check your Firestore security rules in the Firebase console." };
         }
         if (error.code === 'auth/email-already-in-use') {
-            return { error: 'This username might be too similar to an existing one. Please try another.' };
+            return { error: 'Username is already taken.' };
         }
         if (error.code === 'auth/invalid-email') {
             return { error: 'Username contains invalid characters.' };
