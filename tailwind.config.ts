@@ -58,6 +58,11 @@ export default {
           border: 'hsl(var(--sidebar-border))',
           ring: 'hsl(var(--sidebar-ring))',
         },
+        progress: {
+            beginner: 'hsl(var(--progress-beginner))',
+            intermediate: 'hsl(var(--progress-intermediate))',
+            advanced: 'hsl(var(--progress-advanced))'
+        }
       },
       borderRadius: {
         lg: 'var(--radius)',

@@ -36,6 +36,9 @@ body {
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    --progress-beginner: 210 40% 50%;
+    --progress-intermediate: 48 96% 50%;
+    --progress-advanced: 145 63% 42%;
   }
   .dark {
     --background: 220 13% 10%;
@@ -66,6 +69,9 @@ body {
     --sidebar-accent-foreground: 210 20% 98%;
     --sidebar-border: 220 13% 20%;
     --sidebar-ring: 180 90% 55%;
+    --progress-beginner: 210 70% 65%;
+    --progress-intermediate: 50 80% 60%;
+    --progress-advanced: 140 60% 55%;
   }
 }
 

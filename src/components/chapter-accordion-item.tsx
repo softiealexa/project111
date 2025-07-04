@@ -110,9 +110,9 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
   const isCompleted = progress === 100;
 
   const progressColorClass = useMemo(() => {
-    if (progress <= 33) return 'bg-blue-600';    // Beginner
-    if (progress <= 66) return 'bg-yellow-500';  // Intermediate
-    return 'bg-green-600';                      // Almost Done
+    if (progress <= 33) return 'bg-progress-beginner';
+    if (progress <= 66) return 'bg-progress-intermediate';
+    return 'bg-progress-advanced';
   }, [progress]);
 
 
