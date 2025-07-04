@@ -18,6 +18,7 @@ const LOCAL_PROFILE_KEY_PREFIX = 'trackacademic_profile_';
 
 interface DataContextType {
   user: FirebaseUser | null;
+  loading: boolean;
   profiles: Profile[];
   activeProfile: Profile | undefined;
   addProfile: (name: string) => void;
@@ -232,13 +233,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return profiles.find(p => p.name === activeProfileName);
   }, [profiles, activeProfileName]);
   
-  const value = { user, profiles, activeProfile, addProfile, switchProfile, updateSubjects, exportData, importData, signOutUser };
+  const value = { user, loading, profiles, activeProfile, addProfile, switchProfile, updateSubjects, exportData, importData, signOutUser };
   
-  if (loading) {
-      return <div className="flex min-h-screen items-center justify-center"><p>Loading...</p></div>;
-  }
-  
-  if (pathname.startsWith('/dashboard') && profiles.length === 0) {
+  // This screen should only show on the dashboard page if there are no profiles
+  if (!loading && pathname.startsWith('/dashboard') && profiles.length === 0) {
       return (
         <DataContext.Provider value={value}>
             <CreateProfileScreen onProfileCreate={addProfile} />
