@@ -14,15 +14,14 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PlusCircle } from "lucide-react";
 import type { Chapter } from "@/lib/types";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface AddChapterDialogProps {
   onAddChapter: (newChapter: Chapter) => void;
+  children: React.ReactNode;
 }
 
-export function AddChapterDialog({ onAddChapter }: AddChapterDialogProps) {
+export function AddChapterDialog({ onAddChapter, children }: AddChapterDialogProps) {
   const [open, setOpen] = useState(false);
   const [chapterName, setChapterName] = useState("");
   const [lectureCount, setLectureCount] = useState("");
@@ -46,20 +45,20 @@ export function AddChapterDialog({ onAddChapter }: AddChapterDialogProps) {
     setOpen(false);
   };
 
+  const handleOpenChange = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (!isOpen) {
+        setChapterName("");
+        setLectureCount("");
+        setError("");
+    }
+  }
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <DialogTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <PlusCircle className="h-5 w-5" />
-            </Button>
-          </DialogTrigger>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>Add Chapter</p>
-        </TooltipContent>
-      </Tooltip>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogTrigger asChild>
+          {children}
+        </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Add New Chapter</DialogTitle>

@@ -5,7 +5,7 @@ import { AccordionContent, AccordionItem } from "@/components/ui/accordion";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import type { Chapter } from "@/lib/types";
+import type { Chapter, Subject } from "@/lib/types";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle2, Circle, GripVertical, ChevronDown } from 'lucide-react';
 import { useData } from '@/contexts/data-context';
@@ -13,21 +13,24 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
+import { Textarea } from './ui/textarea';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 interface ChapterAccordionItemProps {
   chapter: Chapter;
-  subjectName: string;
+  subject: Subject;
   index: number;
   id: string;
 }
 
-const TASKS = ["Lecture", "DPP", "Module", "Class Qs"];
-
-export default function ChapterAccordionItem({ chapter, subjectName, index, id }: ChapterAccordionItemProps) {
+export default function ChapterAccordionItem({ chapter, subject, index, id }: ChapterAccordionItemProps) {
   const { activeProfile, updateSubjects } = useData();
   const [checkedState, setCheckedState] = useState<Record<string, boolean>>(chapter.checkedState || {});
   
+  const [editingLecture, setEditingLecture] = useState<number | null>(null);
+  const [noteContent, setNoteContent] = useState('');
+
   const {
     attributes,
     listeners,
@@ -42,8 +45,9 @@ export default function ChapterAccordionItem({ chapter, subjectName, index, id }
     transition,
     zIndex: isDragging ? 10 : 'auto',
   };
-
-  const totalTasks = chapter.lectureCount * TASKS.length;
+  
+  const tasks = subject.tasks || [];
+  const totalTasks = chapter.lectureCount * tasks.length;
   const completedTasks = Object.values(checkedState).filter(Boolean).length;
   
   const handleCheckboxChange = (checkboxId: string, checked: boolean) => {
@@ -53,7 +57,7 @@ export default function ChapterAccordionItem({ chapter, subjectName, index, id }
     if (!activeProfile) return;
 
     const newSubjects = activeProfile.subjects.map(s => {
-      if (s.name === subjectName) {
+      if (s.name === subject.name) {
         const newChapters = s.chapters.map((c, i) => {
           if (i === index) {
             return { ...c, checkedState: newCheckedState };
@@ -67,6 +71,41 @@ export default function ChapterAccordionItem({ chapter, subjectName, index, id }
     updateSubjects(newSubjects);
   };
   
+  const handleNoteChange = (lectureNum: number, newNote: string) => {
+    if (!activeProfile) return;
+
+    const newSubjects = activeProfile.subjects.map(s => {
+      if (s.name === subject.name) {
+        const newChapters = s.chapters.map((c, i) => {
+          if (i === index) {
+            const lectureKey = `L${lectureNum}`;
+            const currentNotes = c.notes || {};
+            if (currentNotes[lectureKey] !== newNote) {
+              const newNotes = { ...currentNotes, [lectureKey]: newNote };
+              return { ...c, notes: newNotes };
+            }
+          }
+          return c;
+        });
+        return { ...s, chapters: newChapters };
+      }
+      return s;
+    });
+    updateSubjects(newSubjects);
+  };
+
+  const handleNoteBlur = () => {
+    if (editingLecture !== null) {
+      handleNoteChange(editingLecture, noteContent);
+      setEditingLecture(null);
+    }
+  };
+
+  const handleNoteClick = (lectureNum: number) => {
+    setEditingLecture(lectureNum);
+    setNoteContent(chapter.notes?.[`L${lectureNum}`] || '');
+  };
+
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
   const isCompleted = progress === 100;
 
@@ -104,21 +143,52 @@ export default function ChapterAccordionItem({ chapter, subjectName, index, id }
           </AccordionPrimitive.Header>
           <AccordionContent className="p-0">
             <div className="border-t border-border bg-background/50 p-4">
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {Array.from({ length: chapter.lectureCount }, (_, i) => i + 1).map((lectureNum) => (
-                  <div key={lectureNum} className="grid grid-cols-2 md:grid-cols-5 items-center gap-4 rounded-lg p-3 transition-colors hover:bg-muted/50">
-                     <p className="font-medium text-foreground col-span-2 md:col-span-1">Lecture {lectureNum}</p>
-                    {TASKS.map((task) => {
-                      const checkboxId = `${subjectName}-${chapter.name}-L${lectureNum}-${task}`;
-                      return (
-                          <div key={task} className="flex items-center space-x-2">
-                              <Checkbox id={checkboxId} checked={!!checkedState[checkboxId]} onCheckedChange={(checked) => handleCheckboxChange(checkboxId, !!checked)} />
-                              <Label htmlFor={checkboxId} className="text-sm font-normal text-muted-foreground cursor-pointer">
-                                  {task}
-                              </Label>
-                          </div>
-                      );
-                      })}
+                   <div key={lectureNum}>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg p-3 transition-colors hover:bg-muted/50">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button 
+                                    onClick={() => handleNoteClick(lectureNum)}
+                                    className="font-medium text-foreground mr-auto pr-4 text-left transition-colors hover:text-primary focus:outline-none focus:text-primary rounded-sm focus-visible:ring-2 focus-visible:ring-ring"
+                                >
+                                    Lecture {lectureNum}
+                                </button>
+                              </TooltipTrigger>
+                              {chapter.notes?.[`L${lectureNum}`] && (
+                                <TooltipContent>
+                                  <p className="max-w-xs whitespace-pre-wrap break-words">{chapter.notes[`L${lectureNum}`]}</p>
+                                </TooltipContent>
+                              )}
+                            </Tooltip>
+                            
+                            <div className="flex items-center gap-x-4">
+                                {tasks.map((task) => {
+                                const checkboxId = `${subject.name}-${chapter.name}-L${lectureNum}-${task}`;
+                                return (
+                                    <div key={task} className="flex items-center space-x-2">
+                                        <Checkbox id={checkboxId} checked={!!checkedState[checkboxId]} onCheckedChange={(checked) => handleCheckboxChange(checkboxId, !!checked)} />
+                                        <Label htmlFor={checkboxId} className="text-sm font-normal text-muted-foreground cursor-pointer">
+                                            {task}
+                                        </Label>
+                                    </div>
+                                );
+                                })}
+                            </div>
+                        </div>
+                        {editingLecture === lectureNum && (
+                           <div className="px-3 pb-3">
+                             <Textarea
+                               autoFocus
+                               value={noteContent}
+                               onChange={(e) => setNoteContent(e.target.value)}
+                               onBlur={handleNoteBlur}
+                               placeholder="Type your notes here... they save automatically when you click away."
+                               className="min-h-[72px] text-base focus-visible:ring-1 focus-visible:ring-primary"
+                             />
+                           </div>
+                        )}
                   </div>
                 ))}
               </div>

@@ -23,15 +23,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import type { Subject } from "@/lib/types";
-import { FolderMinus } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface RemoveSubjectDialogProps {
   subjects: Subject[];
   onConfirm: (subjectName: string) => void;
+  children: React.ReactNode;
 }
 
-export function RemoveSubjectDialog({ subjects, onConfirm }: RemoveSubjectDialogProps) {
+export function RemoveSubjectDialog({ subjects, onConfirm, children }: RemoveSubjectDialogProps) {
   const [open, setOpen] = useState(false);
   const [selectedSubjectName, setSelectedSubjectName] = useState("");
   const [confirmationText, setConfirmationText] = useState("");
@@ -73,18 +72,9 @@ export function RemoveSubjectDialog({ subjects, onConfirm }: RemoveSubjectDialog
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-            <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/90 hover:text-destructive-foreground">
-                    <FolderMinus className="h-5 w-5" />
-                </Button>
-            </DialogTrigger>
-        </TooltipTrigger>
-        <TooltipContent>
-            <p>Remove Subject</p>
-        </TooltipContent>
-      </Tooltip>
+        <DialogTrigger asChild>
+            {children}
+        </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Remove a Subject</DialogTitle>

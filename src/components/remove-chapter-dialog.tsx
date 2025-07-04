@@ -23,15 +23,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import type { Chapter } from "@/lib/types";
-import { Trash2 } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface RemoveChapterDialogProps {
   chapters: Chapter[];
   onConfirm: (chapterName: string) => void;
+  children: React.ReactNode;
 }
 
-export function RemoveChapterDialog({ chapters, onConfirm }: RemoveChapterDialogProps) {
+export function RemoveChapterDialog({ chapters, onConfirm, children }: RemoveChapterDialogProps) {
   const [open, setOpen] = useState(false);
   const [selectedChapterName, setSelectedChapterName] = useState("");
   const [confirmationText, setConfirmationText] = useState("");
@@ -73,18 +72,9 @@ export function RemoveChapterDialog({ chapters, onConfirm }: RemoveChapterDialog
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-            <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/90 hover:text-destructive-foreground">
-                    <Trash2 className="h-5 w-5" />
-                </Button>
-            </DialogTrigger>
-        </TooltipTrigger>
-        <TooltipContent>
-            <p>Remove Chapter</p>
-        </TooltipContent>
-      </Tooltip>
+        <DialogTrigger asChild>
+            {children}
+        </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Remove a Chapter</DialogTitle>

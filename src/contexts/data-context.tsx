@@ -1,10 +1,10 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { Book } from 'lucide-react';
-import type { Subject, Profile } from '@/lib/types';
+import type { Subject, Profile, Chapter } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
 import { subjects as initialSubjects } from "@/lib/data";
@@ -18,11 +18,19 @@ const LOCAL_PROFILE_KEY_PREFIX = 'trackacademic_profile_';
 
 interface DataContextType {
   user: FirebaseUser | null;
+  loading: boolean;
   profiles: Profile[];
   activeProfile: Profile | undefined;
+  activeSubjectName: string | null;
+  setActiveSubjectName: (name: string | null) => void;
   addProfile: (name: string) => void;
   switchProfile: (name: string) => void;
   updateSubjects: (newSubjects: Subject[]) => void;
+  addSubject: (subjectName: string) => void;
+  removeSubject: (subjectNameToRemove: string) => void;
+  addChapter: (subjectName: string, newChapter: Chapter) => void;
+  removeChapter: (subjectName: string, chapterNameToRemove: string) => void;
+  updateTasks: (subjectName: string, newTasks: string[]) => void;
   exportData: () => void;
   importData: (file: File) => void;
   signOutUser: () => Promise<void>;
@@ -41,14 +49,16 @@ const restoreIcons = (profiles: Profile[]): Profile[] => {
         ...profile,
         subjects: profile.subjects.map(subject => ({
             ...subject,
-            icon: initialSubjects.find(s => s.name === subject.name)?.icon || Book
-        }))
+            icon: initialSubjects.find(s => s.name === subject.name)?.icon || Book,
+            // Backwards compatibility for profiles that had tasks on the profile level
+            tasks: subject.tasks || (profile as any).tasks || ['Lecture', 'DPP', 'Module', 'Class Qs'],
+        })),
     }));
 };
 
 const stripIcons = (profiles: Profile[]) => {
     return profiles.map(p => ({
-        ...p,
+        name: p.name,
         subjects: p.subjects.map(({ icon, ...rest }) => rest)
     }));
 };
@@ -89,6 +99,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [activeProfileName, setActiveProfileName] = useState<string | null>(null);
+  const [activeSubjectName, setActiveSubjectName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const pathname = usePathname();
@@ -96,12 +107,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const saveData = useCallback(async (profilesToSave: Profile[], activeNameToSave: string | null) => {
     if (typeof window === 'undefined') return;
 
-    // Always save to local storage for offline access
     const localKey = getLocalKey(user?.displayName || null);
     const dataToStore = { profiles: stripIcons(profilesToSave), activeProfileName: activeNameToSave };
     localStorage.setItem(localKey, JSON.stringify(dataToStore));
 
-    // If logged in, also save to Firestore
     if (user) {
         try {
             await saveUserData(user.uid, profilesToSave, activeNameToSave);
@@ -112,13 +121,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [user, toast]);
 
-  // Auth state change listener
   useEffect(() => {
     const unsubscribe = onAuthChanged(async (firebaseUser) => {
       setLoading(true);
       setUser(firebaseUser);
+      setActiveSubjectName(null); 
 
-      if (firebaseUser) { // User is logged in
+      if (firebaseUser) {
           try {
               const firestoreData = await getUserData(firebaseUser.uid);
               if (firestoreData && firestoreData.profiles && firestoreData.profiles.length > 0) {
@@ -135,7 +144,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
               setActiveProfileName(null);
               toast({ title: "Error", description: "Could not fetch your data from the cloud.", variant: "destructive" });
           }
-      } else { // User is logged out or "guest"
+      } else {
           const localKey = getLocalKey(null);
           const storedData = localStorage.getItem(localKey);
           if (storedData) {
@@ -171,6 +180,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const switchProfile = (name: string) => {
     setActiveProfileName(name);
+    setActiveSubjectName(null);
     saveData(profiles, name);
   };
 
@@ -179,6 +189,95 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, subjects: newSubjects } : p);
       setProfiles(newProfiles);
       saveData(newProfiles, activeProfileName);
+  };
+
+  const addSubject = (subjectName: string) => {
+    if (!activeProfileName) return;
+    const newSubject: Subject = { 
+        name: subjectName, 
+        icon: Book, 
+        chapters: [],
+        tasks: ['Lecture', 'DPP', 'Module', 'Class Qs'],
+    };
+    const activeProfile = profiles.find(p => p.name === activeProfileName);
+    if (!activeProfile) return;
+    
+    const updatedSubjects = [...activeProfile.subjects, newSubject];
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, subjects: updatedSubjects } : p);
+    
+    setProfiles(newProfiles);
+    setActiveSubjectName(subjectName);
+    saveData(newProfiles, activeProfileName);
+  };
+  
+  const removeSubject = (subjectNameToRemove: string) => {
+    if (!activeProfileName) return;
+    const activeProfile = profiles.find(p => p.name === activeProfileName);
+    if (!activeProfile) return;
+
+    const updatedSubjects = activeProfile.subjects.filter(s => s.name !== subjectNameToRemove);
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, subjects: updatedSubjects } : p);
+
+    setProfiles(newProfiles);
+    if (activeSubjectName === subjectNameToRemove) {
+        setActiveSubjectName(updatedSubjects[0]?.name || null);
+    }
+    saveData(newProfiles, activeProfileName);
+  };
+
+  const addChapter = (subjectName: string, newChapter: Chapter) => {
+      if (!activeProfileName) return;
+      const newProfiles = profiles.map(p => {
+          if (p.name === activeProfileName) {
+              const newSubjects = p.subjects.map(s => {
+                  if (s.name === subjectName) {
+                      return { ...s, chapters: [...s.chapters, newChapter] };
+                  }
+                  return s;
+              });
+              return { ...p, subjects: newSubjects };
+          }
+          return p;
+      });
+      setProfiles(newProfiles);
+      saveData(newProfiles, activeProfileName);
+  };
+
+  const removeChapter = (subjectName: string, chapterNameToRemove: string) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+        if (p.name === activeProfileName) {
+            const newSubjects = p.subjects.map(s => {
+                if (s.name === subjectName) {
+                    const updatedChapters = s.chapters.filter(c => c.name !== chapterNameToRemove);
+                    return { ...s, chapters: updatedChapters };
+                }
+                return s;
+            });
+            return { ...p, subjects: newSubjects };
+        }
+        return p;
+    });
+    setProfiles(newProfiles);
+    saveData(newProfiles, activeProfileName);
+  };
+
+  const updateTasks = (subjectName: string, newTasks: string[]) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(profile => {
+      if (profile.name === activeProfileName) {
+        const newSubjects = profile.subjects.map(subject => {
+          if (subject.name === subjectName) {
+            return { ...subject, tasks: newTasks };
+          }
+          return subject;
+        });
+        return { ...profile, subjects: newSubjects };
+      }
+      return profile;
+    });
+    setProfiles(newProfiles);
+    saveData(newProfiles, activeProfileName);
   };
   
   const exportData = () => {
@@ -209,6 +308,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                   const restored = restoreIcons(data.profiles);
                   setProfiles(restored);
                   setActiveProfileName(data.activeProfileName);
+                  setActiveSubjectName(null);
                   saveData(restored, data.activeProfileName);
                   toast({ title: "Import Successful", description: "Your data has been restored." });
               } else {
@@ -225,6 +325,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     await signOut();
     setProfiles([]);
     setActiveProfileName(null);
+    setActiveSubjectName(null);
     localStorage.removeItem(getLocalKey(null)); // Clear guest data on logout
   }
 
@@ -232,13 +333,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return profiles.find(p => p.name === activeProfileName);
   }, [profiles, activeProfileName]);
   
-  const value = { user, profiles, activeProfile, addProfile, switchProfile, updateSubjects, exportData, importData, signOutUser };
+  const value = { 
+    user, loading, profiles, activeProfile, activeSubjectName, setActiveSubjectName,
+    addProfile, switchProfile, updateSubjects, addSubject, removeSubject, addChapter, removeChapter,
+    updateTasks, exportData, importData, signOutUser
+  };
   
-  if (loading) {
-      return <div className="flex min-h-screen items-center justify-center"><p>Loading...</p></div>;
-  }
-  
-  if (pathname.startsWith('/dashboard') && profiles.length === 0) {
+  if (!loading && pathname.startsWith('/dashboard') && profiles.length === 0) {
       return (
         <DataContext.Provider value={value}>
             <CreateProfileScreen onProfileCreate={addProfile} />

@@ -3,8 +3,28 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Book, ArrowRight } from 'lucide-react';
+import { useData } from '@/contexts/data-context';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function LandingPage() {
+  const { user, loading } = useData();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, loading, router]);
+
+  if (loading || user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4 text-center">
       <div className="mb-8 flex items-center gap-3">
