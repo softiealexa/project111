@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -8,15 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { Chapter, Subject } from "@/lib/types";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle2, Circle, GripVertical, ChevronDown, StickyNote } from 'lucide-react';
+import { CheckCircle2, Circle, GripVertical, ChevronDown } from 'lucide-react';
 import { useData } from '@/contexts/data-context';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
-import { Textarea } from './ui/textarea';
-import { Button } from './ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import { LectureNotesDialog } from './lecture-notes-dialog';
 
 
 interface ChapterAccordionItemProps {
@@ -29,7 +26,6 @@ interface ChapterAccordionItemProps {
 export default function ChapterAccordionItem({ chapter, subject, index, id }: ChapterAccordionItemProps) {
   const { activeProfile, updateSubjects } = useData();
   const [checkedState, setCheckedState] = useState<Record<string, boolean>>(chapter.checkedState || {});
-  const [editingNote, setEditingNote] = useState<number | null>(null);
   
   const {
     attributes,
@@ -130,45 +126,30 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
             <div className="border-t border-border bg-background/50 p-4">
               <div className="space-y-2">
                 {Array.from({ length: chapter.lectureCount }, (_, i) => i + 1).map((lectureNum) => (
-                  <div key={lectureNum}>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg p-3 transition-colors hover:bg-muted/50">
-                      <p className="font-medium text-foreground mr-auto pr-4">Lecture {lectureNum}</p>
-                      {tasks.map((task) => {
-                        const checkboxId = `${subject.name}-${chapter.name}-L${lectureNum}-${task}`;
-                        return (
-                            <div key={task} className="flex items-center space-x-2">
-                                <Checkbox id={checkboxId} checked={!!checkedState[checkboxId]} onCheckedChange={(checked) => handleCheckboxChange(checkboxId, !!checked)} />
-                                <Label htmlFor={checkboxId} className="text-sm font-normal text-muted-foreground cursor-pointer">
-                                    {task}
-                                </Label>
-                            </div>
-                        );
-                      })}
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                           <Button variant="ghost" size="icon" className="h-8 w-8 text-foreground dark:text-[#f9fafb] hover:text-black dark:hover:text-black" onClick={() => setEditingNote(editingNote === lectureNum ? null : lectureNum)}>
-                              <StickyNote className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                           <p>Notes</p>
-                        </TooltipContent>
-                      </Tooltip>
+                   <div key={lectureNum} className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg p-3 transition-colors hover:bg-muted/50">
+                    <LectureNotesDialog
+                      lectureNum={lectureNum}
+                      currentNote={chapter.notes?.[`L${lectureNum}`] || ''}
+                      onSave={(newNote) => handleNoteChange(lectureNum, newNote)}
+                    >
+                      <button className="font-medium text-foreground mr-auto pr-4 text-left transition-colors hover:text-primary focus:outline-none focus:text-primary rounded-sm focus-visible:ring-2 focus-visible:ring-ring">
+                        Lecture {lectureNum}
+                      </button>
+                    </LectureNotesDialog>
+                    
+                    <div className="flex items-center gap-x-4">
+                        {tasks.map((task) => {
+                          const checkboxId = `${subject.name}-${chapter.name}-L${lectureNum}-${task}`;
+                          return (
+                              <div key={task} className="flex items-center space-x-2">
+                                  <Checkbox id={checkboxId} checked={!!checkedState[checkboxId]} onCheckedChange={(checked) => handleCheckboxChange(checkboxId, !!checked)} />
+                                  <Label htmlFor={checkboxId} className="text-sm font-normal text-muted-foreground cursor-pointer">
+                                      {task}
+                                  </Label>
+                              </div>
+                          );
+                        })}
                     </div>
-                    {editingNote === lectureNum && (
-                      <div className="px-3 pb-2 -mt-1 animate-in fade-in-50">
-                          <Textarea 
-                              autoFocus
-                              placeholder={`Notes for Lecture ${lectureNum}...`}
-                              defaultValue={chapter.notes?.[`L${lectureNum}`] || ''}
-                              onBlur={(e) => {
-                                handleNoteChange(lectureNum, e.target.value);
-                                setEditingNote(null);
-                              }}
-                              className="min-h-[60px] text-sm"
-                          />
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
