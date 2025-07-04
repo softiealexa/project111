@@ -2,6 +2,7 @@ export interface Chapter {
   name: string;
   lectureCount: number;
   checkedState?: Record<string, boolean>;
+  notes?: Record<string, string>;
 }
 
 export interface Subject {
@@ -13,4 +14,5 @@ export interface Subject {
 export interface Profile {
   name: string;
   subjects: Subject[];
+  tasks: string[];
 }

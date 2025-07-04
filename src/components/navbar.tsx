@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { AddProfileDialog } from './add-profile-dialog';
+import { CustomizationSheet } from './customization-sheet';
+import Image from 'next/image';
 
 export default function Navbar() {
   const { profiles, activeProfile, switchProfile, exportData, importData, user, signOutUser } = useData();
@@ -51,7 +53,8 @@ export default function Navbar() {
               TrackAcademic
             </span>
           </Link>
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <CustomizationSheet />
             {user ? (
               <>
                 {activeProfile && (
@@ -89,7 +92,11 @@ export default function Navbar() {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                       <Avatar className="h-10 w-10">
-                        <AvatarFallback>{user.displayName?.charAt(0).toUpperCase()}</AvatarFallback>
+                         {user.photoURL ? (
+                          <Image src={user.photoURL} alt={user.displayName || 'user'} width={40} height={40} />
+                        ) : (
+                          <AvatarFallback>{user.displayName?.charAt(0).toUpperCase()}</AvatarFallback>
+                        )}
                       </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
