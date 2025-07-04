@@ -19,17 +19,19 @@ export default function LiveClock() {
 
   if (!date) {
     return (
-      <div className="hidden sm:flex items-center justify-center text-sm font-medium text-muted-foreground bg-muted px-4 h-10 w-[140px] rounded-md">
+       <div className="hidden sm:flex items-center justify-center text-sm font-medium text-muted-foreground bg-muted px-4 h-[52px] w-[120px] rounded-md">
         <span className="animate-pulse">Loading...</span>
       </div>
     );
   }
 
-  const formattedString = format(date, 'HH:mm eee dd-MM');
+  const timeString = format(date, 'h:mm a');
+  const dateString = format(date, 'eee MMMM do');
 
   return (
-    <div className="hidden sm:flex items-center justify-center text-sm font-medium text-muted-foreground bg-muted px-4 h-10 rounded-md whitespace-nowrap">
-      <span>{formattedString}</span>
+    <div className="hidden sm:flex flex-col items-center justify-center text-center bg-muted rounded-md px-4 py-1.5 h-[52px] w-[120px]">
+      <span className="text-lg font-semibold text-foreground">{timeString}</span>
+      <span className="text-xs text-muted-foreground">{dateString}</span>
     </div>
   );
 }
