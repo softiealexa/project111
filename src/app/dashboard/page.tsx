@@ -11,7 +11,7 @@ import LiveClock from '@/components/live-clock';
 import { ProgressSummary } from '@/components/progress-summary';
 import { getIconComponent } from '@/lib/icons';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Feather, Timer, Terminal } from 'lucide-react';
+import { Pencil, Timer, Terminal } from 'lucide-react';
 import PomodoroTimer from '@/components/pomodoro-timer';
 import NotesWriter from '@/components/notes-writer';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -101,36 +101,36 @@ export default function DashboardPage() {
                     The tools in this section are for demonstration purposes. Data may not be saved permanently.
                   </AlertDescription>
                 </Alert>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Card>
-                    <CardHeader>
-                      <div className="flex items-center gap-4">
-                        <Feather className="h-8 w-8 text-primary" />
-                        <div>
-                          <CardTitle>Notes Writer</CardTitle>
-                          <CardDescription>A space to jot down your thoughts and ideas.</CardDescription>
+                <Tabs defaultValue="notes" orientation="vertical" className="w-full">
+                    <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] lg:grid-cols-[250px_1fr] gap-6">
+                        <TabsList className="flex-col h-auto items-stretch justify-start bg-transparent border-none p-0">
+                            <TabsTrigger value="notes" className="justify-start gap-2 py-2.5 text-base">
+                                <Pencil className="h-5 w-5" />
+                                Notes Writer
+                            </TabsTrigger>
+                            <TabsTrigger value="timer" className="justify-start gap-2 py-2.5 text-base">
+                                <Timer className="h-5 w-5" />
+                                Pomodoro Timer
+                            </TabsTrigger>
+                        </TabsList>
+                        <div className="md:col-start-2">
+                            <TabsContent value="notes" className="mt-0">
+                                <NotesWriter />
+                            </TabsContent>
+                            <TabsContent value="timer" className="mt-0">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Pomodoro Timer</CardTitle>
+                                        <CardDescription>Stay focused with the Pomodoro technique.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <PomodoroTimer />
+                                    </CardContent>
+                                </Card>
+                            </TabsContent>
                         </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <NotesWriter />
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader>
-                      <div className="flex items-center gap-4">
-                        <Timer className="h-8 w-8 text-primary" />
-                        <div>
-                          <CardTitle>Pomodoro Timer</CardTitle>
-                          <CardDescription>Stay focused with the Pomodoro technique.</CardDescription>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <PomodoroTimer />
-                    </CardContent>
-                  </Card>
-                </div>
+                    </div>
+                </Tabs>
               </TabsContent>
             </Tabs>
           ) : (
