@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useData } from '@/contexts/data-context';
 import { Button } from '@/components/ui/button';
-import { Book, Download, Upload, ChevronsUpDown, Check, Settings, LogOut, UserPlus, LogIn } from 'lucide-react';
+import { Book, Download, Upload, ChevronsUpDown, Check, LogOut, UserPlus, LogIn } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useRef } from 'react';
 import {
@@ -14,6 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { AddProfileDialog } from './add-profile-dialog';
 
 export default function Navbar() {
@@ -86,12 +87,20 @@ export default function Navbar() {
                 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                     <Button variant="ghost" size="icon">
-                        <Settings className="h-5 w-5" />
-                        <span className="sr-only">Data Options</span>
-                     </Button>
+                    <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                      <Avatar className="h-10 w-10">
+                        <AvatarFallback>{user.displayName?.charAt(0).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                    </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">Signed in as</p>
+                        <p className="text-lg font-semibold leading-none text-foreground">{user.displayName}</p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem onSelect={handleImportClick}>
                       <Upload className="mr-2 h-4 w-4" />
                       <span>Import Data</span>
