@@ -4,16 +4,14 @@
 import { useState, useEffect } from 'react';
 import { useData } from '@/contexts/data-context';
 import {
-  Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
   SheetDescription,
   SheetFooter
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { SlidersHorizontal, Trash2, Plus, GripVertical } from 'lucide-react';
+import { Trash2, Plus, GripVertical } from 'lucide-react';
 import { AddSubjectDialog } from './add-subject-dialog';
 import { RemoveSubjectDialog } from './remove-subject-dialog';
 import { AddChapterDialog } from './add-chapter-dialog';
@@ -75,15 +73,15 @@ export function CustomizationSheet() {
     const { activeProfile, activeSubjectName, addSubject, removeSubject, addChapter, removeChapter, updateTasks } = useData();
     const { toast } = useToast();
     
-    const [isOpen, setIsOpen] = useState(false);
     const [selectedSubjectName, setSelectedSubjectName] = useState<string | null>(null);
     const [newTaskName, setNewTaskName] = useState('');
 
     useEffect(() => {
-        if (isOpen) {
+        // When the panel opens, sync the selected subject with the active one from the dashboard
+        if (activeProfile) {
             setSelectedSubjectName(activeSubjectName);
         }
-    }, [isOpen, activeSubjectName]);
+    }, [activeProfile, activeSubjectName]);
 
     const selectedSubject = activeProfile?.subjects.find(s => s.name === selectedSubjectName);
     const tasks = selectedSubject?.tasks || [];
@@ -128,147 +126,135 @@ export function CustomizationSheet() {
     }
 
     if (!activeProfile) {
-        return (
-            <Button variant="ghost" size="icon" disabled>
-                <SlidersHorizontal className="h-5 w-5" />
-            </Button>
-        );
+        return null;
     }
 
     return (
-        <Sheet open={isOpen} onOpenChange={setIsOpen}>
-            <SheetTrigger asChild>
-                <Button variant="ghost" size="icon">
-                    <SlidersHorizontal className="h-5 w-5" />
-                    <span className="sr-only">Open Customization</span>
-                </Button>
-            </SheetTrigger>
-            <SheetContent className="w-full sm:max-w-md flex flex-col">
-                <SheetHeader className="pr-6">
-                    <SheetTitle>Customization</SheetTitle>
-                    <SheetDescription>Manage your subjects, chapters, and tasks for the '{activeProfile.name}' profile.</SheetDescription>
-                </SheetHeader>
-                <ScrollArea className="flex-1 -mx-6 px-6">
-                    <div className="py-4 space-y-6">
-                        {/* Section for Subjects */}
-                        <div className="space-y-3">
-                            <h3 className="font-medium text-foreground">Manage Subjects</h3>
-                            <div className="flex flex-col sm:flex-row gap-2">
-                                <AddSubjectDialog 
-                                    onAddSubject={addSubject}
-                                    existingSubjects={activeProfile.subjects.map(s => s.name)}
+        <SheetContent className="w-full sm:max-w-md flex flex-col">
+            <SheetHeader className="pr-6">
+                <SheetTitle>Customization</SheetTitle>
+                <SheetDescription>Manage your subjects, chapters, and tasks for the '{activeProfile.name}' profile.</SheetDescription>
+            </SheetHeader>
+            <ScrollArea className="flex-1 -mx-6 px-6">
+                <div className="py-4 space-y-6">
+                    {/* Section for Subjects */}
+                    <div className="space-y-3">
+                        <h3 className="font-medium text-foreground">Manage Subjects</h3>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                            <AddSubjectDialog 
+                                onAddSubject={addSubject}
+                                existingSubjects={activeProfile.subjects.map(s => s.name)}
+                            >
+                                <Button variant="outline" className="w-full justify-center">
+                                    <Plus className="mr-2 h-4 w-4" /> Add Subject
+                                </Button>
+                            </AddSubjectDialog>
+                            <RemoveSubjectDialog 
+                                subjects={activeProfile.subjects} 
+                                onConfirm={(subjectName) => {
+                                    removeSubject(subjectName);
+                                    if (selectedSubjectName === subjectName) {
+                                        setSelectedSubjectName(null);
+                                    }
+                                }}
+                            >
+                                <Button 
+                                    variant="outline" 
+                                    className="w-full justify-center text-destructive hover:text-destructive focus:text-destructive"
+                                    disabled={activeProfile.subjects.length === 0}
                                 >
-                                    <Button variant="outline" className="w-full justify-center">
-                                        <Plus className="mr-2 h-4 w-4" /> Add Subject
+                                    <Trash2 className="mr-2 h-4 w-4" /> Remove Subject
+                                </Button>
+                            </RemoveSubjectDialog>
+                        </div>
+                    </div>
+
+                    <Separator />
+
+                    <div className="space-y-3">
+                        <Label htmlFor="subject-select" className="font-medium text-foreground">Editing Subject</Label>
+                        <Select 
+                            value={selectedSubjectName || ""} 
+                            onValueChange={(value) => setSelectedSubjectName(value)}
+                            disabled={activeProfile.subjects.length === 0}
+                        >
+                            <SelectTrigger id="subject-select">
+                                <SelectValue placeholder="Select a subject to edit" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {activeProfile.subjects.map(subject => (
+                                    <SelectItem key={subject.name} value={subject.name}>{subject.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    
+                    <div className={cn("space-y-6", !selectedSubject && "opacity-50 pointer-events-none")}>
+                        {/* Section for Chapters */}
+                        <div className="space-y-3">
+                            <h3 className="font-medium text-foreground">Manage Chapters</h3>
+                            <div className="flex flex-col sm:flex-row gap-2">
+                                <AddChapterDialog onAddChapter={(newChapter) => addChapter(selectedSubjectName!, newChapter)}>
+                                    <Button variant="outline" className="w-full justify-center" disabled={!selectedSubjectName}>
+                                        <Plus className="mr-2 h-4 w-4" /> Add Chapter
                                     </Button>
-                                </AddSubjectDialog>
-                                <RemoveSubjectDialog 
-                                    subjects={activeProfile.subjects} 
-                                    onConfirm={(subjectName) => {
-                                        removeSubject(subjectName);
-                                        if (selectedSubjectName === subjectName) {
-                                            setSelectedSubjectName(null);
-                                        }
-                                    }}
+                                </AddChapterDialog>
+                                <RemoveChapterDialog 
+                                    chapters={selectedSubject?.chapters || []} 
+                                    onConfirm={(chapterName) => removeChapter(selectedSubjectName!, chapterName)}
                                 >
                                     <Button 
                                         variant="outline" 
                                         className="w-full justify-center text-destructive hover:text-destructive focus:text-destructive"
-                                        disabled={activeProfile.subjects.length === 0}
+                                        disabled={!selectedSubjectName || (selectedSubject?.chapters?.length ?? 0) === 0}
                                     >
-                                        <Trash2 className="mr-2 h-4 w-4" /> Remove Subject
+                                        <Trash2 className="mr-2 h-4 w-4" /> Remove Chapter
                                     </Button>
-                                </RemoveSubjectDialog>
+                                </RemoveChapterDialog>
                             </div>
                         </div>
 
                         <Separator />
 
+                        {/* Section for Tasks */}
                         <div className="space-y-3">
-                            <Label htmlFor="subject-select" className="font-medium text-foreground">Editing Subject</Label>
-                            <Select 
-                                value={selectedSubjectName || ""} 
-                                onValueChange={(value) => setSelectedSubjectName(value)}
-                                disabled={activeProfile.subjects.length === 0}
-                            >
-                                <SelectTrigger id="subject-select">
-                                    <SelectValue placeholder="Select a subject to edit" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {activeProfile.subjects.map(subject => (
-                                        <SelectItem key={subject.name} value={subject.name}>{subject.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        
-                        <div className={cn("space-y-6", !selectedSubject && "opacity-50 pointer-events-none")}>
-                            {/* Section for Chapters */}
-                            <div className="space-y-3">
-                                <h3 className="font-medium text-foreground">Manage Chapters</h3>
-                                <div className="flex flex-col sm:flex-row gap-2">
-                                    <AddChapterDialog onAddChapter={(newChapter) => addChapter(selectedSubjectName!, newChapter)}>
-                                        <Button variant="outline" className="w-full justify-center" disabled={!selectedSubjectName}>
-                                            <Plus className="mr-2 h-4 w-4" /> Add Chapter
-                                        </Button>
-                                    </AddChapterDialog>
-                                    <RemoveChapterDialog 
-                                        chapters={selectedSubject?.chapters || []} 
-                                        onConfirm={(chapterName) => removeChapter(selectedSubjectName!, chapterName)}
-                                    >
-                                        <Button 
-                                            variant="outline" 
-                                            className="w-full justify-center text-destructive hover:text-destructive focus:text-destructive"
-                                            disabled={!selectedSubjectName || (selectedSubject?.chapters?.length ?? 0) === 0}
-                                        >
-                                            <Trash2 className="mr-2 h-4 w-4" /> Remove Chapter
-                                        </Button>
-                                    </RemoveChapterDialog>
+                            <h3 className="font-medium text-foreground">Manage Tasks</h3>
+                            <div className="space-y-2">
+                                <Label htmlFor="new-task">Add New Task</Label>
+                                <div className="flex gap-2">
+                                    <Input 
+                                        id="new-task" 
+                                        placeholder="e.g. Revision" 
+                                        value={newTaskName}
+                                        onChange={(e) => setNewTaskName(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
+                                        disabled={!selectedSubjectName}
+                                    />
+                                    <Button onClick={handleAddTask} disabled={!selectedSubjectName}>Add</Button>
                                 </div>
                             </div>
-
-                            <Separator />
-
-                            {/* Section for Tasks */}
-                            <div className="space-y-3">
-                                <h3 className="font-medium text-foreground">Manage Tasks</h3>
-                                <div className="space-y-2">
-                                    <Label htmlFor="new-task">Add New Task</Label>
-                                    <div className="flex gap-2">
-                                        <Input 
-                                            id="new-task" 
-                                            placeholder="e.g. Revision" 
-                                            value={newTaskName}
-                                            onChange={(e) => setNewTaskName(e.target.value)}
-                                            onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
-                                            disabled={!selectedSubjectName}
-                                        />
-                                        <Button onClick={handleAddTask} disabled={!selectedSubjectName}>Add</Button>
+                            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                                <SortableContext items={tasks} strategy={verticalListSortingStrategy}>
+                                    <div className="space-y-2">
+                                        {tasks.map(task => (
+                                        <SortableTaskItem 
+                                                key={task} 
+                                                id={task} 
+                                                task={task} 
+                                                onRemove={() => handleRemoveTask(task)} 
+                                            />
+                                        ))}
                                     </div>
-                                </div>
-                                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                                    <SortableContext items={tasks} strategy={verticalListSortingStrategy}>
-                                        <div className="space-y-2">
-                                            {tasks.map(task => (
-                                            <SortableTaskItem 
-                                                    key={task} 
-                                                    id={task} 
-                                                    task={task} 
-                                                    onRemove={() => handleRemoveTask(task)} 
-                                                />
-                                            ))}
-                                        </div>
-                                    </SortableContext>
-                                </DndContext>
-                            </div>
+                                </SortableContext>
+                            </DndContext>
                         </div>
-
                     </div>
-                </ScrollArea>
-                 <SheetFooter className="mt-auto pt-4 border-t">
-                    <p className="text-xs text-muted-foreground">Changes are saved automatically.</p>
-                </SheetFooter>
-            </SheetContent>
-        </Sheet>
+
+                </div>
+            </ScrollArea>
+             <SheetFooter className="mt-auto pt-4 border-t">
+                <p className="text-xs text-muted-foreground">Changes are saved automatically.</p>
+            </SheetFooter>
+        </SheetContent>
     );
 }
