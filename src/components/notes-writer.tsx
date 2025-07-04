@@ -55,7 +55,7 @@ export default function NotesWriter() {
                         placeholder="Type your notes here..."
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
-                        className="min-h-[200px] text-base"
+                        className="min-h-[160px] text-base"
                     />
                 </div>
                 <Button onClick={handleSave} className="self-start">
