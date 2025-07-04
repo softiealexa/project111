@@ -146,7 +146,7 @@ export default function ChapterAccordionItem({ chapter, subjectName, index, id }
                       })}
                       <Tooltip>
                         <TooltipTrigger asChild>
-                           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => setEditingNote(editingNote === lectureNum ? null : lectureNum)}>
+                           <Button variant="ghost" size="icon" className="h-8 w-8 text-primary/70 hover:text-primary" onClick={() => setEditingNote(editingNote === lectureNum ? null : lectureNum)}>
                               <StickyNote className="h-4 w-4" />
                           </Button>
                         </TooltipTrigger>
