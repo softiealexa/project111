@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { iconMap, iconNames } from "@/lib/icons";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface AddSubjectDialogProps {
   onAddSubject: (subjectName: string, iconName: string) => void;
@@ -83,30 +84,32 @@ export function AddSubjectDialog({ onAddSubject, existingSubjects, children }: A
           </div>
            <div className="grid gap-2">
             <Label>Icon</Label>
-            <RadioGroup
-                value={selectedIcon}
-                onValueChange={setSelectedIcon}
-                className="grid grid-cols-4 gap-2 pt-1"
-            >
-                {iconNames.map((name) => {
-                    const IconComponent = iconMap[name];
-                    return (
-                        <div key={name}>
-                            <RadioGroupItem value={name} id={name} className="sr-only" />
-                            <Label 
-                                htmlFor={name} 
-                                className={cn(
-                                    "flex flex-col items-center justify-center gap-1.5 rounded-md p-2 border-2 border-muted bg-popover hover:bg-accent hover:text-accent-foreground cursor-pointer aspect-square",
-                                    selectedIcon === name && "border-primary"
-                                )}
-                            >
-                                <IconComponent className="h-6 w-6" />
-                                <span className="text-xs font-normal">{name}</span>
-                            </Label>
-                        </div>
-                    )
-                })}
-            </RadioGroup>
+            <ScrollArea className="h-60 w-full rounded-md border">
+              <RadioGroup
+                  value={selectedIcon}
+                  onValueChange={setSelectedIcon}
+                  className="grid grid-cols-4 gap-2 p-4"
+              >
+                  {iconNames.map((name) => {
+                      const IconComponent = iconMap[name];
+                      return (
+                          <div key={name}>
+                              <RadioGroupItem value={name} id={name} className="sr-only" />
+                              <Label 
+                                  htmlFor={name} 
+                                  className={cn(
+                                      "flex flex-col items-center justify-center gap-1 rounded-md p-1.5 border-2 border-muted bg-popover hover:bg-accent hover:text-accent-foreground cursor-pointer aspect-square",
+                                      selectedIcon === name && "border-primary"
+                                  )}
+                              >
+                                  <IconComponent className="h-5 w-5" />
+                                  <span className="text-xs font-normal">{name}</span>
+                              </Label>
+                          </div>
+                      )
+                  })}
+              </RadioGroup>
+            </ScrollArea>
           </div>
           {error && <p className="text-sm text-destructive text-center pt-2">{error}</p>}
         </div>
