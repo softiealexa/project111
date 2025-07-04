@@ -7,6 +7,7 @@ import LectureTracker from "@/components/lecture-tracker";
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import LiveClock from '@/components/live-clock';
 
 export default function DashboardPage() {
   const { activeProfile, activeSubjectName, setActiveSubjectName } = useData();
@@ -54,6 +55,7 @@ export default function DashboardPage() {
                     </TabsList>
                     <ScrollBar orientation="horizontal" />
                   </ScrollArea>
+                  <LiveClock />
                 </div>
 
                 {activeProfile.subjects.map((subject) => (
