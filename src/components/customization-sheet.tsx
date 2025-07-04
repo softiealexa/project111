@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useData } from '@/contexts/data-context';
 import {
   Sheet,
@@ -40,6 +40,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 
 function SortableTaskItem({ id, task, onRemove }: { id: string, task: string, onRemove: () => void }) {
@@ -71,38 +72,40 @@ function SortableTaskItem({ id, task, onRemove }: { id: string, task: string, on
 }
 
 export function CustomizationSheet() {
-    const {
-        activeProfile,
-        activeSubjectName,
-        addSubject,
-        removeSubject,
-        addChapter,
-        removeChapter,
-        updateTasks,
-    } = useData();
+    const { activeProfile, activeSubjectName, addSubject, removeSubject, addChapter, removeChapter, updateTasks } = useData();
     const { toast } = useToast();
+    
+    const [isOpen, setIsOpen] = useState(false);
+    const [selectedSubjectName, setSelectedSubjectName] = useState<string | null>(null);
     const [newTaskName, setNewTaskName] = useState('');
 
-    const activeSubject = activeProfile?.subjects.find(s => s.name === activeSubjectName);
+    useEffect(() => {
+        if (isOpen) {
+            setSelectedSubjectName(activeSubjectName);
+        }
+    }, [isOpen, activeSubjectName]);
+
+    const selectedSubject = activeProfile?.subjects.find(s => s.name === selectedSubjectName);
+    const tasks = selectedSubject?.tasks || [];
 
     const handleAddTask = () => {
-        if (!activeProfile) return;
+        if (!selectedSubject) return;
         const trimmedName = newTaskName.trim();
         if (!trimmedName) {
             toast({ title: "Error", description: "Task name cannot be empty.", variant: "destructive" });
             return;
         }
-        if (activeProfile.tasks.includes(trimmedName)) {
-            toast({ title: "Error", description: "This task already exists.", variant: "destructive" });
+        if (tasks.includes(trimmedName)) {
+            toast({ title: "Error", description: "This task already exists for this subject.", variant: "destructive" });
             return;
         }
-        updateTasks([...activeProfile.tasks, trimmedName]);
+        updateTasks(selectedSubject.name, [...tasks, trimmedName]);
         setNewTaskName('');
     };
 
     const handleRemoveTask = (taskToRemove: string) => {
-        if (!activeProfile) return;
-        updateTasks(activeProfile.tasks.filter(t => t !== taskToRemove));
+        if (!selectedSubject) return;
+        updateTasks(selectedSubject.name, tasks.filter(t => t !== taskToRemove));
     };
 
     const sensors = useSensors(
@@ -113,13 +116,13 @@ export function CustomizationSheet() {
     function handleDragEnd(event: DragEndEvent) {
         const { active, over } = event;
     
-        if (over && active.id !== over.id && activeProfile) {
-          const oldIndex = activeProfile.tasks.indexOf(active.id as string);
-          const newIndex = activeProfile.tasks.indexOf(over.id as string);
+        if (over && active.id !== over.id && selectedSubject) {
+          const oldIndex = tasks.indexOf(active.id as string);
+          const newIndex = tasks.indexOf(over.id as string);
           
           if (oldIndex !== -1 && newIndex !== -1) {
-            const reorderedTasks = arrayMove(activeProfile.tasks, oldIndex, newIndex);
-            updateTasks(reorderedTasks);
+            const reorderedTasks = arrayMove(tasks, oldIndex, newIndex);
+            updateTasks(selectedSubject.name, reorderedTasks);
           }
         }
     }
@@ -133,7 +136,7 @@ export function CustomizationSheet() {
     }
 
     return (
-        <Sheet>
+        <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
                 <Button variant="ghost" size="icon">
                     <SlidersHorizontal className="h-5 w-5" />
@@ -147,40 +150,6 @@ export function CustomizationSheet() {
                 </SheetHeader>
                 <ScrollArea className="flex-1 -mx-6 px-6">
                     <div className="py-4 space-y-6">
-                        {/* Section for Tasks */}
-                        <div className="space-y-3">
-                            <h3 className="font-medium text-foreground">Manage Tasks</h3>
-                             <div className="space-y-2">
-                                <Label htmlFor="new-task">Add New Task</Label>
-                                <div className="flex gap-2">
-                                    <Input 
-                                        id="new-task" 
-                                        placeholder="e.g. Revision" 
-                                        value={newTaskName}
-                                        onChange={(e) => setNewTaskName(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
-                                    />
-                                    <Button onClick={handleAddTask}>Add</Button>
-                                </div>
-                             </div>
-                            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                                <SortableContext items={activeProfile.tasks} strategy={verticalListSortingStrategy}>
-                                    <div className="space-y-2">
-                                        {activeProfile.tasks.map(task => (
-                                           <SortableTaskItem 
-                                                key={task} 
-                                                id={task} 
-                                                task={task} 
-                                                onRemove={() => handleRemoveTask(task)} 
-                                            />
-                                        ))}
-                                    </div>
-                                </SortableContext>
-                            </DndContext>
-                        </div>
-
-                        <Separator />
-
                         {/* Section for Subjects */}
                         <div className="space-y-3">
                             <h3 className="font-medium text-foreground">Manage Subjects</h3>
@@ -195,7 +164,12 @@ export function CustomizationSheet() {
                                 </AddSubjectDialog>
                                 <RemoveSubjectDialog 
                                     subjects={activeProfile.subjects} 
-                                    onConfirm={removeSubject}
+                                    onConfirm={(subjectName) => {
+                                        removeSubject(subjectName);
+                                        if (selectedSubjectName === subjectName) {
+                                            setSelectedSubjectName(null);
+                                        }
+                                    }}
                                 >
                                     <Button 
                                         variant="outline" 
@@ -210,32 +184,85 @@ export function CustomizationSheet() {
 
                         <Separator />
 
-                        {/* Section for Chapters */}
                         <div className="space-y-3">
-                            <h3 className="font-medium text-foreground">Manage Chapters</h3>
-                            <p className="text-sm text-muted-foreground">
-                                {activeSubject ? `Editing chapters for '${activeSubject.name}'.` : "Select a subject from the dashboard to manage its chapters."}
-                            </p>
-                            <div className="flex flex-col sm:flex-row gap-2">
-                                <AddChapterDialog onAddChapter={(newChapter) => addChapter(activeSubjectName!, newChapter)}>
-                                    <Button variant="outline" className="w-full justify-center" disabled={!activeSubject}>
-                                        <Plus className="mr-2 h-4 w-4" /> Add Chapter
-                                    </Button>
-                                </AddChapterDialog>
-                                <RemoveChapterDialog 
-                                    chapters={activeSubject?.chapters || []} 
-                                    onConfirm={(chapterName) => removeChapter(activeSubjectName!, chapterName)}
-                                >
-                                     <Button 
-                                        variant="outline" 
-                                        className="w-full justify-center text-destructive hover:text-destructive focus:text-destructive"
-                                        disabled={!activeSubject || activeSubject.chapters.length === 0}
+                            <Label htmlFor="subject-select" className="font-medium text-foreground">Editing Subject</Label>
+                            <Select 
+                                value={selectedSubjectName || ""} 
+                                onValueChange={(value) => setSelectedSubjectName(value)}
+                                disabled={activeProfile.subjects.length === 0}
+                            >
+                                <SelectTrigger id="subject-select">
+                                    <SelectValue placeholder="Select a subject to edit" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {activeProfile.subjects.map(subject => (
+                                        <SelectItem key={subject.name} value={subject.name}>{subject.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        
+                        <div className={cn("space-y-6", !selectedSubject && "opacity-50 pointer-events-none")}>
+                            {/* Section for Chapters */}
+                            <div className="space-y-3">
+                                <h3 className="font-medium text-foreground">Manage Chapters</h3>
+                                <div className="flex flex-col sm:flex-row gap-2">
+                                    <AddChapterDialog onAddChapter={(newChapter) => addChapter(selectedSubjectName!, newChapter)}>
+                                        <Button variant="outline" className="w-full justify-center" disabled={!selectedSubjectName}>
+                                            <Plus className="mr-2 h-4 w-4" /> Add Chapter
+                                        </Button>
+                                    </AddChapterDialog>
+                                    <RemoveChapterDialog 
+                                        chapters={selectedSubject?.chapters || []} 
+                                        onConfirm={(chapterName) => removeChapter(selectedSubjectName!, chapterName)}
                                     >
-                                        <Trash2 className="mr-2 h-4 w-4" /> Remove Chapter
-                                    </Button>
-                                </RemoveChapterDialog>
+                                        <Button 
+                                            variant="outline" 
+                                            className="w-full justify-center text-destructive hover:text-destructive focus:text-destructive"
+                                            disabled={!selectedSubjectName || (selectedSubject?.chapters?.length ?? 0) === 0}
+                                        >
+                                            <Trash2 className="mr-2 h-4 w-4" /> Remove Chapter
+                                        </Button>
+                                    </RemoveChapterDialog>
+                                </div>
+                            </div>
+
+                            <Separator />
+
+                            {/* Section for Tasks */}
+                            <div className="space-y-3">
+                                <h3 className="font-medium text-foreground">Manage Tasks</h3>
+                                <div className="space-y-2">
+                                    <Label htmlFor="new-task">Add New Task</Label>
+                                    <div className="flex gap-2">
+                                        <Input 
+                                            id="new-task" 
+                                            placeholder="e.g. Revision" 
+                                            value={newTaskName}
+                                            onChange={(e) => setNewTaskName(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
+                                            disabled={!selectedSubjectName}
+                                        />
+                                        <Button onClick={handleAddTask} disabled={!selectedSubjectName}>Add</Button>
+                                    </div>
+                                </div>
+                                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                                    <SortableContext items={tasks} strategy={verticalListSortingStrategy}>
+                                        <div className="space-y-2">
+                                            {tasks.map(task => (
+                                            <SortableTaskItem 
+                                                    key={task} 
+                                                    id={task} 
+                                                    task={task} 
+                                                    onRemove={() => handleRemoveTask(task)} 
+                                                />
+                                            ))}
+                                        </div>
+                                    </SortableContext>
+                                </DndContext>
                             </div>
                         </div>
+
                     </div>
                 </ScrollArea>
                  <SheetFooter className="mt-auto pt-4 border-t">

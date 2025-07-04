@@ -2,7 +2,7 @@
 
 import type { Profile } from "@/lib/types";
 import { useMemo } from "react";
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid } from "recharts";
 import {
   Card,
   CardContent,
@@ -16,16 +16,15 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 
-const TASKS_PER_LECTURE = 4; // Lecture, DPP, Module, Class Qs
-
 export function ProgressSummary({ profile }: { profile: Profile }) {
   const chartData = useMemo(() => {
     return profile.subjects.map((subject) => {
       let totalTasks = 0;
       let completedTasks = 0;
+      const tasksPerLecture = subject.tasks?.length || 0;
 
       subject.chapters.forEach((chapter) => {
-        totalTasks += chapter.lectureCount * TASKS_PER_LECTURE;
+        totalTasks += chapter.lectureCount * tasksPerLecture;
         completedTasks += Object.values(chapter.checkedState || {}).filter(Boolean).length;
       });
 

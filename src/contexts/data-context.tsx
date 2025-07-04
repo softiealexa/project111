@@ -30,7 +30,7 @@ interface DataContextType {
   removeSubject: (subjectNameToRemove: string) => void;
   addChapter: (subjectName: string, newChapter: Chapter) => void;
   removeChapter: (subjectName: string, chapterNameToRemove: string) => void;
-  updateTasks: (newTasks: string[]) => void;
+  updateTasks: (subjectName: string, newTasks: string[]) => void;
   exportData: () => void;
   importData: (file: File) => void;
   signOutUser: () => Promise<void>;
@@ -49,15 +49,16 @@ const restoreIcons = (profiles: Profile[]): Profile[] => {
         ...profile,
         subjects: profile.subjects.map(subject => ({
             ...subject,
-            icon: initialSubjects.find(s => s.name === subject.name)?.icon || Book
+            icon: initialSubjects.find(s => s.name === subject.name)?.icon || Book,
+            // Backwards compatibility for profiles that had tasks on the profile level
+            tasks: subject.tasks || (profile as any).tasks || ['Lecture', 'DPP', 'Module', 'Class Qs'],
         })),
-        tasks: profile.tasks || ['Lecture', 'DPP', 'Module', 'Class Qs'], // Ensure tasks exist
     }));
 };
 
 const stripIcons = (profiles: Profile[]) => {
     return profiles.map(p => ({
-        ...p,
+        name: p.name,
         subjects: p.subjects.map(({ icon, ...rest }) => rest)
     }));
 };
@@ -170,7 +171,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   
 
   const addProfile = (name: string) => {
-    const newProfile: Profile = { name, subjects: [], tasks: ['Lecture', 'DPP', 'Module', 'Class Qs'] };
+    const newProfile: Profile = { name, subjects: [] };
     const newProfiles = [...profiles, newProfile];
     setProfiles(newProfiles);
     setActiveProfileName(name);
@@ -192,7 +193,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const addSubject = (subjectName: string) => {
     if (!activeProfileName) return;
-    const newSubject: Subject = { name: subjectName, icon: Book, chapters: [] };
+    const newSubject: Subject = { 
+        name: subjectName, 
+        icon: Book, 
+        chapters: [],
+        tasks: ['Lecture', 'DPP', 'Module', 'Class Qs'],
+    };
     const activeProfile = profiles.find(p => p.name === activeProfileName);
     if (!activeProfile) return;
     
@@ -256,9 +262,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
     saveData(newProfiles, activeProfileName);
   };
 
-  const updateTasks = (newTasks: string[]) => {
+  const updateTasks = (subjectName: string, newTasks: string[]) => {
     if (!activeProfileName) return;
-    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, tasks: newTasks } : p);
+    const newProfiles = profiles.map(profile => {
+      if (profile.name === activeProfileName) {
+        const newSubjects = profile.subjects.map(subject => {
+          if (subject.name === subjectName) {
+            return { ...subject, tasks: newTasks };
+          }
+          return subject;
+        });
+        return { ...profile, subjects: newSubjects };
+      }
+      return profile;
+    });
     setProfiles(newProfiles);
     saveData(newProfiles, activeProfileName);
   };

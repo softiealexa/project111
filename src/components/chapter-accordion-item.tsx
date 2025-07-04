@@ -6,7 +6,7 @@ import { AccordionContent, AccordionItem } from "@/components/ui/accordion";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import type { Chapter } from "@/lib/types";
+import type { Chapter, Subject } from "@/lib/types";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle2, Circle, GripVertical, ChevronDown, StickyNote } from 'lucide-react';
 import { useData } from '@/contexts/data-context';
@@ -21,12 +21,12 @@ import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
 interface ChapterAccordionItemProps {
   chapter: Chapter;
-  subjectName: string;
+  subject: Subject;
   index: number;
   id: string;
 }
 
-export default function ChapterAccordionItem({ chapter, subjectName, index, id }: ChapterAccordionItemProps) {
+export default function ChapterAccordionItem({ chapter, subject, index, id }: ChapterAccordionItemProps) {
   const { activeProfile, updateSubjects } = useData();
   const [checkedState, setCheckedState] = useState<Record<string, boolean>>(chapter.checkedState || {});
   const [editingNote, setEditingNote] = useState<number | null>(null);
@@ -46,7 +46,7 @@ export default function ChapterAccordionItem({ chapter, subjectName, index, id }
     zIndex: isDragging ? 10 : 'auto',
   };
   
-  const tasks = activeProfile?.tasks || [];
+  const tasks = subject.tasks || [];
   const totalTasks = chapter.lectureCount * tasks.length;
   const completedTasks = Object.values(checkedState).filter(Boolean).length;
   
@@ -57,7 +57,7 @@ export default function ChapterAccordionItem({ chapter, subjectName, index, id }
     if (!activeProfile) return;
 
     const newSubjects = activeProfile.subjects.map(s => {
-      if (s.name === subjectName) {
+      if (s.name === subject.name) {
         const newChapters = s.chapters.map((c, i) => {
           if (i === index) {
             return { ...c, checkedState: newCheckedState };
@@ -75,7 +75,7 @@ export default function ChapterAccordionItem({ chapter, subjectName, index, id }
     if (!activeProfile) return;
 
     const newSubjects = activeProfile.subjects.map(s => {
-      if (s.name === subjectName) {
+      if (s.name === subject.name) {
         const newChapters = s.chapters.map((c, i) => {
           if (i === index) {
             const lectureKey = `L${lectureNum}`;
@@ -134,7 +134,7 @@ export default function ChapterAccordionItem({ chapter, subjectName, index, id }
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg p-3 transition-colors hover:bg-muted/50">
                       <p className="font-medium text-foreground mr-auto pr-4">Lecture {lectureNum}</p>
                       {tasks.map((task) => {
-                        const checkboxId = `${subjectName}-${chapter.name}-L${lectureNum}-${task}`;
+                        const checkboxId = `${subject.name}-${chapter.name}-L${lectureNum}-${task}`;
                         return (
                             <div key={task} className="flex items-center space-x-2">
                                 <Checkbox id={checkboxId} checked={!!checkedState[checkboxId]} onCheckedChange={(checked) => handleCheckboxChange(checkboxId, !!checked)} />
