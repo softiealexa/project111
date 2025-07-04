@@ -12,6 +12,7 @@ import { ProgressSummary } from '@/components/progress-summary';
 import { getIconComponent } from '@/lib/icons';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Feather, Timer } from 'lucide-react';
+import PomodoroTimer from '@/components/pomodoro-timer';
 
 export default function DashboardPage() {
   const { activeProfile, activeSubjectName, setActiveSubjectName } = useData();
@@ -117,7 +118,7 @@ export default function DashboardPage() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-muted-foreground">This feature is coming soon.</p>
+                      <PomodoroTimer />
                     </CardContent>
                   </Card>
                 </div>
