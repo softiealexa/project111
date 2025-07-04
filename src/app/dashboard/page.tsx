@@ -43,7 +43,7 @@ export default function DashboardPage() {
           {activeProfile.subjects.length > 0 ? (
               <Tabs value={activeSubjectName ?? ''} onValueChange={setActiveSubjectName} className="w-full">
                 <div className="flex items-center justify-between gap-4">
-                  <ScrollArea className="w-full whitespace-nowrap rounded-md pb-2.5">
+                  <ScrollArea className="flex-1 whitespace-nowrap rounded-md pb-2.5">
                     <TabsList className="bg-muted h-auto justify-start sm:h-10">
                       {activeProfile.subjects.map((subject) => (
                         <TabsTrigger key={subject.name} value={subject.name} className="flex items-center gap-2">
