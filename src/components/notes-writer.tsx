@@ -33,11 +33,7 @@ export default function NotesWriter() {
   return (
     <div className="grid gap-6">
       <Card>
-        <CardHeader>
-            <CardTitle>New Note</CardTitle>
-            <CardDescription>A space to jot down your thoughts and ideas.</CardDescription>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
             <div className="flex flex-col gap-4">
                 <div className="grid gap-2">
                     <Label htmlFor="note-title">Title</Label>
@@ -55,7 +51,7 @@ export default function NotesWriter() {
                         placeholder="Type your notes here..."
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
-                        className="min-h-[160px] text-base"
+                        className="text-base"
                     />
                 </div>
                 <Button onClick={handleSave} className="self-start">
