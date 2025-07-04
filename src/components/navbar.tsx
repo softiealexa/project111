@@ -47,9 +47,9 @@ export default function Navbar() {
     <header suppressHydrationWarning className="bg-background/80 border-b border-border/50 backdrop-blur-sm sticky top-0 z-50">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <Link href="/dashboard" className="flex items-center gap-2.5 text-foreground hover:text-primary transition-colors">
-            <Book className="h-7 w-7 text-primary" />
-            <span className="font-headline text-2xl font-bold bg-gradient-to-r from-primary via-foreground/90 to-primary bg-clip-text text-transparent">
+          <Link href="/dashboard" className="flex items-center gap-2 sm:gap-2.5 text-foreground hover:text-primary transition-colors">
+            <Book className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
+            <span className="font-headline text-xl sm:text-2xl font-bold bg-gradient-to-r from-primary via-foreground/90 to-primary bg-clip-text text-transparent">
               TrackAcademic
             </span>
           </Link>
