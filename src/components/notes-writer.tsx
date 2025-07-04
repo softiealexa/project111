@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { ScrollArea } from './ui/scroll-area';
 
 export default function NotesWriter() {
   const [title, setTitle] = useState('');
@@ -51,7 +52,7 @@ export default function NotesWriter() {
                         placeholder="Type your notes here..."
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
-                        className="text-base"
+                        className="min-h-[96px] text-base"
                     />
                 </div>
                 <Button onClick={handleSave} className="self-start">
@@ -67,24 +68,34 @@ export default function NotesWriter() {
             <CardDescription>Your previously saved notes. This is a visual placeholder.</CardDescription>
         </CardHeader>
         <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                <Card className="cursor-pointer hover:border-primary/50 transition-colors">
-                  <CardHeader><CardTitle className="text-lg truncate">Note Title 1</CardTitle></CardHeader>
-                  <CardContent><p className="text-sm text-muted-foreground line-clamp-3">This is a short preview of the note content. Clicking on it would open the full note for editing.</p></CardContent>
-                </Card>
-                 <Card className="cursor-pointer hover:border-primary/50 transition-colors">
-                  <CardHeader><CardTitle className="text-lg truncate">Another Note</CardTitle></CardHeader>
-                  <CardContent><p className="text-sm text-muted-foreground line-clamp-3">More content here to see how it looks when it wraps over multiple lines of text.</p></CardContent>
-                </Card>
-                 <Card className="cursor-pointer hover:border-primary/50 transition-colors">
-                  <CardHeader><CardTitle className="text-lg truncate">Quick Idea</CardTitle></CardHeader>
-                  <CardContent><p className="text-sm text-muted-foreground line-clamp-3">A very brief note.</p></CardContent>
-                </Card>
-                 <Card className="cursor-pointer hover:border-primary/50 transition-colors">
-                  <CardHeader><CardTitle className="text-lg truncate">Long Note Title That Needs to Be Truncated</CardTitle></CardHeader>
-                  <CardContent><p className="text-sm text-muted-foreground line-clamp-3">This note has a longer title to test how the truncation is working on the card's title element.</p></CardContent>
-                </Card>
-            </div>
+            <ScrollArea className="h-[300px] pr-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Card className="cursor-pointer hover:border-primary/50 transition-colors">
+                        <CardHeader><CardTitle className="text-lg truncate">Note Title 1</CardTitle></CardHeader>
+                        <CardContent><p className="text-sm text-muted-foreground line-clamp-3">This is a short preview of the note content. Clicking on it would open the full note for editing.</p></CardContent>
+                    </Card>
+                    <Card className="cursor-pointer hover:border-primary/50 transition-colors">
+                        <CardHeader><CardTitle className="text-lg truncate">Another Note</CardTitle></CardHeader>
+                        <CardContent><p className="text-sm text-muted-foreground line-clamp-3">More content here to see how it looks when it wraps over multiple lines of text.</p></CardContent>
+                    </Card>
+                    <Card className="cursor-pointer hover:border-primary/50 transition-colors">
+                        <CardHeader><CardTitle className="text-lg truncate">Quick Idea</CardTitle></CardHeader>
+                        <CardContent><p className="text-sm text-muted-foreground line-clamp-3">A very brief note.</p></CardContent>
+                    </Card>
+                    <Card className="cursor-pointer hover:border-primary/50 transition-colors">
+                        <CardHeader><CardTitle className="text-lg truncate">Long Note Title That Needs to Be Truncated</CardTitle></CardHeader>
+                        <CardContent><p className="text-sm text-muted-foreground line-clamp-3">This note has a longer title to test how the truncation is working on the card's title element.</p></CardContent>
+                    </Card>
+                    <Card className="cursor-pointer hover:border-primary/50 transition-colors">
+                        <CardHeader><CardTitle className="text-lg truncate">Meeting Notes</CardTitle></CardHeader>
+                        <CardContent><p className="text-sm text-muted-foreground line-clamp-3">- Discuss project timeline. - Review quarterly goals. - Assign action items.</p></CardContent>
+                    </Card>
+                    <Card className="cursor-pointer hover:border-primary/50 transition-colors">
+                        <CardHeader><CardTitle className="text-lg truncate">Shopping List</CardTitle></CardHeader>
+                        <CardContent><p className="text-sm text-muted-foreground line-clamp-3">Milk, Bread, Eggs, Cheese, Apples, Bananas.</p></CardContent>
+                    </Card>
+                </div>
+            </ScrollArea>
         </CardContent>
       </Card>
     </div>
