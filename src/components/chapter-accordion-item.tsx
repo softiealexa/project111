@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -129,8 +130,8 @@ export default function ChapterAccordionItem({ chapter, subjectName, index, id }
               <div className="space-y-2">
                 {Array.from({ length: chapter.lectureCount }, (_, i) => i + 1).map((lectureNum) => (
                   <div key={lectureNum}>
-                    <div className="grid grid-cols-2 md:grid-cols-5 items-center gap-x-4 gap-y-2 rounded-lg p-3 transition-colors hover:bg-muted/50">
-                      <p className="font-medium text-foreground col-span-2 md:col-span-1">Lecture {lectureNum}</p>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg p-3 transition-colors hover:bg-muted/50">
+                      <p className="font-medium text-foreground mr-auto pr-4">Lecture {lectureNum}</p>
                       {tasks.map((task) => {
                         const checkboxId = `${subjectName}-${chapter.name}-L${lectureNum}-${task}`;
                         return (
@@ -142,11 +143,9 @@ export default function ChapterAccordionItem({ chapter, subjectName, index, id }
                             </div>
                         );
                       })}
-                      <div className="flex justify-end col-start-2 md:col-start-auto">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => setEditingNote(editingNote === lectureNum ? null : lectureNum)}>
-                            <StickyNote className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => setEditingNote(editingNote === lectureNum ? null : lectureNum)}>
+                          <StickyNote className="h-4 w-4" />
+                      </Button>
                     </div>
                     {editingNote === lectureNum && (
                       <div className="px-3 pb-2 -mt-1 animate-in fade-in-50">
