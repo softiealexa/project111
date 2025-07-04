@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
 
 interface ChapterAccordionItemProps {
@@ -143,17 +144,26 @@ export default function ChapterAccordionItem({ chapter, subjectName, index, id }
                             </div>
                         );
                       })}
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => setEditingNote(editingNote === lectureNum ? null : lectureNum)}>
-                          <StickyNote className="h-4 w-4" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => setEditingNote(editingNote === lectureNum ? null : lectureNum)}>
+                              <StickyNote className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                           <p>Notes</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                     {editingNote === lectureNum && (
                       <div className="px-3 pb-2 -mt-1 animate-in fade-in-50">
                           <Textarea 
+                              autoFocus
                               placeholder={`Notes for Lecture ${lectureNum}...`}
                               defaultValue={chapter.notes?.[`L${lectureNum}`] || ''}
                               onBlur={(e) => {
                                 handleNoteChange(lectureNum, e.target.value);
+                                setEditingNote(null);
                               }}
                               className="min-h-[60px] text-sm"
                           />
