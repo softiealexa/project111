@@ -185,7 +185,7 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
                                onChange={(e) => setNoteContent(e.target.value)}
                                onBlur={handleNoteBlur}
                                placeholder="Type your notes here... they save automatically when you click away."
-                               className="min-h-[72px] text-base"
+                               className="min-h-[72px] text-base focus-visible:ring-1 focus-visible:ring-primary"
                              />
                            </div>
                         )}
