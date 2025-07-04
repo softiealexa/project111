@@ -114,21 +114,14 @@ export const getUserData = async (uid: string): Promise<UserData | null> => {
     return null;
 }
 
-const stripIcons = (profiles: Profile[]) => {
-    if (!profiles) return [];
-    return profiles.map(p => ({
-        ...p,
-        subjects: p.subjects.map(({ icon, ...rest }) => rest)
-    }));
-};
-
 export const saveUserData = async (uid: string, profiles: Profile[], activeProfileName: string | null) => {
     if (!isFirebaseConfigured || !db) {
         throw new Error(FIREBASE_NOT_CONFIGURED_ERROR);
     }
     const userDocRef = doc(db, 'users', uid);
+    // Data is now fully serializable, no need to strip icons.
     await setDoc(userDocRef, { 
-        profiles: stripIcons(profiles),
+        profiles: profiles,
         activeProfileName: activeProfileName 
     }, { merge: true });
 }

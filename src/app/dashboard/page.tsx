@@ -9,6 +9,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import LiveClock from '@/components/live-clock';
 import { ProgressSummary } from '@/components/progress-summary';
+import { getIconComponent } from '@/lib/icons';
 
 export default function DashboardPage() {
   const { activeProfile, activeSubjectName, setActiveSubjectName } = useData();
@@ -38,6 +39,8 @@ export default function DashboardPage() {
     )
   }
 
+  const hasMoreThanFourSubjects = activeProfile.subjects.length > 4;
+
   return (
     <div className="flex w-full flex-col items-center bg-background text-foreground pb-12">
       <TooltipProvider delayDuration={100}>
@@ -53,13 +56,19 @@ export default function DashboardPage() {
                 <Tabs value={activeSubjectName ?? ''} onValueChange={setActiveSubjectName} className="w-full">
                   <div className="flex items-center justify-between gap-4">
                     <ScrollArea className="flex-1 whitespace-nowrap rounded-md pb-2.5">
-                      <TabsList className="bg-muted h-auto justify-start sm:h-10">
-                        {activeProfile.subjects.map((subject) => (
-                          <TabsTrigger key={subject.name} value={subject.name} className="flex items-center gap-2">
-                            {subject.icon && <subject.icon className="h-5 w-5" />}
-                            <span>{subject.name}</span>
-                          </TabsTrigger>
-                        ))}
+                      <TabsList className={cn(
+                        "bg-muted h-auto transition-all duration-300",
+                        hasMoreThanFourSubjects ? 'justify-start' : 'grid w-full grid-cols-4 sm:justify-center'
+                      )}>
+                        {activeProfile.subjects.map((subject) => {
+                          const Icon = getIconComponent(subject.icon);
+                          return (
+                            <TabsTrigger key={subject.name} value={subject.name} className="flex items-center gap-2">
+                              <Icon className="h-5 w-5" />
+                              <span>{subject.name}</span>
+                            </TabsTrigger>
+                          )
+                        })}
                       </TabsList>
                       <ScrollBar orientation="horizontal" />
                     </ScrollArea>

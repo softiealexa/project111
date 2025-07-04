@@ -3,11 +3,9 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
-import { Book } from 'lucide-react';
 import type { Subject, Profile, Chapter } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
-import { subjects as initialSubjects } from "@/lib/data";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -26,7 +24,7 @@ interface DataContextType {
   addProfile: (name: string) => void;
   switchProfile: (name: string) => void;
   updateSubjects: (newSubjects: Subject[]) => void;
-  addSubject: (subjectName: string) => void;
+  addSubject: (subjectName: string, iconName: string) => void;
   removeSubject: (subjectNameToRemove: string) => void;
   addChapter: (subjectName: string, newChapter: Chapter) => void;
   removeChapter: (subjectName: string, chapterNameToRemove: string) => void;
@@ -43,24 +41,33 @@ const getLocalKey = (username: string | null) => {
     return username ? `${LOCAL_PROFILE_KEY_PREFIX}${username}` : LOCAL_PROFILE_KEY_PREFIX + 'guest';
 }
 
-const restoreIcons = (profiles: Profile[]): Profile[] => {
+const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
     if (!profiles) return [];
-    return profiles.map(profile => ({
-        ...profile,
-        subjects: profile.subjects.map(subject => ({
-            ...subject,
-            icon: initialSubjects.find(s => s.name === subject.name)?.icon || Book,
-            // Backwards compatibility for profiles that had tasks on the profile level
-            tasks: subject.tasks || (profile as any).tasks || ['Lecture', 'DPP', 'Module', 'Class Qs'],
-        })),
-    }));
-};
-
-const stripIcons = (profiles: Profile[]) => {
-    return profiles.map(p => ({
-        name: p.name,
-        subjects: p.subjects.map(({ icon, ...rest }) => rest)
-    }));
+    return profiles.map(profile => {
+        const migratedSubjects = (profile.subjects || []).map((subject: any) => {
+            let iconName = subject.icon;
+            if (typeof iconName !== 'string') {
+                // Legacy data, icon property is missing or not a string.
+                // We'll assign one based on name for common subjects.
+                switch (subject.name) {
+                    case 'Physics': iconName = 'Zap'; break;
+                    case 'Chemistry': iconName = 'FlaskConical'; break;
+                    case 'Maths': iconName = 'Sigma'; break;
+                    default: iconName = 'Book';
+                }
+            }
+            return {
+                ...subject,
+                icon: iconName,
+                // Ensure tasks are there for backwards compatibility
+                tasks: subject.tasks || ['Lecture', 'DPP', 'Module', 'Class Qs'],
+            };
+        });
+        return {
+            ...profile,
+            subjects: migratedSubjects,
+        };
+    });
 };
 
 
@@ -108,7 +115,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (typeof window === 'undefined') return;
 
     const localKey = getLocalKey(user?.displayName || null);
-    const dataToStore = { profiles: stripIcons(profilesToSave), activeProfileName: activeNameToSave };
+    // Data is now serializable, no need to strip icons
+    const dataToStore = { profiles: profilesToSave, activeProfileName: activeNameToSave };
     localStorage.setItem(localKey, JSON.stringify(dataToStore));
 
     if (user) {
@@ -131,8 +139,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
           try {
               const firestoreData = await getUserData(firebaseUser.uid);
               if (firestoreData && firestoreData.profiles && firestoreData.profiles.length > 0) {
-                  const restored = restoreIcons(firestoreData.profiles);
-                  setProfiles(restored);
+                  const processed = migrateAndHydrateProfiles(firestoreData.profiles);
+                  setProfiles(processed);
                   setActiveProfileName(firestoreData.activeProfileName);
               } else {
                   setProfiles([]);
@@ -150,8 +158,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
           if (storedData) {
               try {
                 const parsed = JSON.parse(storedData);
-                const restored = restoreIcons(parsed.profiles);
-                setProfiles(restored);
+                const processed = migrateAndHydrateProfiles(parsed.profiles);
+                setProfiles(processed);
                 setActiveProfileName(parsed.activeProfileName);
               } catch {
                 setProfiles([]);
@@ -191,11 +199,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       saveData(newProfiles, activeProfileName);
   };
 
-  const addSubject = (subjectName: string) => {
+  const addSubject = (subjectName: string, iconName: string) => {
     if (!activeProfileName) return;
     const newSubject: Subject = { 
         name: subjectName, 
-        icon: Book, 
+        icon: iconName, 
         chapters: [],
         tasks: ['Lecture', 'DPP', 'Module', 'Class Qs'],
     };
@@ -285,7 +293,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         toast({ title: "Export Failed", description: "No data to export.", variant: "destructive" });
         return;
     };
-    const dataToStore = { profiles: stripIcons(profiles), activeProfileName };
+    const dataToStore = { profiles, activeProfileName };
     const dataStr = JSON.stringify(dataToStore, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
@@ -305,11 +313,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
           try {
               const data = JSON.parse(e.target?.result as string);
               if (data.profiles && Array.isArray(data.profiles) && 'activeProfileName' in data) {
-                  const restored = restoreIcons(data.profiles);
-                  setProfiles(restored);
+                  const processed = migrateAndHydrateProfiles(data.profiles);
+                  setProfiles(processed);
                   setActiveProfileName(data.activeProfileName);
                   setActiveSubjectName(null);
-                  saveData(restored, data.activeProfileName);
+                  saveData(processed, data.activeProfileName);
                   toast({ title: "Import Successful", description: "Your data has been restored." });
               } else {
                   throw new Error("Invalid file format.");

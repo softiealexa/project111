@@ -7,7 +7,7 @@ export interface Chapter {
 
 export interface Subject {
   name: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: string;
   chapters: Chapter[];
   tasks: string[];
 }
