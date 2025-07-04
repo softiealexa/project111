@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { AccordionContent, AccordionItem } from "@/components/ui/accordion";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -109,6 +109,13 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
   const isCompleted = progress === 100;
 
+  const progressColorClass = useMemo(() => {
+    if (progress <= 33) return 'bg-blue-600';    // Beginner
+    if (progress <= 66) return 'bg-yellow-500';  // Intermediate
+    return 'bg-green-600';                      // Almost Done
+  }, [progress]);
+
+
   return (
     <div ref={setNodeRef} style={style} className={cn("relative", isDragging && "shadow-2xl shadow-primary/20")}>
        <Card className={cn(
@@ -136,7 +143,7 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
               </div>
               <div className="flex items-center gap-4">
                   <span className="hidden w-20 text-right text-sm font-medium text-muted-foreground sm:inline-block">{completedTasks} / {totalTasks}</span>
-                  <Progress value={progress} className="hidden w-32 sm:inline-block" />
+                  <Progress value={progress} className="hidden w-32 sm:inline-block" indicatorClassName={progressColorClass} />
                   <ChevronDown className="accordion-chevron h-4 w-4 shrink-0 transition-transform duration-200" />
               </div>
             </AccordionPrimitive.Trigger>
