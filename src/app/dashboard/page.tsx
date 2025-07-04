@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useData } from '@/contexts/data-context';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LectureTracker from "@/components/lecture-tracker";
@@ -10,6 +10,8 @@ import { cn } from '@/lib/utils';
 import LiveClock from '@/components/live-clock';
 import { ProgressSummary } from '@/components/progress-summary';
 import { getIconComponent } from '@/lib/icons';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Feather, Timer } from 'lucide-react';
 
 export default function DashboardPage() {
   const { activeProfile, activeSubjectName, setActiveSubjectName } = useData();
@@ -47,9 +49,10 @@ export default function DashboardPage() {
         <div className="w-full max-w-5xl flex-1 px-4 pt-8">
           {activeProfile.subjects.length > 0 ? (
             <Tabs defaultValue="subjects" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsList className="grid w-full grid-cols-3 mb-6">
                 <TabsTrigger value="subjects">My Subjects</TabsTrigger>
                 <TabsTrigger value="progress">Progress Overview</TabsTrigger>
+                <TabsTrigger value="tools">Tools</TabsTrigger>
               </TabsList>
 
               <TabsContent value="subjects">
@@ -85,6 +88,39 @@ export default function DashboardPage() {
 
               <TabsContent value="progress">
                 <ProgressSummary profile={activeProfile} />
+              </TabsContent>
+
+              <TabsContent value="tools">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center gap-4">
+                        <Feather className="h-8 w-8 text-primary" />
+                        <div>
+                          <CardTitle>Notes Writer</CardTitle>
+                          <CardDescription>A space to jot down your thoughts and ideas.</CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground">This feature is coming soon.</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center gap-4">
+                        <Timer className="h-8 w-8 text-primary" />
+                        <div>
+                          <CardTitle>Pomodoro Timer</CardTitle>
+                          <CardDescription>Stay focused with the Pomodoro technique.</CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground">This feature is coming soon.</p>
+                    </CardContent>
+                  </Card>
+                </div>
               </TabsContent>
             </Tabs>
           ) : (
