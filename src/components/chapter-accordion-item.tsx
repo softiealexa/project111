@@ -14,6 +14,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import { Textarea } from './ui/textarea';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 interface ChapterAccordionItemProps {
@@ -146,12 +147,21 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
                 {Array.from({ length: chapter.lectureCount }, (_, i) => i + 1).map((lectureNum) => (
                    <div key={lectureNum}>
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg p-3 transition-colors hover:bg-muted/50">
-                            <button 
-                                onClick={() => handleNoteClick(lectureNum)}
-                                className="font-medium text-foreground mr-auto pr-4 text-left transition-colors hover:text-primary focus:outline-none focus:text-primary rounded-sm focus-visible:ring-2 focus-visible:ring-ring"
-                            >
-                                Lecture {lectureNum}
-                            </button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button 
+                                    onClick={() => handleNoteClick(lectureNum)}
+                                    className="font-medium text-foreground mr-auto pr-4 text-left transition-colors hover:text-primary focus:outline-none focus:text-primary rounded-sm focus-visible:ring-2 focus-visible:ring-ring"
+                                >
+                                    Lecture {lectureNum}
+                                </button>
+                              </TooltipTrigger>
+                              {chapter.notes?.[`L${lectureNum}`] && (
+                                <TooltipContent>
+                                  <p className="max-w-xs whitespace-pre-wrap break-words">{chapter.notes[`L${lectureNum}`]}</p>
+                                </TooltipContent>
+                              )}
+                            </Tooltip>
                             
                             <div className="flex items-center gap-x-4">
                                 {tasks.map((task) => {
@@ -175,7 +185,7 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
                                onChange={(e) => setNoteContent(e.target.value)}
                                onBlur={handleNoteBlur}
                                placeholder="Type your notes here... they save automatically when you click away."
-                               className="min-h-[120px] text-base"
+                               className="min-h-[72px] text-base"
                              />
                            </div>
                         )}
