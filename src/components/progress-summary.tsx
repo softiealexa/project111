@@ -2,7 +2,7 @@
 
 import type { Profile } from "@/lib/types";
 import { useMemo, useState } from "react";
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid } from "recharts";
+import { Bar, BarChart, Pie, PieChart, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import { ChevronDown } from "lucide-react";
 import {
@@ -27,13 +27,23 @@ import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+  type ChartConfig,
 } from "@/components/ui/chart";
 
 export function ProgressSummary({ profile }: { profile: Profile }) {
   const [chartType, setChartType] = useState("bar");
 
-  const chartData = useMemo(() => {
-    return profile.subjects.map((subject) => {
+  const { chartData, chartConfig } = useMemo(() => {
+    if (!profile || profile.subjects.length === 0) {
+      return { chartData: [], chartConfig: {} };
+    }
+    const config: ChartConfig = {};
+    const baseHue = 180; // hsl(var(--primary))
+    const hueStep = profile.subjects.length > 1 ? 45 : 0;
+
+    const data = profile.subjects.map((subject, index) => {
       let totalTasks = 0;
       let completedTasks = 0;
       const tasksPerLecture = subject.tasks?.length || 0;
@@ -44,25 +54,27 @@ export function ProgressSummary({ profile }: { profile: Profile }) {
       });
 
       const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+      const color = `hsl(${baseHue + (index * hueStep)}, 70%, 50%)`;
+
+      config[subject.name] = {
+          label: subject.name,
+          color: color,
+      }
       
       return {
         subject: subject.name,
         progress: progress,
-        fill: "hsl(var(--primary))", // Use the primary theme color for the bars
+        fill: color,
       };
     });
+
+    return { chartData: data, chartConfig: config };
   }, [profile]);
+
 
   if (chartData.length === 0) {
     return null; // Don't render anything if there are no subjects
   }
-
-  const chartConfig = {
-    progress: {
-      label: "Progress",
-      color: "hsl(var(--primary))",
-    },
-  };
 
   return (
     <Card>
@@ -85,15 +97,18 @@ export function ProgressSummary({ profile }: { profile: Profile }) {
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="bar">Bar Chart</SelectItem>
-                        <SelectItem value="pie" disabled>Pie Chart</SelectItem>
+                        <SelectItem value="pie">Pie Chart</SelectItem>
                     </SelectContent>
                 </Select>
               </div>
           </AccordionPrimitive.Header>
           <AccordionContent>
             <CardContent className="pt-0">
-              {chartType === 'bar' && (
-                <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
+                <ChartContainer
+                    config={chartConfig}
+                    className="mx-auto aspect-square max-h-[350px]"
+                >
+                {chartType === 'bar' ? (
                   <BarChart accessibilityLayer data={chartData} margin={{ top: 20 }}>
                     <CartesianGrid vertical={false} />
                     <XAxis
@@ -121,10 +136,35 @@ export function ProgressSummary({ profile }: { profile: Profile }) {
                        />}
                     />
                     <Bar dataKey="progress" radius={8}>
+                      {chartData.map((entry) => (
+                        <Cell key={entry.subject} fill={entry.fill} />
+                      ))}
                     </Bar>
                   </BarChart>
-                </ChartContainer>
-              )}
+                ) : (
+                  <PieChart>
+                    <ChartTooltip
+                      cursor={false}
+                      content={<ChartTooltipContent hideLabel nameKey="subject" />}
+                    />
+                    <Pie
+                      data={chartData}
+                      dataKey="progress"
+                      nameKey="subject"
+                      innerRadius={60}
+                      strokeWidth={2}
+                    >
+                      {chartData.map((entry) => (
+                        <Cell key={entry.subject} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <ChartLegend
+                      content={<ChartLegendContent nameKey="subject" />}
+                      className="flex-wrap gap-2 [&>*]:basis-1/4 [&>*]:justify-center"
+                    />
+                  </PieChart>
+                )}
+              </ChartContainer>
             </CardContent>
           </AccordionContent>
         </AccordionItem>
