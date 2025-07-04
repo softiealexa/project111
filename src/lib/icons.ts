@@ -13,6 +13,12 @@ import {
   Microscope,
   Calculator,
   TestTube2,
+  Pi,
+  FunctionSquare,
+  Languages,
+  FileText,
+  Lightbulb,
+  Magnet,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -29,6 +35,12 @@ export const iconMap: Record<string, LucideIcon> = {
   Microscope,
   Calculator,
   TestTube2,
+  Pi,
+  FunctionSquare,
+  Languages,
+  FileText,
+  Lightbulb,
+  Magnet,
 };
 
 export const iconNames = Object.keys(iconMap);
