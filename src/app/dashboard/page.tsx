@@ -11,8 +11,10 @@ import LiveClock from '@/components/live-clock';
 import { ProgressSummary } from '@/components/progress-summary';
 import { getIconComponent } from '@/lib/icons';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Feather, Timer } from 'lucide-react';
+import { Feather, Timer, Terminal } from 'lucide-react';
 import PomodoroTimer from '@/components/pomodoro-timer';
+import NotesWriter from '@/components/notes-writer';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function DashboardPage() {
   const { activeProfile, activeSubjectName, setActiveSubjectName } = useData();
@@ -92,6 +94,13 @@ export default function DashboardPage() {
               </TabsContent>
 
               <TabsContent value="tools">
+                <Alert className="mb-6">
+                  <Terminal className="h-4 w-4" />
+                  <AlertTitle>Under Development</AlertTitle>
+                  <AlertDescription>
+                    The tools in this section are for demonstration purposes. Data may not be saved permanently.
+                  </AlertDescription>
+                </Alert>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <Card>
                     <CardHeader>
@@ -104,7 +113,7 @@ export default function DashboardPage() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-muted-foreground">This feature is coming soon.</p>
+                      <NotesWriter />
                     </CardContent>
                   </Card>
                   <Card>
