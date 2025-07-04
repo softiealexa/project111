@@ -8,6 +8,7 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import LiveClock from '@/components/live-clock';
+import { ProgressSummary } from '@/components/progress-summary';
 
 export default function DashboardPage() {
   const { activeProfile, activeSubjectName, setActiveSubjectName } = useData();
@@ -42,6 +43,7 @@ export default function DashboardPage() {
       <TooltipProvider delayDuration={100}>
         <div className="w-full max-w-5xl flex-1 px-4 pt-8">
           {activeProfile.subjects.length > 0 ? (
+            <>
               <Tabs value={activeSubjectName ?? ''} onValueChange={setActiveSubjectName} className="w-full">
                 <div className="flex items-center justify-between gap-4">
                   <ScrollArea className="flex-1 whitespace-nowrap rounded-md pb-2.5">
@@ -64,6 +66,10 @@ export default function DashboardPage() {
                   </TabsContent>
                 ))}
               </Tabs>
+              <div className="mt-12">
+                <ProgressSummary profile={activeProfile} />
+              </div>
+            </>
           ) : (
             <div className="text-center py-12 flex flex-col items-center gap-4">
               <h2 className="text-2xl font-headline">No Subjects Yet!</h2>
