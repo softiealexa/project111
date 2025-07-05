@@ -59,7 +59,7 @@ export default function LandingPage() {
                TrackAcademic is your all-in-one planner to organize subjects, track progress with visual feedback, and stay focused with built-in productivity tools.
             </p>
           </div>
-          <div className="mx-auto flex gap-4">
+          <div className="mx-auto flex flex-col sm:flex-row gap-4">
              <Button asChild size="lg">
                 <Link href="/register">Get Started For Free</Link>
             </Button>
@@ -68,14 +68,14 @@ export default function LandingPage() {
             </Button>
           </div>
            <div className="mx-auto mt-12 w-full max-w-5xl">
+                <h2 className="mb-4 text-center font-headline text-3xl font-bold md:text-4xl">Dashboard Preview</h2>
                 <div className="relative overflow-hidden rounded-xl border bg-card shadow-xl">
                     <Image
-                        src="https://placehold.co/1200x675.png"
+                        src="https://storage.googleapis.com/maker-studio-56a16.appspot.com/user_uploads/oad4yv1s979o/project-222_1721200155095.png"
                         alt="TrackAcademic Dashboard Preview"
                         width={1200}
                         height={675}
                         className="object-cover"
-                        data-ai-hint="study planner"
                     />
                 </div>
             </div>
@@ -92,7 +92,7 @@ export default function LandingPage() {
                 From detailed progress tracking to integrated study tools, TrackAcademic is designed to help you stay on top of your coursework.
               </p>
             </div>
-            <div className="mx-auto grid justify-center gap-4 sm:grid-cols-2 md:max-w-[64rem] md:grid-cols-2">
+            <div className="mx-auto grid justify-center gap-4 sm:grid-cols-2 md:max-w-[64rem]">
                 <Card className="text-left bg-card">
                     <CardHeader>
                         <BarChart3 className="mb-3 h-8 w-8 text-primary" />
@@ -142,7 +142,7 @@ export default function LandingPage() {
             <p className="max-w-[85%] leading-normal text-muted-foreground sm:text-lg sm:leading-7">
               Stop guessing and start tracking. Sign up for free and build the study habits that lead to success.
             </p>
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
                 <Button asChild size="lg">
                     <Link href="/register">Get Started</Link>
                 </Button>
