@@ -67,18 +67,6 @@ export default function LandingPage() {
                 <Link href="/dashboard">Try the Demo <ArrowRight className="ml-2 h-4 w-4" /></Link>
             </Button>
           </div>
-           <div className="mx-auto mt-12 w-full max-w-5xl">
-                <h2 className="mb-4 text-center font-headline text-3xl font-bold md:text-4xl">Dashboard Preview</h2>
-                <div className="relative overflow-hidden rounded-xl border bg-card shadow-xl">
-                    <Image
-                        src="https://storage.googleapis.com/maker-studio-56a16.appspot.com/user_uploads/oad4yv1s979o/project-222_1721200155095.png"
-                        alt="TrackAcademic Dashboard Preview"
-                        width={1200}
-                        height={675}
-                        className="object-cover"
-                    />
-                </div>
-            </div>
         </section>
 
         {/* Features Section */}
