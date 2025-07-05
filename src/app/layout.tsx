@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Analytics } from '@vercel/analytics/react';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { DataProvider } from '@/contexts/data-context';
@@ -28,6 +29,7 @@ export default function RootLayout({
           {children}
           <Toaster />
         </DataProvider>
+        <Analytics />
       </body>
     </html>
   );
