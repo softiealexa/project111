@@ -75,7 +75,7 @@ export default function LandingPage() {
                         width={1200}
                         height={675}
                         className="object-cover"
-                        data-ai-hint="dashboard tracker"
+                        data-ai-hint="study planner"
                     />
                 </div>
             </div>
