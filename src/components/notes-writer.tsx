@@ -8,14 +8,17 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { ScrollArea } from './ui/scroll-area';
+import { summarizeNote } from '@/ai/flows/summarize-note-flow';
+import { Sparkles } from 'lucide-react';
 
 export default function NotesWriter() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [summary, setSummary] = useState('');
+  const [isSummarizing, setIsSummarizing] = useState(false);
   const { toast } = useToast();
 
   const handleSave = () => {
-    // For now, we'll just show a toast to simulate saving.
     if (!title.trim() && !content.trim()) {
         toast({
             title: 'Empty Note',
@@ -31,6 +34,33 @@ export default function NotesWriter() {
     });
   };
 
+  const handleSummarize = async () => {
+    if (!content.trim()) {
+        toast({
+            title: 'Empty Content',
+            description: 'Please write some content before summarizing.',
+            variant: 'destructive'
+        });
+        return;
+    }
+    setIsSummarizing(true);
+    setSummary('');
+    try {
+        const result = await summarizeNote({ title, content });
+        setSummary(result.summary);
+    } catch (error) {
+        console.error("Summarization error:", error);
+        toast({
+            title: 'Summarization Failed',
+            description: 'Could not generate summary. Please try again.',
+            variant: 'destructive'
+        });
+    } finally {
+        setIsSummarizing(false);
+    }
+  };
+
+
   return (
     <div className="grid gap-6">
       <Card>
@@ -43,6 +73,7 @@ export default function NotesWriter() {
                         placeholder="Your note title..."
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
+                        disabled={isSummarizing}
                     />
                 </div>
                 <div className="grid gap-2">
@@ -53,11 +84,33 @@ export default function NotesWriter() {
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
                         className="min-h-[96px] text-base"
+                        disabled={isSummarizing}
                     />
                 </div>
-                <Button onClick={handleSave} className="self-start">
-                    Save Note
-                </Button>
+                 {summary && (
+                    <div className="grid gap-2">
+                        <Label htmlFor="note-summary">AI Summary</Label>
+                        <Textarea
+                            id="note-summary"
+                            value={summary}
+                            readOnly
+                            className="min-h-[96px] text-base bg-muted/50"
+                        />
+                    </div>
+                )}
+                <div className="flex gap-2">
+                    <Button onClick={handleSave} disabled={isSummarizing}>
+                        Save Note
+                    </Button>
+                     <Button 
+                        onClick={handleSummarize} 
+                        variant="outline" 
+                        disabled={isSummarizing || !content.trim()}
+                    >
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        {isSummarizing ? 'Summarizing...' : 'Summarize with AI'}
+                    </Button>
+                </div>
             </div>
         </CardContent>
       </Card>
