@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect } from 'react';
@@ -105,9 +106,17 @@ export default function DashboardPage() {
                     The tools in this section are for demonstration purposes. Data may not be saved permanently.
                   </AlertDescription>
                 </Alert>
-                <Tabs defaultValue="notes" orientation="vertical" className="w-full">
+                <Tabs defaultValue="planner" orientation="vertical" className="w-full">
                     <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] lg:grid-cols-[250px_1fr] gap-6">
                         <TabsList className="flex-col h-auto items-stretch justify-start bg-transparent border-none p-0">
+                            <TabsTrigger value="planner" className="justify-start gap-2 py-2.5 text-base">
+                                <CalendarDays className="h-5 w-5" />
+                                Study Planner
+                            </TabsTrigger>
+                            <TabsTrigger value="todo" className="justify-start gap-2 py-2.5 text-base">
+                                <ListTodo className="h-5 w-5" />
+                                To-Do List
+                            </TabsTrigger>
                             <TabsTrigger value="notes" className="justify-start gap-2 py-2.5 text-base">
                                 <Pencil className="h-5 w-5" />
                                 Notes Writer
@@ -116,20 +125,18 @@ export default function DashboardPage() {
                                 <Timer className="h-5 w-5" />
                                 Pomodoro Timer
                             </TabsTrigger>
-                            <TabsTrigger value="todo" className="justify-start gap-2 py-2.5 text-base">
-                                <ListTodo className="h-5 w-5" />
-                                To-Do List
-                            </TabsTrigger>
-                             <TabsTrigger value="planner" className="justify-start gap-2 py-2.5 text-base">
-                                <CalendarDays className="h-5 w-5" />
-                                Study Planner
-                            </TabsTrigger>
                              <TabsTrigger value="links" className="justify-start gap-2 py-2.5 text-base">
                                 <LinkIcon className="h-5 w-5" />
                                 Important Links
                             </TabsTrigger>
                         </TabsList>
                         <div className="md:col-start-2">
+                            <TabsContent value="planner" className="mt-0">
+                                <StudyPlanner />
+                            </TabsContent>
+                            <TabsContent value="todo" className="mt-0">
+                                <TodoList />
+                            </TabsContent>
                             <TabsContent value="notes" className="mt-0">
                                 <NotesWriter />
                             </TabsContent>
@@ -144,13 +151,7 @@ export default function DashboardPage() {
                                     </CardContent>
                                 </Card>
                             </TabsContent>
-                             <TabsContent value="todo" className="mt-0">
-                                <TodoList />
-                            </TabsContent>
-                             <TabsContent value="planner" className="mt-0">
-                                <StudyPlanner />
-                            </TabsContent>
-                             <TabsContent value="links" className="mt-0">
+                            <TabsContent value="links" className="mt-0">
                                 <ImportantLinks />
                             </TabsContent>
                         </div>
