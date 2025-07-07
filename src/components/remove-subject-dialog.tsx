@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -12,41 +13,30 @@ import {
   DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import type { Subject } from "@/lib/types";
 
 interface RemoveSubjectDialogProps {
-  subjects: Subject[];
-  onConfirm: (subjectName: string) => void;
+  subject: Subject;
+  onConfirm: () => void;
   children: React.ReactNode;
 }
 
-export function RemoveSubjectDialog({ subjects, onConfirm, children }: RemoveSubjectDialogProps) {
+export function RemoveSubjectDialog({ subject, onConfirm, children }: RemoveSubjectDialogProps) {
   const [open, setOpen] = useState(false);
-  const [selectedSubjectName, setSelectedSubjectName] = useState("");
   const [confirmationText, setConfirmationText] = useState("");
   const { toast } = useToast();
 
-  const selectedSubject = subjects.find(c => c.name === selectedSubjectName);
-
   const handleRemove = () => {
-    if (selectedSubject && confirmationText === selectedSubject.name) {
-      onConfirm(selectedSubject.name);
+    if (confirmationText === subject.name) {
+      onConfirm();
       toast({
         title: "Subject Removed",
-        description: `"${selectedSubject.name}" has been successfully removed.`,
+        description: `"${subject.name}" has been successfully removed.`,
       });
       setOpen(false);
-      setSelectedSubjectName("");
       setConfirmationText("");
     } else {
       toast({
@@ -60,14 +50,8 @@ export function RemoveSubjectDialog({ subjects, onConfirm, children }: RemoveSub
   const handleOpenChange = (isOpen: boolean) => {
     setOpen(isOpen);
     if (!isOpen) {
-        setSelectedSubjectName("");
         setConfirmationText("");
     }
-  }
-
-  const handleSelectChange = (value: string) => {
-      setSelectedSubjectName(value);
-      setConfirmationText("");
   }
 
   return (
@@ -77,42 +61,24 @@ export function RemoveSubjectDialog({ subjects, onConfirm, children }: RemoveSub
         </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Remove a Subject</DialogTitle>
+          <DialogTitle>Remove Subject: {subject.name}</DialogTitle>
           <DialogDescription>
-            Select a subject to remove. This action cannot be undone and will remove all its chapters.
+            This action cannot be undone and will remove the subject and all its chapters.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-2">
-            <div className="grid gap-2">
-                <Label htmlFor="subject-select">Subject</Label>
-                <Select value={selectedSubjectName} onValueChange={handleSelectChange}>
-                    <SelectTrigger id="subject-select">
-                        <SelectValue placeholder="Select a subject to remove" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {subjects.map(subject => (
-                            <SelectItem key={subject.name} value={subject.name}>
-                                {subject.name}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+            <div className="grid gap-2 pt-2">
+                <Label htmlFor="confirmation">
+                    To confirm, type <span className="font-bold text-foreground">{subject.name}</span> below.
+                </Label>
+                <Input
+                    id="confirmation"
+                    value={confirmationText}
+                    onChange={(e) => setConfirmationText(e.target.value)}
+                    placeholder="Type subject name to confirm"
+                    autoComplete="off"
+                />
             </div>
-
-            {selectedSubject && (
-                <div className="grid gap-2 pt-4">
-                    <Label htmlFor="confirmation">
-                        To confirm, type <span className="font-bold text-foreground">{selectedSubject.name}</span> below.
-                    </Label>
-                    <Input
-                        id="confirmation"
-                        value={confirmationText}
-                        onChange={(e) => setConfirmationText(e.target.value)}
-                        placeholder="Type subject name to confirm"
-                        autoComplete="off"
-                    />
-                </div>
-            )}
         </div>
         <DialogFooter>
           <DialogClose asChild>
@@ -120,7 +86,7 @@ export function RemoveSubjectDialog({ subjects, onConfirm, children }: RemoveSub
           </DialogClose>
           <Button
             onClick={handleRemove}
-            disabled={!selectedSubject || confirmationText !== selectedSubject.name}
+            disabled={confirmationText !== subject.name}
             variant="destructive"
           >
             Remove Subject
