@@ -3,28 +3,35 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Play, Pause, RotateCcw } from 'lucide-react';
+import { Play, Pause, RotateCcw, Settings } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
-const SESSION_TIMES = {
-  pomodoro: 25 * 60,
-  shortBreak: 5 * 60,
-  longBreak: 15 * 60,
-};
-
-type SessionType = keyof typeof SESSION_TIMES;
+type SessionType = 'pomodoro' | 'shortBreak' | 'longBreak';
 
 export default function PomodoroTimer() {
+  const [sessionTimes, setSessionTimes] = useState({
+    pomodoro: 25,
+    shortBreak: 5,
+    longBreak: 15,
+  });
+
   const [sessionType, setSessionType] = useState<SessionType>('pomodoro');
-  const [time, setTime] = useState(SESSION_TIMES[sessionType]);
+  const [time, setTime] = useState(sessionTimes.pomodoro * 60);
   const [isActive, setIsActive] = useState(false);
-  const [key, setKey] = useState(0); 
+  const [key, setKey] = useState(0);
 
   const handleSessionChange = useCallback((type: SessionType) => {
-    setIsActive(false);
     setSessionType(type);
-    setTime(SESSION_TIMES[type]);
     setKey(prev => prev + 1);
   }, []);
+
+  useEffect(() => {
+    setIsActive(false);
+    setTime(sessionTimes[sessionType] * 60);
+  }, [sessionType, sessionTimes, key]);
+
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -49,11 +56,8 @@ export default function PomodoroTimer() {
           });
       }
 
-      if (sessionType === 'pomodoro') {
-        handleSessionChange('shortBreak');
-      } else {
-        handleSessionChange('pomodoro');
-      }
+      const nextSession = sessionType === 'pomodoro' ? 'shortBreak' : 'pomodoro';
+      handleSessionChange(nextSession);
     }
 
     return () => {
@@ -61,14 +65,14 @@ export default function PomodoroTimer() {
         clearInterval(interval);
       }
     };
-  }, [isActive, time, sessionType, key, handleSessionChange]);
+  }, [isActive, time, sessionType, handleSessionChange]);
 
   const toggleTimer = () => {
     setIsActive(!isActive);
   };
 
   const resetTimer = () => {
-    handleSessionChange(sessionType);
+    setKey(prev => prev + 1);
   };
 
   const formatTime = (seconds: number) => {
@@ -80,38 +84,122 @@ export default function PomodoroTimer() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
         document.title = `${formatTime(time)} - ${
-        sessionType.charAt(0).toUpperCase() + sessionType.slice(1).replace('B', ' B')
+        sessionType === 'pomodoro' ? 'Pomodoro' : (sessionType === 'shortBreak' ? 'Short Break' : 'Long Break')
         } | TrackAcademic`;
     }
   }, [time, sessionType]);
 
+  const handleTimeChange = (type: SessionType, value: string) => {
+    const newTime = parseInt(value, 10);
+    if (!isNaN(newTime) && newTime > 0) {
+        setSessionTimes(prev => ({...prev, [type]: newTime}));
+    }
+  }
+
+  const totalDuration = sessionTimes[sessionType] * 60;
+  const progress = totalDuration > 0 ? (totalDuration - time) / totalDuration : 0;
+  const radius = 90;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference * (1 - progress);
+
   return (
     <div className="flex flex-col items-center gap-6">
-        <Tabs
+      <Tabs
         value={sessionType}
         onValueChange={(value) => handleSessionChange(value as SessionType)}
         className="w-full"
-        >
+      >
         <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="pomodoro">Pomodoro</TabsTrigger>
-            <TabsTrigger value="shortBreak">Short Break</TabsTrigger>
-            <TabsTrigger value="longBreak">Long Break</TabsTrigger>
+          <TabsTrigger value="pomodoro">Pomodoro</TabsTrigger>
+          <TabsTrigger value="shortBreak">Short Break</TabsTrigger>
+          <TabsTrigger value="longBreak">Long Break</TabsTrigger>
         </TabsList>
-        </Tabs>
+      </Tabs>
 
-        <div className="font-mono text-7xl md:text-8xl font-bold tracking-tighter">
-        {formatTime(time)}
+      <div className="relative h-60 w-60 md:h-64 md:w-64">
+        <svg className="h-full w-full -rotate-90" viewBox="0 0 200 200">
+          <circle
+            cx="100"
+            cy="100"
+            r={radius}
+            strokeWidth="12"
+            className="stroke-muted"
+            fill="transparent"
+          />
+          <circle
+            cx="100"
+            cy="100"
+            r={radius}
+            strokeWidth="12"
+            className="stroke-primary transition-all duration-300"
+            fill="transparent"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+            <div className="font-mono text-5xl md:text-6xl font-bold tracking-tighter text-foreground">
+                {formatTime(time)}
+            </div>
         </div>
+      </div>
 
-        <div className="flex items-center gap-4">
+
+      <div className="flex items-center gap-4">
         <Button onClick={toggleTimer} size="lg" className="w-32">
-            {isActive ? <Pause className="mr-2 h-5 w-5" /> : <Play className="mr-2 h-5 w-5" />}
-            {isActive ? 'Pause' : 'Start'}
+          {isActive ? <Pause className="mr-2 h-5 w-5" /> : <Play className="mr-2 h-5 w-5" />}
+          {isActive ? 'Pause' : 'Start'}
         </Button>
         <Button onClick={resetTimer} variant="outline" size="icon" aria-label="Reset Timer">
-            <RotateCcw className="h-5 w-5" />
+          <RotateCcw className="h-5 w-5" />
         </Button>
-        </div>
+      </div>
+
+      <Accordion type="single" collapsible className="w-full max-w-sm pt-4">
+        <AccordionItem value="settings" className="border-border">
+            <AccordionTrigger className="text-sm font-medium text-muted-foreground hover:text-foreground hover:no-underline">
+                <div className="flex items-center gap-2">
+                    <Settings className="h-4 w-4" />
+                    <span>Custom Durations (minutes)</span>
+                </div>
+            </AccordionTrigger>
+            <AccordionContent className="pt-4">
+                <div className="grid grid-cols-3 gap-4">
+                    <div className="grid gap-1.5">
+                        <Label htmlFor="pomodoro-time">Pomodoro</Label>
+                        <Input
+                            id="pomodoro-time"
+                            type="number"
+                            value={sessionTimes.pomodoro}
+                            onChange={(e) => handleTimeChange('pomodoro', e.target.value)}
+                            disabled={isActive}
+                        />
+                    </div>
+                     <div className="grid gap-1.5">
+                        <Label htmlFor="short-break-time">Short Break</Label>
+                        <Input
+                            id="short-break-time"
+                            type="number"
+                            value={sessionTimes.shortBreak}
+                            onChange={(e) => handleTimeChange('shortBreak', e.target.value)}
+                            disabled={isActive}
+                        />
+                    </div>
+                     <div className="grid gap-1.5">
+                        <Label htmlFor="long-break-time">Long Break</Label>
+                        <Input
+                            id="long-break-time"
+                            type="number"
+                            value={sessionTimes.longBreak}
+                            onChange={(e) => handleTimeChange('longBreak', e.target.value)}
+                            disabled={isActive}
+                        />
+                    </div>
+                </div>
+            </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </div>
   );
 }
