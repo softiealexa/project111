@@ -99,13 +99,6 @@ export default function DashboardPage() {
               </TabsContent>
 
               <TabsContent value="tools">
-                <Alert className="mb-6">
-                  <Terminal className="h-4 w-4" />
-                  <AlertTitle>Under Development</AlertTitle>
-                  <AlertDescription>
-                    The tools in this section are for demonstration purposes. Data may not be saved permanently.
-                  </AlertDescription>
-                </Alert>
                 <Tabs defaultValue="planner" orientation="vertical" className="w-full">
                     <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] lg:grid-cols-[250px_1fr] gap-6">
                         <TabsList className="flex-col h-auto items-stretch justify-start bg-transparent border-none p-0">
