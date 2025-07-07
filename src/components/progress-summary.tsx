@@ -1,9 +1,10 @@
+
 "use client"
 
 import type { Profile, Subject, Chapter } from "@/lib/types";
 import { useMemo, useState, useCallback } from "react";
 import { Bar, BarChart, Pie, PieChart, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Legend, Tooltip, LabelList, ReferenceLine, LineChart, Line, Label as RechartsLabel } from "recharts";
-import { CheckCircle, BookOpen, TrendingUp, Target, Filter } from "lucide-react";
+import { CheckCircle, BookOpen, TrendingUp, Target, Filter, History, Clock, BarChart as BarChartIcon } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -51,14 +52,22 @@ const getProgress = (chapters: Chapter[], tasksPerLecture: number) => {
     return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 };
 
+const formatAverageTime = (ms: number) => {
+  if (ms === 0) return '00:00.00';
+  const totalSeconds = ms / 1000;
+  const minutes = Math.floor(totalSeconds / 60);
+  const remainingSeconds = totalSeconds % 60;
+  return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toFixed(2).padStart(5, '0')}`;
+};
+
 export default function ProgressSummary({ profile }: { profile: Profile }) {
   const [chartType, setChartType] = useState("bar");
   const [selectedChapters, setSelectedChapters] = useState<Record<string, string[]>>({});
   const [progressGoal, setProgressGoal] = useState(75);
 
-  const { chartData, chartConfig, summaryStats, lineChartData, hasEnoughHistory } = useMemo(() => {
+  const { chartData, chartConfig, summaryStats, lineChartData, hasEnoughHistory, questionStats, questionHistoryLineData, questionTimeChartConfig, sessions } = useMemo(() => {
     if (!profile || profile.subjects.length === 0) {
-      return { chartData: [], chartConfig: {}, summaryStats: { subjectsCompleted: 0, chaptersCompleted: 0, averageCompletion: 0 }, lineChartData: [], hasEnoughHistory: false };
+      return { chartData: [], chartConfig: {}, summaryStats: { subjectsCompleted: 0, chaptersCompleted: 0, averageCompletion: 0 }, lineChartData: [], hasEnoughHistory: false, questionStats: { totalSessions: 0, totalQuestions: 0, totalTime: 0, overallAverage: 0 }, questionHistoryLineData: [], questionTimeChartConfig: {}, sessions: [] };
     }
     
     const config: ChartConfig = {};
@@ -113,7 +122,38 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
         progress: point.progress
     })).slice(-30); // Show last 30 days max
 
-    return { chartData: data, chartConfig: config, summaryStats: stats, lineChartData: lineData, hasEnoughHistory: enoughHistory };
+
+    const sessions = profile.questionSessions || [];
+    const questionStats = {
+        totalSessions: sessions.length,
+        totalQuestions: sessions.reduce((acc, s) => acc + s.numQuestions, 0),
+        totalTime: sessions.reduce((acc, s) => acc + s.totalTime, 0),
+        get overallAverage() {
+            return this.totalQuestions > 0 ? this.totalTime / this.totalQuestions : 0;
+        },
+    };
+
+    const questionHistoryLineData = sessions
+        .map(s => ({
+            date: s.date,
+            averageTime: s.totalTime / s.numQuestions,
+        }))
+        .sort((a, b) => a.date - b.date) // Sort by date ascending
+        .slice(-30) // show last 30 sessions
+        .map(s => ({
+            date: format(new Date(s.date), 'MMM d'),
+            averageTime: s.averageTime / 1000, // convert ms to seconds
+        }));
+    
+    const questionTimeChartConfig: ChartConfig = {
+        averageTime: {
+            label: "Average Time (s)",
+            color: "hsl(var(--primary))",
+        },
+    };
+
+
+    return { chartData: data, chartConfig: config, summaryStats: stats, lineChartData: lineData, hasEnoughHistory: enoughHistory, questionStats, questionHistoryLineData, questionTimeChartConfig, sessions };
   }, [profile, selectedChapters]);
 
   const handleChapterSelect = useCallback((subjectName: string, chapterName: string, checked: boolean) => {
@@ -359,6 +399,93 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
                     </AccordionContent>
                 </AccordionItem>
             </Accordion>
+        </Card>
+
+        <Card>
+            <CardHeader>
+                <CardTitle>Question Timer Statistics</CardTitle>
+                <CardDescription>An overview of your question attempt performance.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                {sessions.length > 0 ? (
+                    <>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Sessions Completed</CardTitle>
+                                    <History className="h-5 w-5 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-3xl font-bold">{questionStats.totalSessions}</div>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Questions Answered</CardTitle>
+                                    <CheckCircle className="h-5 w-5 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-3xl font-bold">{questionStats.totalQuestions}</div>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Overall Avg. Time</CardTitle>
+                                    <Clock className="h-5 w-5 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-3xl font-bold">{formatAverageTime(questionStats.overallAverage)}</div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                        <div>
+                            <h4 className="text-base font-medium mb-4">Average Time per Session (seconds)</h4>
+                             {questionHistoryLineData.length >= 2 ? (
+                                <ChartContainer config={questionTimeChartConfig} className="mx-auto aspect-video max-h-[250px]">
+                                    <LineChart data={questionHistoryLineData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                                        <CartesianGrid vertical={false} />
+                                        <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
+                                        <YAxis 
+                                            tickFormatter={(value) => `${value.toFixed(1)}s`}
+                                            domain={['dataMin - 1', 'dataMax + 1']}
+                                        />
+                                        <Tooltip
+                                            cursor={false}
+                                            content={<ChartTooltipContent 
+                                                indicator="dot"
+                                                formatter={(value, name, item) => (
+                                                    <div className="flex flex-col gap-0.5">
+                                                        <span className="font-bold text-foreground text-sm">{item.payload.date}</span>
+                                                        <span className="text-muted-foreground">{`Avg Time: ${Number(value).toFixed(2)}s`}</span>
+                                                    </div>
+                                                )}
+                                                hideLabel
+                                            />}
+                                        />
+                                        <Line type="monotone" dataKey="averageTime" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4 }} />
+                                    </LineChart>
+                                </ChartContainer>
+                            ) : (
+                                 <Alert variant="default">
+                                    <TrendingUp className="h-4 w-4" />
+                                    <AlertTitle>Not Enough Session Data</AlertTitle>
+                                    <AlertDescription>
+                                        Complete at least two sessions to see your trend chart.
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+                        </div>
+                    </>
+                ) : (
+                     <Alert>
+                        <BarChartIcon className="h-4 w-4" />
+                        <AlertTitle>No Data Yet</AlertTitle>
+                        <AlertDescription>
+                          You haven't completed any Question Timer sessions. Go to the "Tools" tab to start one!
+                        </AlertDescription>
+                      </Alert>
+                )}
+            </CardContent>
         </Card>
     </div>
   );
