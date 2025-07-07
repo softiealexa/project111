@@ -167,7 +167,7 @@ export function CustomizationSheet() {
             toast({ title: "Error", description: "Task name cannot be empty.", variant: "destructive" });
             return;
         }
-        if (tasks.includes(trimmedName)) {
+        if (tasks.some(task => task.toLowerCase() === trimmedName.toLowerCase())) {
             toast({ title: "Error", description: "This task already exists.", variant: "destructive" });
             return;
         }
