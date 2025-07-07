@@ -6,6 +6,12 @@ export interface Note {
   createdAt: number;
 }
 
+export interface ImportantLink {
+  id: string;
+  title: string;
+  url: string;
+}
+
 export interface Chapter {
   name: string;
   lectureCount: number;
@@ -25,4 +31,5 @@ export interface Profile {
   subjects: Subject[];
   plannerNotes?: Record<string, string>;
   notes?: Note[];
+  importantLinks?: ImportantLink[];
 }

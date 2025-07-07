@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
-import type { Subject, Profile, Chapter, Note } from '@/lib/types';
+import type { Subject, Profile, Chapter, Note, ImportantLink } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,6 +35,9 @@ interface DataContextType {
   addNote: (title: string, content: string) => void;
   updateNote: (note: Note) => void;
   deleteNote: (noteId: string) => void;
+  addLink: (title: string, url: string) => void;
+  updateLink: (link: ImportantLink) => void;
+  deleteLink: (linkId: string) => void;
   exportData: () => void;
   importData: (file: File) => void;
   signOutUser: () => Promise<void>;
@@ -78,6 +81,7 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
             subjects: migratedSubjects,
             plannerNotes: profile.plannerNotes || {},
             notes: profile.notes || [],
+            importantLinks: profile.importantLinks || [],
         };
     });
 };
@@ -399,6 +403,50 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setProfiles(newProfiles);
     saveData(newProfiles, activeProfileName);
   };
+
+  const addLink = (title: string, url: string) => {
+    if (!activeProfileName) return;
+    const newLink: ImportantLink = {
+      id: crypto.randomUUID(),
+      title,
+      url,
+    };
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const updatedLinks = [...(p.importantLinks || []), newLink];
+        return { ...p, importantLinks: updatedLinks };
+      }
+      return p;
+    });
+    setProfiles(newProfiles);
+    saveData(newProfiles, activeProfileName);
+  };
+
+  const updateLink = (updatedLink: ImportantLink) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const updatedLinks = (p.importantLinks || []).map(l => l.id === updatedLink.id ? updatedLink : l);
+        return { ...p, importantLinks: updatedLinks };
+      }
+      return p;
+    });
+    setProfiles(newProfiles);
+    saveData(newProfiles, activeProfileName);
+  };
+
+  const deleteLink = (linkId: string) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const updatedLinks = (p.importantLinks || []).filter(l => l.id !== linkId);
+        return { ...p, importantLinks: updatedLinks };
+      }
+      return p;
+    });
+    setProfiles(newProfiles);
+    saveData(newProfiles, activeProfileName);
+  };
   
   const exportData = () => {
     if (typeof window === 'undefined' || profiles.length === 0) {
@@ -456,7 +504,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const value = { 
     user, loading, profiles, activeProfile, activeSubjectName, setActiveSubjectName,
     addProfile, switchProfile, updateSubjects, addSubject, removeSubject, addChapter, removeChapter,
-    updateTasks, updatePlannerNote, addNote, updateNote, deleteNote, exportData, importData, signOutUser,
+    updateTasks, updatePlannerNote, addNote, updateNote, deleteNote, addLink, updateLink, deleteLink,
+    exportData, importData, signOutUser,
     theme, setTheme, mode, setMode
   };
   

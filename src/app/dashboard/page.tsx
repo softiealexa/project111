@@ -11,13 +11,14 @@ import LiveClock from '@/components/live-clock';
 import { ProgressSummary } from '@/components/progress-summary';
 import { getIconComponent } from '@/lib/icons';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Pencil, Timer, Terminal, ListTodo, CalendarDays } from 'lucide-react';
+import { Pencil, Timer, Terminal, ListTodo, CalendarDays, Link as LinkIcon } from 'lucide-react';
 import PomodoroTimer from '@/components/pomodoro-timer';
 import NotesWriter from '@/components/notes-writer';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import TodoList from '@/components/todo-list';
 import StudyPlanner from '@/components/study-planner';
+import ImportantLinks from '@/components/important-links';
 
 export default function DashboardPage() {
   const { activeProfile, activeSubjectName, setActiveSubjectName } = useData();
@@ -123,6 +124,10 @@ export default function DashboardPage() {
                                 <CalendarDays className="h-5 w-5" />
                                 Study Planner
                             </TabsTrigger>
+                             <TabsTrigger value="links" className="justify-start gap-2 py-2.5 text-base">
+                                <LinkIcon className="h-5 w-5" />
+                                Important Links
+                            </TabsTrigger>
                         </TabsList>
                         <div className="md:col-start-2">
                             <TabsContent value="notes" className="mt-0">
@@ -144,6 +149,9 @@ export default function DashboardPage() {
                             </TabsContent>
                              <TabsContent value="planner" className="mt-0">
                                 <StudyPlanner />
+                            </TabsContent>
+                             <TabsContent value="links" className="mt-0">
+                                <ImportantLinks />
                             </TabsContent>
                         </div>
                     </div>
