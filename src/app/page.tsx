@@ -18,9 +18,9 @@ export default function LandingPage() {
   const [currentYear, setCurrentYear] = useState<number | null>(null);
 
   const images = [
-    { src: 'https://placehold.co/600x400.png', alt: 'TrackAcademic Dashboard', hint: 'dashboard study' },
-    { src: 'https://placehold.co/600x400.png', alt: 'Study Planner View', hint: 'planner calendar' },
-    { src: 'https://placehold.co/600x400.png', alt: 'Progress Analytics Chart', hint: 'charts analytics' }
+    { src: '/og-image.png', alt: 'TrackAcademic Dashboard', hint: 'dashboard study' },
+    { src: '/planner-view.png', alt: 'Study Planner View', hint: 'planner calendar' },
+    { src: '/progress-chart.png', alt: 'Progress Analytics Chart', hint: 'charts analytics' }
   ];
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
@@ -102,7 +102,7 @@ export default function LandingPage() {
                                 width={600}
                                 height={400}
                                 className={cn(
-                                    "absolute inset-0 rounded-xl shadow-2xl shadow-primary/10 border transition-opacity duration-1000 ease-in-out",
+                                    "absolute inset-0 rounded-xl shadow-2xl shadow-primary/10 border transition-opacity duration-1000 ease-in-out object-cover",
                                     index === currentImageIndex ? "opacity-100" : "opacity-0"
                                 )}
                                 data-ai-hint={image.hint}
