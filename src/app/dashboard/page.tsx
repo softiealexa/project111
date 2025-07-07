@@ -15,6 +15,7 @@ import { Pencil, Timer, Terminal } from 'lucide-react';
 import PomodoroTimer from '@/components/pomodoro-timer';
 import NotesWriter from '@/components/notes-writer';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { LoadingSpinner } from '@/components/loading-spinner';
 
 export default function DashboardPage() {
   const { activeProfile, activeSubjectName, setActiveSubjectName } = useData();
@@ -37,8 +38,8 @@ export default function DashboardPage() {
     return (
        <div className="flex w-full flex-col items-center bg-background text-foreground">
          <div className="w-full max-w-5xl px-4 py-8 md:py-12 text-center">
-            <h1 className="font-headline text-4xl md:text-5xl font-bold">Loading Profile...</h1>
-            <p className="mt-2 text-lg text-foreground/80">Please wait or select a profile.</p>
+            <LoadingSpinner containerClassName="h-48" text="Loading Profile..."/>
+            <p className="mt-2 text-lg text-muted-foreground">Please wait or select a profile.</p>
          </div>
        </div>
     )

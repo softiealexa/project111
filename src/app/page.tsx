@@ -8,6 +8,7 @@ import { useData } from '@/contexts/data-context';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { LoadingSpinner } from '@/components/loading-spinner';
 
 export default function LandingPage() {
   const { user, loading } = useData();
@@ -21,9 +22,7 @@ export default function LandingPage() {
 
   if (loading || user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <p>Loading...</p>
-      </div>
+      <LoadingSpinner containerClassName="min-h-screen" text="Loading..." />
     );
   }
 

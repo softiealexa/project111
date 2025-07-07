@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Book } from 'lucide-react';
 import { signInWithUsername } from '@/lib/auth';
 import { useData } from '@/contexts/data-context';
+import { LoadingSpinner } from '@/components/loading-spinner';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -53,9 +54,7 @@ export default function LoginPage() {
 
   if (authLoading || user) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p>Loading...</p>
-      </div>
+      <LoadingSpinner containerClassName="min-h-screen" text="Loading..." />
     );
   }
 
