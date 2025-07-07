@@ -116,6 +116,24 @@ body {
     --accent-foreground: 144.9 80.4% 97.3%;
     --ring: 142.1 76.2% 36.3%;
   }
+
+  /* Violet Theme */
+  .theme-violet.dark, .theme-violet {
+    --primary: 255 92% 76%;
+    --primary-foreground: 255 30% 15%;
+    --accent: 255 92% 76%;
+    --accent-foreground: 255 30% 15%;
+    --ring: 255 92% 76%;
+  }
+
+  /* Lavender Theme */
+  .theme-lavender.dark, .theme-lavender {
+    --primary: 267 84% 92%;
+    --primary-foreground: 267 30% 20%;
+    --accent: 267 84% 92%;
+    --accent-foreground: 267 30% 20%;
+    --ring: 267 84% 92%;
+  }
 }
 
 @layer base {

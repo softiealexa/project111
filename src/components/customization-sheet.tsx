@@ -75,6 +75,8 @@ const themes = [
     { name: 'rose', label: 'Rose', color: 'hsl(346.8 77.2% 49.8%)' },
     { name: 'blue', label: 'Blue', color: 'hsl(221.2 83.2% 53.3%)' },
     { name: 'green', label: 'Green', color: 'hsl(142.1 76.2% 36.3%)' },
+    { name: 'violet', label: 'Violet', color: '#a78bfa' },
+    { name: 'lavender', label: 'Lavender', color: '#e9d8fd' },
 ];
 
 export function CustomizationSheet() {
