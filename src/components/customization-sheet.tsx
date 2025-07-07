@@ -71,14 +71,9 @@ function SortableTaskItem({ id, task, onRemove, onRename, existingTaskNames }: {
                 onRename={onRename}
                 existingNames={existingTaskNames}
             >
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
-                            <Pencil className="h-4 w-4" />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent><p>Rename Task</p></TooltipContent>
-                </Tooltip>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" aria-label={`Rename task: ${task}`}>
+                    <Pencil className="h-4 w-4" />
+                </Button>
             </RenameDialog>
             <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={onRemove} aria-label={`Remove task: ${task}`}>
                 <Trash2 className="h-4 w-4" />
@@ -117,14 +112,9 @@ function SortableSubjectItem({ id, subject, onRemove, onRename, existingSubjectN
                 onRename={onRename}
                 existingNames={existingSubjectNames}
             >
-                 <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
-                            <Pencil className="h-4 w-4" />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent><p>Rename Subject</p></TooltipContent>
-                </Tooltip>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" aria-label={`Rename subject: ${subject.name}`}>
+                    <Pencil className="h-4 w-4" />
+                </Button>
             </RenameDialog>
             <RemoveSubjectDialog subject={subject} onConfirm={onRemove}>
                 <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" aria-label={`Remove subject: ${subject.name}`}>
@@ -173,14 +163,9 @@ function SortableChapterItem({ id, chapter, lectureCount, onLectureCountChange, 
                 onRename={onRename}
                 existingNames={existingChapterNames}
             >
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
-                            <Pencil className="h-4 w-4" />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent><p>Rename Chapter</p></TooltipContent>
-                </Tooltip>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" aria-label={`Rename chapter: ${chapter.name}`}>
+                    <Pencil className="h-4 w-4" />
+                </Button>
             </RenameDialog>
             <RemoveChapterDialog chapter={chapter} onConfirm={onRemove}>
                 <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" aria-label={`Remove chapter: ${chapter.name}`}>
