@@ -1,10 +1,11 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
-import type { Subject, Profile, Chapter, Note, ImportantLink, Todo, Priority, ProgressPoint } from '@/lib/types';
+import type { Subject, Profile, Chapter, Note, ImportantLink, Todo, Priority, ProgressPoint, QuestionSession } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -50,6 +51,7 @@ interface DataContextType {
   updateTodo: (todo: Todo) => void;
   deleteTodo: (todoId: string) => void;
   setTodos: (todos: Todo[]) => void;
+  addQuestionSession: (session: QuestionSession) => void;
   exportData: () => void;
   importData: (file: File) => void;
   signOutUser: () => Promise<void>;
@@ -96,6 +98,7 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
             importantLinks: profile.importantLinks || [],
             todos: profile.todos || [],
             progressHistory: profile.progressHistory || [],
+            questionSessions: profile.questionSessions || [],
         };
     });
 };
@@ -697,6 +700,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateProfiles(newProfiles, activeProfileName);
   }, [activeProfileName, profiles, updateProfiles]);
   
+  const addQuestionSession = useCallback((session: QuestionSession) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const currentSessions = p.questionSessions || [];
+        // Add new session to the beginning and limit history to 50
+        const updatedSessions = [session, ...currentSessions].slice(0, 50);
+        return { ...p, questionSessions: updatedSessions };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
   const exportData = useCallback(() => {
     if (typeof window === 'undefined' || profiles.length === 0) {
         toast({ title: "Export Failed", description: "No data to export.", variant: "destructive" });
@@ -752,6 +769,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addChapter, removeChapter, updateChapter, renameChapter, updateTasks, renameTask,
     updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
     addTodo, updateTodo, deleteTodo, setTodos,
+    addQuestionSession,
     exportData, importData, signOutUser,
     theme, setTheme, mode, setMode,
   }), [
@@ -760,6 +778,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addChapter, removeChapter, updateChapter, renameChapter, updateTasks, renameTask,
     updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
     addTodo, updateTodo, deleteTodo, setTodos,
+    addQuestionSession,
     exportData, importData, signOutUser,
     theme, setTheme, mode, setMode, setActiveSubjectName
   ]);

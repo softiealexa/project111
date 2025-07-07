@@ -1,4 +1,5 @@
 
+
 export interface Note {
   id: string;
   title: string;
@@ -41,6 +42,14 @@ export interface ProgressPoint {
   progress: number;
 }
 
+export interface QuestionSession {
+  id: string;
+  date: number; // timestamp
+  numQuestions: number;
+  totalTime: number; // in ms
+  questionTimes: number[]; // array of times in ms
+}
+
 export interface Profile {
   name: string;
   subjects: Subject[];
@@ -49,4 +58,5 @@ export interface Profile {
   importantLinks?: ImportantLink[];
   todos?: Todo[];
   progressHistory?: ProgressPoint[];
+  questionSessions?: QuestionSession[];
 }
