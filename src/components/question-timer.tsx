@@ -18,6 +18,15 @@ const formatTime = (ms: number) => {
   return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}.${remainingMs.toString().padStart(3, '0')}`;
 };
 
+const formatAverageTime = (ms: number) => {
+  if (ms === 0) return '00:00.00';
+  const totalSeconds = ms / 1000;
+  const minutes = Math.floor(totalSeconds / 60);
+  const remainingSeconds = totalSeconds % 60;
+  return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toFixed(2).padStart(5, '0')}`;
+};
+
+
 export default function QuestionTimer() {
   const [numQuestions, setNumQuestions] = useState(10);
   const [currentQuestion, setCurrentQuestion] = useState(1);
@@ -159,13 +168,13 @@ export default function QuestionTimer() {
                 <Card>
                   <CardHeader className="pb-2">
                     <CardDescription className="flex items-center justify-center gap-2"><BarChart className="h-4 w-4" /> Average Time</CardDescription>
-                    <CardTitle className="text-3xl">{formatTime(averageTime)}</CardTitle>
+                    <CardTitle className="text-3xl">{formatAverageTime(averageTime)}</CardTitle>
                   </CardHeader>
                 </Card>
               </div>
               <div>
                 <h3 className="font-semibold mb-2">Time per Question:</h3>
-                <div className="space-y-2 max-h-40 overflow-y-auto rounded-md border p-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 max-h-40 overflow-y-auto rounded-md border p-2">
                   {questionTimes.map((t, index) => (
                     <div key={index} className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded-md">
                       <span className="font-medium text-muted-foreground">Question {index + 1}</span>
