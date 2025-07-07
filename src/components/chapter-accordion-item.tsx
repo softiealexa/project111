@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -143,7 +144,7 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
                  <div className="flex w-full items-center gap-2 text-sm text-muted-foreground">
                     <span className="font-medium tabular-nums whitespace-nowrap">{completedTasks}/{totalTasks}</span>
                     <Progress value={progress} indicatorClassName={progressColorClass} className="flex-1" />
-                    <span className="font-bold tabular-nums text-foreground whitespace-nowrap">{Math.round(progress)}%</span>
+                    <span className="font-bold tabular-nums text-foreground whitespace-nowrap w-12 text-right">{Math.round(progress)}%</span>
                 </div>
                 <ChevronDown className="accordion-chevron h-4 w-4 shrink-0 transition-transform duration-200" />
               </div>
