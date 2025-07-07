@@ -45,6 +45,7 @@ interface DataContextType {
   addLink: (title: string, url: string) => void;
   updateLink: (link: ImportantLink) => void;
   deleteLink: (linkId: string) => void;
+  setLinks: (links: ImportantLink[]) => void;
   addTodo: (text: string, dueDate: Date | undefined, priority: Priority) => void;
   updateTodo: (todo: Todo) => void;
   deleteTodo: (todoId: string) => void;
@@ -629,6 +630,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
     updateProfiles(newProfiles, activeProfileName);
   }, [activeProfileName, profiles, updateProfiles]);
+  
+  const setLinks = useCallback((links: ImportantLink[]) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+        if (p.name === activeProfileName) {
+            return { ...p, importantLinks: links };
+        }
+        return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
 
   const addTodo = useCallback((text: string, dueDate: Date | undefined, priority: Priority) => {
     if (!activeProfileName) return;
@@ -737,7 +749,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     user, loading, profiles, activeProfile, activeSubjectName, setActiveSubjectName,
     addProfile, switchProfile, updateSubjects, addSubject, removeSubject, renameSubject,
     addChapter, removeChapter, updateChapter, renameChapter, updateTasks, renameTask,
-    updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink,
+    updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
     addTodo, updateTodo, deleteTodo, setTodos,
     exportData, importData, signOutUser,
     theme, setTheme, mode, setMode,
@@ -745,7 +757,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     user, loading, profiles, activeProfile, activeSubjectName,
     addProfile, switchProfile, updateSubjects, addSubject, removeSubject, renameSubject,
     addChapter, removeChapter, updateChapter, renameChapter, updateTasks, renameTask,
-    updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink,
+    updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
     addTodo, updateTodo, deleteTodo, setTodos,
     exportData, importData, signOutUser,
     theme, setTheme, mode, setMode, setActiveSubjectName

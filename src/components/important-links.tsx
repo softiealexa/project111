@@ -10,10 +10,73 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Link, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Link as LinkIcon, Pencil, Trash2, GripVertical } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { cn } from '@/lib/utils';
+
+
+function SortableLinkItem({ link, onEdit, onDelete }: { link: ImportantLink, onEdit: (link: ImportantLink) => void, onDelete: (link: ImportantLink) => void }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: link.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : 'auto',
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} className={cn("flex items-center gap-3 rounded-md border p-3 transition-colors hover:bg-muted/50", isDragging && "shadow-lg z-10 bg-card ring-1 ring-primary")}>
+        <button {...listeners} aria-label="Drag to reorder link" className="cursor-grab touch-none p-1 text-muted-foreground hover:text-foreground">
+            <GripVertical className="h-5 w-5" />
+        </button>
+        <div className="flex-shrink-0">
+            <LinkIcon className="h-5 w-5 text-muted-foreground" />
+        </div>
+        <div className="flex-1 min-w-0">
+            <a href={link.url} target="_blank" rel="noopener noreferrer" className="font-medium text-foreground hover:underline truncate block">
+                {link.title}
+            </a>
+            <p className="text-sm text-muted-foreground truncate">{link.url}</p>
+        </div>
+        <div className="flex gap-1">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(link)}>
+                <Pencil className="h-4 w-4" />
+                <span className="sr-only">Edit</span>
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => onDelete(link)}>
+                <Trash2 className="h-4 w-4" />
+                 <span className="sr-only">Delete</span>
+            </Button>
+        </div>
+    </div>
+  );
+}
+
 
 export default function ImportantLinks() {
-  const { activeProfile, addLink, updateLink, deleteLink } = useData();
+  const { activeProfile, addLink, updateLink, deleteLink, setLinks } = useData();
   const { toast } = useToast();
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -87,6 +150,26 @@ export default function ImportantLinks() {
       variant: 'destructive',
     });
   };
+  
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor)
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = links.findIndex((link) => link.id === active.id);
+      const newIndex = links.findIndex((link) => link.id === over.id);
+      if (setLinks) {
+        setLinks(arrayMove(links, oldIndex, newIndex));
+      }
+    }
+  };
 
   return (
     <>
@@ -95,7 +178,7 @@ export default function ImportantLinks() {
           <div>
             <CardTitle>Important Links</CardTitle>
             <CardDescription>
-              Keep your essential resources in one place.
+              Keep your essential resources in one place. Drag to reorder.
             </CardDescription>
           </div>
           <Button onClick={() => handleOpenDialog()}>
@@ -104,31 +187,20 @@ export default function ImportantLinks() {
         </CardHeader>
         <CardContent>
           {links.length > 0 ? (
-            <div className="space-y-3">
-              {links.map((link) => (
-                <div key={link.id} className="flex items-center gap-4 rounded-md border p-4 transition-colors hover:bg-muted/50">
-                  <div className="flex-shrink-0">
-                    <Link className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <a href={link.url} target="_blank" rel="noopener noreferrer" className="font-medium text-foreground hover:underline truncate block">
-                      {link.title}
-                    </a>
-                    <p className="text-sm text-muted-foreground truncate">{link.url}</p>
-                  </div>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenDialog(link)}>
-                        <Pencil className="h-4 w-4" />
-                        <span className="sr-only">Edit</span>
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(link)}>
-                        <Trash2 className="h-4 w-4" />
-                         <span className="sr-only">Delete</span>
-                    </Button>
-                  </div>
+             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={links.map(l => l.id)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-3">
+                  {links.map((link) => (
+                    <SortableLinkItem 
+                      key={link.id} 
+                      link={link} 
+                      onEdit={handleOpenDialog} 
+                      onDelete={handleDelete}
+                    />
+                  ))}
                 </div>
-              ))}
-            </div>
+              </SortableContext>
+            </DndContext>
           ) : (
             <div className="flex flex-col items-center justify-center rounded-md border-2 border-dashed py-12 text-center">
               <h3 className="text-lg font-medium text-muted-foreground">No links yet</h3>
