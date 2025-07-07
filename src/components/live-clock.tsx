@@ -7,6 +7,7 @@ export default function LiveClock() {
   const [date, setDate] = useState<Date | null>(null);
 
   useEffect(() => {
+    // Set the initial date on the client side to avoid hydration mismatch
     setDate(new Date());
     const timerId = setInterval(() => {
       setDate(new Date());
