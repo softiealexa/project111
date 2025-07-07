@@ -6,7 +6,6 @@ import { useData } from '@/contexts/data-context';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LectureTracker from "@/components/lecture-tracker";
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import LiveClock from '@/components/live-clock';
 import { ProgressSummary } from '@/components/progress-summary';
@@ -53,113 +52,111 @@ export default function DashboardPage() {
 
   return (
     <div className="flex w-full flex-col items-center bg-background text-foreground pb-12">
-      <TooltipProvider delayDuration={100}>
-        <div className="w-full max-w-5xl flex-1 px-4 pt-8">
-          {activeProfile.subjects.length > 0 ? (
-            <Tabs defaultValue="subjects" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 mb-6">
-                <TabsTrigger value="subjects">My Subjects</TabsTrigger>
-                <TabsTrigger value="progress">Progress Overview</TabsTrigger>
-                <TabsTrigger value="tools">Tools</TabsTrigger>
-              </TabsList>
+      <div className="w-full max-w-5xl flex-1 px-4 pt-8">
+        {activeProfile.subjects.length > 0 ? (
+          <Tabs defaultValue="subjects" className="w-full">
+            <TabsList className="grid w-full grid-cols-3 mb-6">
+              <TabsTrigger value="subjects">My Subjects</TabsTrigger>
+              <TabsTrigger value="progress">Progress Overview</TabsTrigger>
+              <TabsTrigger value="tools">Tools</TabsTrigger>
+            </TabsList>
 
-              <TabsContent value="subjects">
-                <Tabs value={activeSubjectName ?? ''} onValueChange={setActiveSubjectName} className="w-full">
-                  <div className="flex items-center justify-between gap-4">
-                    <ScrollArea className="flex-1 whitespace-nowrap rounded-md pb-2.5">
-                      <TabsList className={cn(
-                        "bg-muted h-auto transition-all duration-300",
-                        hasMoreThanFourSubjects ? 'justify-start' : 'grid w-full grid-cols-4 sm:justify-center'
-                      )}>
-                        {activeProfile.subjects.map((subject) => {
-                          const Icon = getIconComponent(subject.icon);
-                          return (
-                            <TabsTrigger key={subject.name} value={subject.name} className="flex items-center gap-2">
-                              <Icon className="h-5 w-5" />
-                              <span>{subject.name}</span>
-                            </TabsTrigger>
-                          )
-                        })}
+            <TabsContent value="subjects">
+              <Tabs value={activeSubjectName ?? ''} onValueChange={setActiveSubjectName} className="w-full">
+                <div className="flex items-center justify-between gap-4">
+                  <ScrollArea className="flex-1 whitespace-nowrap rounded-md pb-2.5">
+                    <TabsList className={cn(
+                      "bg-muted h-auto transition-all duration-300",
+                      hasMoreThanFourSubjects ? 'justify-start' : 'grid w-full grid-cols-4 sm:justify-center'
+                    )}>
+                      {activeProfile.subjects.map((subject) => {
+                        const Icon = getIconComponent(subject.icon);
+                        return (
+                          <TabsTrigger key={subject.name} value={subject.name} className="flex items-center gap-2">
+                            <Icon className="h-5 w-5" />
+                            <span>{subject.name}</span>
+                          </TabsTrigger>
+                        )
+                      })}
+                    </TabsList>
+                    <ScrollBar orientation="horizontal" />
+                  </ScrollArea>
+                  <LiveClock />
+                </div>
+
+                {activeProfile.subjects.map((subject) => (
+                  <TabsContent key={subject.name} value={subject.name} className="mt-6">
+                    <LectureTracker subject={subject} />
+                  </TabsContent>
+                ))}
+              </Tabs>
+            </TabsContent>
+
+            <TabsContent value="progress">
+              <ProgressSummary profile={activeProfile} />
+            </TabsContent>
+
+            <TabsContent value="tools">
+              <Tabs defaultValue="planner" orientation="vertical" className="w-full">
+                  <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] lg:grid-cols-[250px_1fr] gap-6">
+                      <TabsList className="flex-col h-auto items-stretch justify-start bg-transparent border-none p-0">
+                          <TabsTrigger value="planner" className="justify-start gap-2 py-2.5 text-base">
+                              <CalendarDays className="h-5 w-5" />
+                              Study Planner
+                          </TabsTrigger>
+                          <TabsTrigger value="todo" className="justify-start gap-2 py-2.5 text-base">
+                              <ListTodo className="h-5 w-5" />
+                              To-Do List
+                          </TabsTrigger>
+                          <TabsTrigger value="notes" className="justify-start gap-2 py-2.5 text-base">
+                              <Pencil className="h-5 w-5" />
+                              Notes Writer
+                          </TabsTrigger>
+                          <TabsTrigger value="timer" className="justify-start gap-2 py-2.5 text-base">
+                              <Timer className="h-5 w-5" />
+                              Pomodoro Timer
+                          </TabsTrigger>
+                           <TabsTrigger value="links" className="justify-start gap-2 py-2.5 text-base">
+                              <LinkIcon className="h-5 w-5" />
+                              Important Links
+                          </TabsTrigger>
                       </TabsList>
-                      <ScrollBar orientation="horizontal" />
-                    </ScrollArea>
-                    <LiveClock />
+                      <div className="md:col-start-2">
+                          <TabsContent value="planner" className="mt-0">
+                              <StudyPlanner />
+                          </TabsContent>
+                          <TabsContent value="todo" className="mt-0">
+                              <TodoList />
+                          </TabsContent>
+                          <TabsContent value="notes" className="mt-0">
+                              <NotesWriter />
+                          </TabsContent>
+                          <TabsContent value="timer" className="mt-0">
+                              <Card>
+                                  <CardHeader>
+                                      <CardTitle>Pomodoro Timer</CardTitle>
+                                      <CardDescription>Stay focused with the Pomodoro technique.</CardDescription>
+                                  </CardHeader>
+                                  <CardContent>
+                                      <PomodoroTimer />
+                                  </CardContent>
+                              </Card>
+                          </TabsContent>
+                          <TabsContent value="links" className="mt-0">
+                              <ImportantLinks />
+                          </TabsContent>
+                      </div>
                   </div>
-
-                  {activeProfile.subjects.map((subject) => (
-                    <TabsContent key={subject.name} value={subject.name} className="mt-6">
-                      <LectureTracker subject={subject} />
-                    </TabsContent>
-                  ))}
-                </Tabs>
-              </TabsContent>
-
-              <TabsContent value="progress">
-                <ProgressSummary profile={activeProfile} />
-              </TabsContent>
-
-              <TabsContent value="tools">
-                <Tabs defaultValue="planner" orientation="vertical" className="w-full">
-                    <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] lg:grid-cols-[250px_1fr] gap-6">
-                        <TabsList className="flex-col h-auto items-stretch justify-start bg-transparent border-none p-0">
-                            <TabsTrigger value="planner" className="justify-start gap-2 py-2.5 text-base">
-                                <CalendarDays className="h-5 w-5" />
-                                Study Planner
-                            </TabsTrigger>
-                            <TabsTrigger value="todo" className="justify-start gap-2 py-2.5 text-base">
-                                <ListTodo className="h-5 w-5" />
-                                To-Do List
-                            </TabsTrigger>
-                            <TabsTrigger value="notes" className="justify-start gap-2 py-2.5 text-base">
-                                <Pencil className="h-5 w-5" />
-                                Notes Writer
-                            </TabsTrigger>
-                            <TabsTrigger value="timer" className="justify-start gap-2 py-2.5 text-base">
-                                <Timer className="h-5 w-5" />
-                                Pomodoro Timer
-                            </TabsTrigger>
-                             <TabsTrigger value="links" className="justify-start gap-2 py-2.5 text-base">
-                                <LinkIcon className="h-5 w-5" />
-                                Important Links
-                            </TabsTrigger>
-                        </TabsList>
-                        <div className="md:col-start-2">
-                            <TabsContent value="planner" className="mt-0">
-                                <StudyPlanner />
-                            </TabsContent>
-                            <TabsContent value="todo" className="mt-0">
-                                <TodoList />
-                            </TabsContent>
-                            <TabsContent value="notes" className="mt-0">
-                                <NotesWriter />
-                            </TabsContent>
-                            <TabsContent value="timer" className="mt-0">
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle>Pomodoro Timer</CardTitle>
-                                        <CardDescription>Stay focused with the Pomodoro technique.</CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <PomodoroTimer />
-                                    </CardContent>
-                                </Card>
-                            </TabsContent>
-                            <TabsContent value="links" className="mt-0">
-                                <ImportantLinks />
-                            </TabsContent>
-                        </div>
-                    </div>
-                </Tabs>
-              </TabsContent>
-            </Tabs>
-          ) : (
-            <div className="text-center py-12 flex flex-col items-center gap-4">
-              <h2 className="text-2xl font-headline">No Subjects Yet!</h2>
-              <p className="text-muted-foreground">Get started by adding your first subject from the customization menu.</p>
-            </div>
-          )}
-        </div>
-      </TooltipProvider>
+              </Tabs>
+            </TabsContent>
+          </Tabs>
+        ) : (
+          <div className="text-center py-12 flex flex-col items-center gap-4">
+            <h2 className="text-2xl font-headline">No Subjects Yet!</h2>
+            <p className="text-muted-foreground">Get started by adding your first subject from the customization menu.</p>
+          </div>
+        )}
+      </div>
 
       <footer className="w-full max-w-5xl px-4 py-6 mt-8 text-center text-sm text-muted-foreground">
         <p>Built for focused learners. &copy; {new Date().getFullYear()} TrackAcademic.</p>
