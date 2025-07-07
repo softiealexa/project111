@@ -67,7 +67,7 @@ export function RenameDialog({ itemType, currentName, onRename, existingNames, c
         <DialogHeader>
           <DialogTitle>Rename {itemType}</DialogTitle>
           <DialogDescription>
-            Enter a new name for '{currentName}'. Click save when you're done.
+            Enter a new name for '{currentName}'.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
