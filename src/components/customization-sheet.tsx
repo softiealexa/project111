@@ -11,7 +11,7 @@ import {
   SheetFooter
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Trash2, Plus, GripVertical, Check, Pencil, Edit } from 'lucide-react';
+import { Trash2, Plus, GripVertical, Check, Pencil } from 'lucide-react';
 import { AddSubjectDialog } from './add-subject-dialog';
 import { RemoveSubjectDialog } from './remove-subject-dialog';
 import { AddChapterDialog } from './add-chapter-dialog';
@@ -207,9 +207,22 @@ export function CustomizationSheet() {
                                     const Icon = getIconComponent(subject.icon);
                                     return (
                                         <div key={subject.name} className="flex items-center gap-2 p-2 border-b last:border-b-0">
-                                            <div className="cursor-not-allowed p-1 text-muted-foreground/50"><GripVertical className="h-5 w-5" /></div>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <div className="cursor-not-allowed p-1 text-muted-foreground/50"><GripVertical className="h-5 w-5" /></div>
+                                                </TooltipTrigger>
+                                                <TooltipContent><p>Reordering coming soon</p></TooltipContent>
+                                            </Tooltip>
                                             <Icon className="h-5 w-5 text-muted-foreground" />
                                             <span className="flex-1">{subject.name}</span>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                     <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" disabled>
+                                                        <Pencil className="h-4 w-4" />
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent><p>Rename feature coming soon</p></TooltipContent>
+                                            </Tooltip>
                                             <RemoveSubjectDialog subjects={[subject]} onConfirm={() => removeSubject(subject.name)}>
                                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
                                                     <Trash2 className="h-4 w-4" />
