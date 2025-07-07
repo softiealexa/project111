@@ -78,8 +78,8 @@ export default function LandingPage() {
                 </div>
                 <div className="flex justify-center">
                     <Image
-                        src="https://placehold.co/600x400.png"
-                        alt="TrackAcademic Dashboard Preview"
+                        src="/og-image.png"
+                        alt="TrackAcademic Dashboard"
                         width={600}
                         height={400}
                         className="rounded-xl shadow-2xl shadow-primary/10 border"
