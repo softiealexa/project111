@@ -2,23 +2,40 @@
 'use client';
 
 import { useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { useData } from '@/contexts/data-context';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import LectureTracker from "@/components/lecture-tracker";
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import LiveClock from '@/components/live-clock';
-import { ProgressSummary } from '@/components/progress-summary';
 import { getIconComponent } from '@/lib/icons';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Pencil, Timer, Terminal, ListTodo, CalendarDays, Link as LinkIcon } from 'lucide-react';
-import PomodoroTimer from '@/components/pomodoro-timer';
-import NotesWriter from '@/components/notes-writer';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Pencil, Timer, ListTodo, CalendarDays, Link as LinkIcon } from 'lucide-react';
 import { LoadingSpinner } from '@/components/loading-spinner';
-import TodoList from '@/components/todo-list';
-import StudyPlanner from '@/components/study-planner';
-import ImportantLinks from '@/components/important-links';
+
+
+// Lazy load components for better performance
+const LectureTracker = dynamic(() => import("@/components/lecture-tracker"), {
+  loading: () => <LoadingSpinner containerClassName="h-96" text="Loading Tracker..." />
+});
+const ProgressSummary = dynamic(() => import("@/components/progress-summary"), {
+  loading: () => <LoadingSpinner containerClassName="h-96" text="Loading Progress..." />
+});
+const StudyPlanner = dynamic(() => import("@/components/study-planner"), {
+  loading: () => <LoadingSpinner containerClassName="h-96" text="Loading Planner..." />
+});
+const TodoList = dynamic(() => import("@/components/todo-list"), {
+  loading: () => <LoadingSpinner containerClassName="h-96" text="Loading To-Do List..." />
+});
+const NotesWriter = dynamic(() => import("@/components/notes-writer"), {
+  loading: () => <LoadingSpinner containerClassName="h-96" text="Loading Notes..." />
+});
+const PomodoroTimer = dynamic(() => import('@/components/pomodoro-timer'), {
+    loading: () => <LoadingSpinner containerClassName="h-96" text="Loading Timer..." />
+});
+const ImportantLinks = dynamic(() => import("@/components/important-links"), {
+  loading: () => <LoadingSpinner containerClassName="h-96" text="Loading Links..." />
+});
 
 export default function DashboardPage() {
   const { activeProfile, activeSubjectName, setActiveSubjectName } = useData();
@@ -52,6 +69,7 @@ export default function DashboardPage() {
 
   return (
     <div className="flex w-full flex-col items-center bg-background text-foreground pb-12">
+      <h1 className="sr-only">TrackAcademic Dashboard</h1>
       <div className="w-full max-w-5xl flex-1 px-4 pt-8">
         {activeProfile.subjects.length > 0 ? (
           <Tabs defaultValue="subjects" className="w-full">

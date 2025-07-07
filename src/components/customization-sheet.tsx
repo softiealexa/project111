@@ -60,9 +60,9 @@ function SortableTaskItem({ id, task, onRemove }: { id: string, task: string, on
     
     return (
         <div ref={setNodeRef} style={style} className={cn("flex items-center gap-2 p-2 rounded-md bg-muted/50", isDragging && "shadow-lg z-10")}>
-            <div {...listeners} {...attributes} className="cursor-grab touch-none p-1 text-muted-foreground hover:text-foreground">
+            <button {...listeners} {...attributes} aria-label="Drag to reorder task" className="cursor-grab touch-none p-1 text-muted-foreground hover:text-foreground">
                 <GripVertical className="h-5 w-5" />
-            </div>
+            </button>
             <span className="flex-1">{task}</span>
              <Tooltip>
                 <TooltipTrigger asChild>
@@ -72,7 +72,7 @@ function SortableTaskItem({ id, task, onRemove }: { id: string, task: string, on
                 </TooltipTrigger>
                 <TooltipContent><p>Rename feature coming soon</p></TooltipContent>
             </Tooltip>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={onRemove}>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={onRemove} aria-label={`Remove task: ${task}`}>
                 <Trash2 className="h-4 w-4" />
             </Button>
         </div>
@@ -98,9 +98,9 @@ function SortableSubjectItem({ id, subject, onRemove }: { id: string, subject: S
     
     return (
         <div ref={setNodeRef} style={style} className={cn("flex items-center gap-2 p-2 border-b last:border-b-0", isDragging && "shadow-lg z-10 bg-card")}>
-            <div {...listeners} {...attributes} className="cursor-grab touch-none p-1 text-muted-foreground hover:text-foreground">
+            <button {...listeners} {...attributes} aria-label="Drag to reorder subject" className="cursor-grab touch-none p-1 text-muted-foreground hover:text-foreground">
                 <GripVertical className="h-5 w-5" />
-            </div>
+            </button>
             <Icon className="h-5 w-5 text-muted-foreground" />
             <span className="flex-1">{subject.name}</span>
             <Tooltip>
@@ -112,7 +112,7 @@ function SortableSubjectItem({ id, subject, onRemove }: { id: string, subject: S
                 <TooltipContent><p>Rename feature coming soon</p></TooltipContent>
             </Tooltip>
             <RemoveSubjectDialog subjects={[subject]} onConfirm={onRemove}>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" aria-label={`Remove subject: ${subject.name}`}>
                     <Trash2 className="h-4 w-4" />
                 </Button>
             </RemoveSubjectDialog>

@@ -100,7 +100,7 @@ function SortableTaskItem({
         id={`task-${task.id}`}
         checked={task.completed}
         onCheckedChange={() => toggleTaskCompletion(task.id)}
-        aria-label="Mark task as complete"
+        aria-label={`Mark task as ${task.completed ? 'incomplete' : 'complete'}`}
       />
       <Label
         htmlFor={`task-${task.id}`}
@@ -114,7 +114,7 @@ function SortableTaskItem({
         </span>
       )}
       <Badge variant={priorityVariant[task.priority]} className="text-xs">{task.priority}</Badge>
-      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => deleteTask(task.id)}>
+      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => deleteTask(task.id)} aria-label={`Delete task: ${task.text}`}>
         <Trash2 className="h-4 w-4" />
       </Button>
     </div>

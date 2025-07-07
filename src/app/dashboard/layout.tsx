@@ -10,8 +10,14 @@ export default function DashboardLayout({
 }>) {
   return (
     <TooltipProvider delayDuration={100}>
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:z-50 focus:px-4 focus:py-2 focus:top-2 focus:left-2 bg-background text-foreground border rounded-md"
+      >
+        Skip to main content
+      </a>
       <Navbar />
-      <main>{children}</main>
+      <main id="main-content">{children}</main>
     </TooltipProvider>
   );
 }

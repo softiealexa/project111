@@ -147,7 +147,7 @@ export default function NotesWriter() {
                                     size="icon"
                                     className="absolute top-2 right-2 h-7 w-7 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
                                     onClick={(e) => { e.stopPropagation(); handleDelete(note.id, note.title || 'Untitled'); }}
-                                    aria-label="Delete note"
+                                    aria-label={`Delete note: ${note.title || 'Untitled'}`}
                                 >
                                     <Trash2 className="h-4 w-4" />
                                 </Button>

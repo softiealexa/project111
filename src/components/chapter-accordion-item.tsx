@@ -128,9 +128,9 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
           <AccordionPrimitive.Header className="group-hover:bg-primary/5">
             <AccordionPrimitive.Trigger className="flex w-full items-center justify-between gap-4 p-4 text-left hover:no-underline [&[data-state=open]>svg.accordion-chevron]:rotate-180">
               <div className="flex min-w-0 flex-1 items-center gap-3">
-                 <div {...listeners} className="cursor-grab p-2 -ml-2 text-muted-foreground hover:text-foreground touch-none">
+                 <button {...listeners} aria-label="Drag to reorder chapter" className="cursor-grab p-2 -ml-2 text-muted-foreground hover:text-foreground touch-none">
                     <GripVertical className="h-5 w-5" />
-                 </div>
+                 </button>
                 <div className="min-w-0 flex-1">
                   <h3 className="truncate font-headline text-lg font-medium text-foreground">
                     {chapter.name}
@@ -142,7 +142,7 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
               </div>
               <div className="flex items-center gap-4 sm:w-2/5">
                  <div className="flex w-full items-center gap-2 text-sm text-muted-foreground">
-                    <span className="font-medium tabular-nums whitespace-nowrap">{completedTasks}/{totalTasks}</span>
+                    <span className="font-medium tabular-nums whitespace-nowrap w-12 text-center">{completedTasks}/{totalTasks}</span>
                     <Progress value={progress} indicatorClassName={progressColorClass} className="flex-1" />
                     <span className="font-bold tabular-nums text-foreground whitespace-nowrap w-12 text-right">{Math.round(progress)}%</span>
                 </div>
