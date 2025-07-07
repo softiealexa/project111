@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -9,18 +10,16 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from './ui/badge';
-
-type Notes = Record<string, string>;
+import { useData } from '@/contexts/data-context';
 
 export default function StudyPlanner() {
+  const { activeProfile, updatePlannerNote } = useData();
   const [month, setMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | undefined>(new Date());
-  // Pre-populate with a sample note.
-  const [notes, setNotes] = useState<Notes>({
-    [format(new Date(), 'yyyy-MM-dd')]: 'Start planning the week!',
-  });
   const [currentNote, setCurrentNote] = useState('');
   const { toast } = useToast();
+
+  const notes = useMemo(() => activeProfile?.plannerNotes || {}, [activeProfile?.plannerNotes]);
 
   const currentWeek = useMemo(() => {
     const today = new Date();
@@ -50,17 +49,17 @@ export default function StudyPlanner() {
       return;
     }
     const dateKey = format(selectedDay, 'yyyy-MM-dd');
-    const newNotes = { ...notes };
-    if (currentNote.trim()) {
-      newNotes[dateKey] = currentNote.trim();
-    } else {
-      // If note is empty, remove it from the state
-      delete newNotes[dateKey];
+    const trimmedNote = currentNote.trim();
+
+    // Only update if the note has actually changed
+    if ((notes[dateKey] || '') === trimmedNote) {
+      return;
     }
-    setNotes(newNotes);
+
+    updatePlannerNote(dateKey, trimmedNote);
     toast({
       title: 'Note Saved',
-      description: `Your note for ${format(selectedDay, 'PPP')} has been saved. Note persistence is not yet implemented.`,
+      description: `Your note for ${format(selectedDay, 'PPP')} has been updated.`,
     });
   };
   
@@ -79,7 +78,7 @@ export default function StudyPlanner() {
     <Card>
       <CardHeader>
         <CardTitle>Mini Study Planner</CardTitle>
-        <CardDescription>Plan your month, week by week. Notes are not saved permanently.</CardDescription>
+        <CardDescription>Plan your month, week by week. Notes are saved automatically.</CardDescription>
       </CardHeader>
       <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="flex flex-col items-center">

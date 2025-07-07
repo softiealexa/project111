@@ -1,3 +1,11 @@
+
+export interface Note {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: number;
+}
+
 export interface Chapter {
   name: string;
   lectureCount: number;
@@ -15,4 +23,6 @@ export interface Subject {
 export interface Profile {
   name: string;
   subjects: Subject[];
+  plannerNotes?: Record<string, string>;
+  notes?: Note[];
 }

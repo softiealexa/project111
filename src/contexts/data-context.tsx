@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
-import type { Subject, Profile, Chapter } from '@/lib/types';
+import type { Subject, Profile, Chapter, Note } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,6 +31,10 @@ interface DataContextType {
   addChapter: (subjectName: string, newChapter: Chapter) => void;
   removeChapter: (subjectName: string, chapterNameToRemove: string) => void;
   updateTasks: (subjectName: string, newTasks: string[]) => void;
+  updatePlannerNote: (dateKey: string, note: string) => void;
+  addNote: (title: string, content: string) => void;
+  updateNote: (note: Note) => void;
+  deleteNote: (noteId: string) => void;
   exportData: () => void;
   importData: (file: File) => void;
   signOutUser: () => Promise<void>;
@@ -72,6 +76,8 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
         return {
             ...profile,
             subjects: migratedSubjects,
+            plannerNotes: profile.plannerNotes || {},
+            notes: profile.notes || [],
         };
     });
 };
@@ -330,6 +336,69 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setProfiles(newProfiles);
     saveData(newProfiles, activeProfileName);
   };
+
+  const updatePlannerNote = (dateKey: string, note: string) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+        if (p.name === activeProfileName) {
+            const newPlannerNotes = { ...(p.plannerNotes || {}) };
+            if (note) {
+                newPlannerNotes[dateKey] = note;
+            } else {
+                delete newPlannerNotes[dateKey];
+            }
+            return { ...p, plannerNotes: newPlannerNotes };
+        }
+        return p;
+    });
+    setProfiles(newProfiles);
+    saveData(newProfiles, activeProfileName);
+  };
+
+  const addNote = (title: string, content: string) => {
+    if (!activeProfileName) return;
+    const newNote: Note = {
+        id: crypto.randomUUID(),
+        title,
+        content,
+        createdAt: Date.now(),
+    };
+    const newProfiles = profiles.map(p => {
+        if (p.name === activeProfileName) {
+            const updatedNotes = [...(p.notes || []), newNote];
+            return { ...p, notes: updatedNotes };
+        }
+        return p;
+    });
+    setProfiles(newProfiles);
+    saveData(newProfiles, activeProfileName);
+  };
+
+  const updateNote = (updatedNote: Note) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+        if (p.name === activeProfileName) {
+            const updatedNotes = (p.notes || []).map(n => n.id === updatedNote.id ? updatedNote : n);
+            return { ...p, notes: updatedNotes };
+        }
+        return p;
+    });
+    setProfiles(newProfiles);
+    saveData(newProfiles, activeProfileName);
+  };
+
+  const deleteNote = (noteId: string) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+        if (p.name === activeProfileName) {
+            const updatedNotes = (p.notes || []).filter(n => n.id !== noteId);
+            return { ...p, notes: updatedNotes };
+        }
+        return p;
+    });
+    setProfiles(newProfiles);
+    saveData(newProfiles, activeProfileName);
+  };
   
   const exportData = () => {
     if (typeof window === 'undefined' || profiles.length === 0) {
@@ -387,7 +456,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const value = { 
     user, loading, profiles, activeProfile, activeSubjectName, setActiveSubjectName,
     addProfile, switchProfile, updateSubjects, addSubject, removeSubject, addChapter, removeChapter,
-    updateTasks, exportData, importData, signOutUser,
+    updateTasks, updatePlannerNote, addNote, updateNote, deleteNote, exportData, importData, signOutUser,
     theme, setTheme, mode, setMode
   };
   
