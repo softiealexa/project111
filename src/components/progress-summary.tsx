@@ -1,9 +1,8 @@
-
 "use client"
 
 import type { Profile, Subject, Chapter } from "@/lib/types";
 import { useMemo, useState, useCallback } from "react";
-import { Bar, BarChart, Pie, PieChart, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Legend, Tooltip, LabelList, ReferenceLine, LineChart, Line } from "recharts";
+import { Bar, BarChart, Pie, PieChart, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Legend, Tooltip, LabelList, ReferenceLine, LineChart, Line, Label as RechartsLabel } from "recharts";
 import { CheckCircle, BookOpen, TrendingUp, Target, Filter } from "lucide-react";
 import {
   Card,
@@ -215,7 +214,7 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
                                     />}
                                 />
                                 <ReferenceLine y={progressGoal} strokeDasharray="3 3" stroke="hsl(var(--primary))">
-                                  <Label value={`Goal: ${progressGoal}%`} position="insideTopRight" fill="hsl(var(--primary))" fontSize={12} dy={-5} dx={-5} />
+                                  <RechartsLabel value={`Goal: ${progressGoal}%`} position="insideTopRight" fill="hsl(var(--primary))" fontSize={12} dy={-5} dx={-5} />
                                 </ReferenceLine>
                                 <Bar dataKey="progress" radius={[8, 8, 0, 0]}>
                                   <LabelList dataKey="progress" position="top" offset={8} className="fill-foreground" fontSize={12} formatter={(value: number) => `${value}%`} />
