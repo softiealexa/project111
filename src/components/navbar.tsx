@@ -18,14 +18,12 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { AddProfileDialog } from './add-profile-dialog';
 import { CustomizationSheet } from './customization-sheet';
 import Image from 'next/image';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { Sheet, SheetTrigger } from './ui/sheet';
+import { Sheet } from './ui/sheet';
 
 export default function Navbar() {
   const { profiles, activeProfile, switchProfile, exportData, importData, user, signOutUser, mode, setMode } = useData();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
-  const isMobile = useIsMobile();
   const [isCustomizationOpen, setIsCustomizationOpen] = useState(false);
 
 
@@ -60,14 +58,6 @@ export default function Navbar() {
               </span>
             </Link>
             <div className="flex items-center gap-1 sm:gap-2">
-              {!isMobile && (
-                 <SheetTrigger asChild>
-                    <Button variant="ghost" size="icon" disabled={!activeProfile}>
-                      <SlidersHorizontal className="h-5 w-5" />
-                      <span className="sr-only">Open Customization</span>
-                    </Button>
-                  </SheetTrigger>
-              )}
               {user ? (
                 <>
                   {activeProfile && (
@@ -115,20 +105,21 @@ export default function Navbar() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-56" align="end" forceMount>
                       <DropdownMenuLabel className="font-normal">
-                        <div className="flex flex-col">
-                          <p className="text-lg font-semibold leading-none text-foreground">{user.displayName}</p>
+                        <div className="flex flex-col space-y-1">
+                          <p className="text-sm font-semibold leading-none text-foreground">{user.displayName}</p>
+                          <p className="text-xs leading-none text-muted-foreground">Student Profile</p>
                         </div>
                       </DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                       {isMobile && (
-                        <>
-                           <DropdownMenuItem onSelect={() => setIsCustomizationOpen(true)} disabled={!activeProfile}>
-                              <SlidersHorizontal className="mr-2 h-4 w-4" />
-                              <span>Customization</span>
-                            </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                        </>
-                      )}
+                      <DropdownMenuItem onSelect={() => setIsCustomizationOpen(true)} disabled={!activeProfile}>
+                        <SlidersHorizontal className="mr-2 h-4 w-4" />
+                        <span>Customization</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setMode(mode === 'light' ? 'dark' : 'light')}>
+                        {mode === 'dark' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
+                        <span>{mode === 'dark' ? 'Light' : 'Dark'} Mode</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
                       <DropdownMenuItem onSelect={handleImportClick}>
                         <Upload className="mr-2 h-4 w-4" />
                         <span>Import Data</span>
@@ -136,11 +127,6 @@ export default function Navbar() {
                       <DropdownMenuItem onSelect={exportData}>
                         <Download className="mr-2 h-4 w-4" />
                         <span>Export Data</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onSelect={() => setMode(mode === 'light' ? 'dark' : 'light')}>
-                        {mode === 'dark' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
-                        <span>{mode === 'dark' ? 'Light' : 'Dark'} Mode</span>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onSelect={handleSignOut} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
