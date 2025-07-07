@@ -161,7 +161,7 @@ export default function QuestionTimer() {
 
   return (
     <>
-      <div ref={containerRef} className={cn("transition-all focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0", isFullscreen && "bg-background p-8")}>
+      <div ref={containerRef} className={cn("transition-all rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-background focus-visible:ring-offset-2", isFullscreen && "bg-background p-8")}>
         <Card className={cn(isFullscreen && "border-none shadow-none")}>
           <CardHeader className="flex flex-row items-start justify-between">
             <div>
