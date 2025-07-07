@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -146,7 +147,9 @@ export default function TodoList() {
     if (over && active.id !== over.id) {
       const oldIndex = tasks.findIndex((task) => task.id === active.id);
       const newIndex = tasks.findIndex((task) => task.id === over.id);
-      setTodos(arrayMove(tasks, oldIndex, newIndex));
+      if (oldIndex !== -1 && newIndex !== -1) {
+        setTodos(arrayMove(tasks, oldIndex, newIndex));
+      }
     }
   };
 

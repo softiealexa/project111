@@ -165,7 +165,7 @@ export default function ImportantLinks() {
     if (over && active.id !== over.id) {
       const oldIndex = links.findIndex((link) => link.id === active.id);
       const newIndex = links.findIndex((link) => link.id === over.id);
-      if (setLinks) {
+      if (oldIndex !== -1 && newIndex !== -1) {
         setLinks(arrayMove(links, oldIndex, newIndex));
       }
     }
