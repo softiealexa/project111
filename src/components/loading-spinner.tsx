@@ -1,4 +1,4 @@
-import { Book } from 'lucide-react';
+import { LoaderCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface LoadingSpinnerProps {
@@ -16,7 +16,7 @@ export function LoadingSpinner({
 }: LoadingSpinnerProps) {
   return (
     <div className={cn("flex flex-col items-center justify-center gap-4", containerClassName)}>
-      <Book className={cn("h-12 w-12 animate-pulse text-primary", className)} />
+      <LoaderCircle className={cn("h-12 w-12 animate-spin text-primary", className)} />
       {showText && <p className="text-lg text-muted-foreground">{text}</p>}
     </div>
   );
