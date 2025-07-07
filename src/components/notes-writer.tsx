@@ -28,9 +28,10 @@ export default function NotesWriter() {
       setTitle(activeNote.title);
       setContent(activeNote.content);
     } else {
-      // Keep content if user clicks "New Note" by accident
-      // setTitle('');
-      // setContent('');
+      // This logic is intentionally left blank.
+      // When activeNote is set to null (e.g., by handleNewNote),
+      // we want to preserve the current title and content in the form
+      // to prevent accidental data loss. The user can then save it as a new note.
     }
   }, [activeNote]);
 
@@ -68,8 +69,6 @@ export default function NotesWriter() {
   
   const handleNewNote = () => {
       setActiveNote(null);
-      setTitle('');
-      setContent('');
   };
   
   const handleDelete = (noteId: string, noteTitle: string) => {
