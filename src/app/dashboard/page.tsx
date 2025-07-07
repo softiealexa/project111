@@ -12,6 +12,7 @@ import { getIconComponent } from '@/lib/icons';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Pencil, Timer, ListTodo, CalendarDays, Link as LinkIcon } from 'lucide-react';
 import { LoadingSpinner } from '@/components/loading-spinner';
+import { useSearchParams } from 'next/navigation';
 
 
 // Lazy load components for better performance
@@ -40,6 +41,17 @@ const ImportantLinks = dynamic(() => import("@/components/important-links"), {
 export default function DashboardPage() {
   const { activeProfile, activeSubjectName, setActiveSubjectName } = useData();
   const [currentYear, setCurrentYear] = useState<number | null>(null);
+
+  const searchParams = useSearchParams();
+  const [mainTab, setMainTab] = useState('subjects');
+  
+  useEffect(() => {
+    const validTabs = ['subjects', 'progress', 'tools'];
+    const tabParam = searchParams.get('tab');
+    if (tabParam && validTabs.includes(tabParam)) {
+      setMainTab(tabParam);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     setCurrentYear(new Date().getFullYear());
@@ -77,7 +89,7 @@ export default function DashboardPage() {
       <h1 className="sr-only">TrackAcademic Dashboard</h1>
       <div className="w-full max-w-5xl flex-1 px-4 pt-8">
         {activeProfile.subjects.length > 0 ? (
-          <Tabs defaultValue="subjects" className="w-full">
+          <Tabs value={mainTab} onValueChange={setMainTab} className="w-full">
             <TabsList className="grid w-full grid-cols-3 mb-6">
               <TabsTrigger value="subjects">My Subjects</TabsTrigger>
               <TabsTrigger value="progress">Progress Overview</TabsTrigger>
