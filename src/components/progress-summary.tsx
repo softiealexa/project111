@@ -40,6 +40,7 @@ import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 
 const getProgress = (chapters: Chapter[], tasksPerLecture: number) => {
+    if (tasksPerLecture === 0) return 0;
     let totalTasks = 0;
     let completedTasks = 0;
     chapters.forEach((chapter) => {
@@ -52,7 +53,7 @@ const getProgress = (chapters: Chapter[], tasksPerLecture: number) => {
 export function ProgressSummary({ profile }: { profile: Profile }) {
   const [chartType, setChartType] = useState("bar");
   const [selectedChapters, setSelectedChapters] = useState<Record<string, string[]>>({});
-  const [progressGoal, setProgressGoal] = useState(70);
+  const [progressGoal, setProgressGoal] = useState(75);
 
   const { chartData, chartConfig, summaryStats } = useMemo(() => {
     if (!profile || profile.subjects.length === 0) {
@@ -60,12 +61,14 @@ export function ProgressSummary({ profile }: { profile: Profile }) {
     }
     
     const config: ChartConfig = {};
-    const colors = ["hsl(180, 70%, 50%)", "hsl(221, 83%, 53%)", "hsl(262, 85%, 58%)", "hsl(24, 96%, 53%)", "hsl(142, 76%, 36%)"];
+    const colors = ["hsl(180, 80%, 55%)", "hsl(221, 83%, 65%)", "hsl(262, 85%, 68%)", "hsl(24, 96%, 63%)", "hsl(142, 76%, 46%)"];
 
     let totalChaptersCompleted = 0;
     let totalProgressSum = 0;
+    let totalChaptersCount = 0;
 
     const data = profile.subjects.map((subject, index) => {
+      totalChaptersCount += subject.chapters.length;
       const subjectFilter = selectedChapters[subject.name];
       const chaptersToConsider = subjectFilter === undefined
         ? subject.chapters
@@ -142,41 +145,39 @@ export function ProgressSummary({ profile }: { profile: Profile }) {
 
   return (
     <div className="space-y-6">
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <Card>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <Card className="hover:bg-card/90 transition-colors hover:shadow-primary/10 hover:shadow-md">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Subjects Completed</CardTitle>
-                    <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                    <CheckCircle className="h-5 w-5 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">{summaryStats.subjectsCompleted}/{profile.subjects.length}</div>
+                    <div className="text-3xl font-bold">{summaryStats.subjectsCompleted}/{profile.subjects.length}</div>
                     <p className="text-xs text-muted-foreground">Total subjects marked as 100% complete.</p>
                 </CardContent>
             </Card>
-            <Card>
+            <Card className="hover:bg-card/90 transition-colors hover:shadow-primary/10 hover:shadow-md">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Chapters Completed</CardTitle>
-                    <BookOpen className="h-4 w-4 text-muted-foreground" />
+                    <BookOpen className="h-5 w-5 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">{summaryStats.chaptersCompleted}</div>
+                    <div className="text-3xl font-bold">{summaryStats.chaptersCompleted}</div>
                     <p className="text-xs text-muted-foreground">Total chapters marked as 100% complete.</p>
                 </CardContent>
             </Card>
-            <Card>
+            <Card className="hover:bg-card/90 transition-colors hover:shadow-primary/10 hover:shadow-md">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Average Completion</CardTitle>
-                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    <TrendingUp className="h-5 w-5 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">{summaryStats.averageCompletion}%</div>
+                    <div className="text-3xl font-bold">{summaryStats.averageCompletion}%</div>
                     <p className="text-xs text-muted-foreground">Average progress across all subjects.</p>
                 </CardContent>
             </Card>
         </div>
 
-        {/* Chart Area */}
         <Card>
             <CardHeader>
                 <CardTitle>Performance Analysis</CardTitle>
@@ -327,3 +328,5 @@ export function ProgressSummary({ profile }: { profile: Profile }) {
     </div>
   );
 }
+
+    
