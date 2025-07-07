@@ -319,7 +319,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     saveData(profiles, name);
   };
 
-  const updateSubjects = (newSubjects: Subject[]) => {
+  const updateSubjects = useCallback((newSubjects: Subject[]) => {
     if (!activeProfileName || !activeProfile) return;
 
     const updatedProfile = updateProfileWithProgress({ ...activeProfile, subjects: newSubjects });
@@ -332,151 +332,112 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     setProfiles(newProfiles);
     saveData(newProfiles, activeProfileName);
-  };
+  }, [activeProfile, activeProfileName, profiles, saveData, updateProfileWithProgress]);
 
-  const addSubject = (subjectName: string, iconName: string) => {
-    if (!activeProfileName) return;
+  const addSubject = useCallback((subjectName: string, iconName: string) => {
+    if (!activeProfile) return;
     const newSubject: Subject = { 
         name: subjectName, 
         icon: iconName, 
         chapters: [],
         tasks: ['Lecture', 'DPP', 'Module', 'Class Qs'],
     };
-    const activeProfile = profiles.find(p => p.name === activeProfileName);
-    if (!activeProfile) return;
     
     const updatedSubjects = [...activeProfile.subjects, newSubject];
-    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, subjects: updatedSubjects } : p);
-    
-    setProfiles(newProfiles);
+    updateSubjects(updatedSubjects);
     setActiveSubjectName(subjectName);
-    saveData(newProfiles, activeProfileName);
-  };
+  }, [activeProfile, updateSubjects]);
   
-  const removeSubject = (subjectNameToRemove: string) => {
-    if (!activeProfileName) return;
-    const activeProfile = profiles.find(p => p.name === activeProfileName);
+  const removeSubject = useCallback((subjectNameToRemove: string) => {
     if (!activeProfile) return;
 
     const updatedSubjects = activeProfile.subjects.filter(s => s.name !== subjectNameToRemove);
-    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, subjects: updatedSubjects } : p);
+    updateSubjects(updatedSubjects);
 
-    setProfiles(newProfiles);
     if (activeSubjectName === subjectNameToRemove) {
         setActiveSubjectName(updatedSubjects[0]?.name || null);
     }
-    saveData(newProfiles, activeProfileName);
-  };
+  }, [activeProfile, activeSubjectName, updateSubjects]);
 
-  const addChapter = (subjectName: string, newChapter: Chapter) => {
-      if (!activeProfileName) return;
-      const newProfiles = profiles.map(p => {
-          if (p.name === activeProfileName) {
-              const newSubjects = p.subjects.map(s => {
-                  if (s.name === subjectName) {
-                      return { ...s, chapters: [...s.chapters, newChapter] };
-                  }
-                  return s;
-              });
-              return { ...p, subjects: newSubjects };
-          }
-          return p;
-      });
-      setProfiles(newProfiles);
-      saveData(newProfiles, activeProfileName);
-  };
-
-  const removeChapter = (subjectName: string, chapterNameToRemove: string) => {
-    if (!activeProfileName) return;
-    const newProfiles = profiles.map(p => {
-        if (p.name === activeProfileName) {
-            const newSubjects = p.subjects.map(s => {
-                if (s.name === subjectName) {
-                    const updatedChapters = s.chapters.filter(c => c.name !== chapterNameToRemove);
-                    return { ...s, chapters: updatedChapters };
-                }
-                return s;
-            });
-            return { ...p, subjects: newSubjects };
-        }
-        return p;
-    });
-    setProfiles(newProfiles);
-    saveData(newProfiles, activeProfileName);
-  };
-
-  const updateChapter = (subjectName: string, chapterName: string, newLectureCount: number) => {
-    if (!activeProfileName) return;
-
-    const newProfiles = profiles.map(p => {
-      if (p.name === activeProfileName) {
-        const newSubjects = p.subjects.map(s => {
+  const addChapter = useCallback((subjectName: string, newChapter: Chapter) => {
+      if (!activeProfile) return;
+      const newSubjects = activeProfile.subjects.map(s => {
           if (s.name === subjectName) {
-            const newChapters = s.chapters.map(c => {
-              if (c.name === chapterName) {
-                return { ...c, lectureCount: newLectureCount };
-              }
-              return c;
-            });
-            return { ...s, chapters: newChapters };
+              return { ...s, chapters: [...s.chapters, newChapter] };
           }
           return s;
-        });
-        return updateProfileWithProgress({ ...p, subjects: newSubjects });
-      }
-      return p;
-    });
+      });
+      updateSubjects(newSubjects);
+  }, [activeProfile, updateSubjects]);
 
-    setProfiles(newProfiles);
-    saveData(newProfiles, activeProfileName);
+  const removeChapter = useCallback((subjectName: string, chapterNameToRemove: string) => {
+    if (!activeProfile) return;
+    const newSubjects = activeProfile.subjects.map(s => {
+        if (s.name === subjectName) {
+            const updatedChapters = s.chapters.filter(c => c.name !== chapterNameToRemove);
+            return { ...s, chapters: updatedChapters };
+        }
+        return s;
+    });
+    updateSubjects(newSubjects);
+  }, [activeProfile, updateSubjects]);
+
+  const updateChapter = (subjectName: string, chapterName: string, newLectureCount: number) => {
+    if (!activeProfile) return;
+
+    const newSubjects = activeProfile.subjects.map(s => {
+      if (s.name === subjectName) {
+        const newChapters = s.chapters.map(c => {
+          if (c.name === chapterName) {
+            return { ...c, lectureCount: newLectureCount };
+          }
+          return c;
+        });
+        return { ...s, chapters: newChapters };
+      }
+      return s;
+    });
+    updateSubjects(newSubjects);
   };
 
   const updateTasks = (subjectName: string, newTasks: string[]) => {
-    if (!activeProfileName) return;
+    if (!activeProfile) return;
 
-    const newProfiles = profiles.map(profile => {
-      if (profile.name === activeProfileName) {
-        // Find the original subject to compare task lists
-        const originalSubject = profile.subjects.find(s => s.name === subjectName);
-        if (!originalSubject) return profile;
+    // Find the original subject to compare task lists
+    const originalSubject = activeProfile.subjects.find(s => s.name === subjectName);
+    if (!originalSubject) return;
 
-        const oldTasks = originalSubject.tasks || [];
-        const removedTasks = oldTasks.filter(t => !newTasks.includes(t));
+    const oldTasks = originalSubject.tasks || [];
+    const removedTasks = oldTasks.filter(t => !newTasks.includes(t));
 
-        const newSubjects = profile.subjects.map(subject => {
-          if (subject.name === subjectName) {
-            let updatedChapters = subject.chapters;
+    const newSubjects = activeProfile.subjects.map(subject => {
+      if (subject.name === subjectName) {
+        let updatedChapters = subject.chapters;
 
-            // If tasks were removed, clean up checkedState in each chapter
-            if (removedTasks.length > 0) {
-              updatedChapters = subject.chapters.map(chapter => {
-                const oldCheckedState = chapter.checkedState || {};
-                const newCheckedState: Record<string, boolean> = {};
-                
-                Object.keys(oldCheckedState).forEach(key => {
-                  // A key looks like: "Subject-Chapter-L1-TaskName"
-                  // We check if the key contains the name of a removed task at the end
-                  const wasRemoved = removedTasks.some(removedTask => key.endsWith(`-${removedTask}`));
-                  if (!wasRemoved) {
-                    newCheckedState[key] = oldCheckedState[key];
-                  }
-                });
-                return { ...chapter, checkedState: newCheckedState };
-              });
-            }
+        // If tasks were removed, clean up checkedState in each chapter
+        if (removedTasks.length > 0) {
+          updatedChapters = subject.chapters.map(chapter => {
+            const oldCheckedState = chapter.checkedState || {};
+            const newCheckedState: Record<string, boolean> = {};
             
-            return { ...subject, tasks: newTasks, chapters: updatedChapters };
-          }
-          return subject;
-        });
-
-        return updateProfileWithProgress({ ...profile, subjects: newSubjects });
+            Object.keys(oldCheckedState).forEach(key => {
+              // A key looks like: "Subject-Chapter-L1-TaskName"
+              // We check if the key contains the name of a removed task at the end
+              const wasRemoved = removedTasks.some(removedTask => key.endsWith(`-${removedTask}`));
+              if (!wasRemoved) {
+                newCheckedState[key] = oldCheckedState[key];
+              }
+            });
+            return { ...chapter, checkedState: newCheckedState };
+          });
+        }
+        
+        return { ...subject, tasks: newTasks, chapters: updatedChapters };
       }
-      return profile;
+      return subject;
     });
-    
-    setProfiles(newProfiles);
-    saveData(newProfiles, activeProfileName);
+
+    updateSubjects(newSubjects);
   };
 
   const updatePlannerNote = (dateKey: string, note: string) => {
@@ -720,3 +681,5 @@ export function useData() {
   }
   return context;
 }
+
+    
