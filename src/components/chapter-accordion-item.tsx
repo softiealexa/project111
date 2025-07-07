@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -141,16 +140,10 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
                 </div>
               </div>
               <div className="flex items-center gap-4 sm:w-1/3">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                       <div className="w-full">
-                         <Progress value={progress} indicatorClassName={progressColorClass} />
-                       </div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{completedTasks} of {totalTasks} tasks completed ({Math.round(progress)}%)</p>
-                    </TooltipContent>
-                  </Tooltip>
+                  <div className="w-full">
+                    <Progress value={progress} indicatorClassName={progressColorClass} />
+                    <p className="text-xs text-muted-foreground text-right mt-1.5">{completedTasks} of {totalTasks} tasks completed ({Math.round(progress)}%)</p>
+                  </div>
                   <ChevronDown className="accordion-chevron h-4 w-4 shrink-0 transition-transform duration-200" />
               </div>
             </AccordionPrimitive.Trigger>
