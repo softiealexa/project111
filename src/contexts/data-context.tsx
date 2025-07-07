@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
@@ -31,6 +32,7 @@ interface DataContextType {
   removeSubject: (subjectNameToRemove: string) => void;
   addChapter: (subjectName: string, newChapter: Chapter) => void;
   removeChapter: (subjectName: string, chapterNameToRemove: string) => void;
+  updateChapter: (subjectName: string, chapterName: string, newLectureCount: number) => void;
   updateTasks: (subjectName: string, newTasks: string[]) => void;
   updatePlannerNote: (dateKey: string, note: string) => void;
   addNote: (title: string, content: string) => void;
@@ -405,6 +407,32 @@ export function DataProvider({ children }: { children: ReactNode }) {
     saveData(newProfiles, activeProfileName);
   };
 
+  const updateChapter = (subjectName: string, chapterName: string, newLectureCount: number) => {
+    if (!activeProfileName) return;
+
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const newSubjects = p.subjects.map(s => {
+          if (s.name === subjectName) {
+            const newChapters = s.chapters.map(c => {
+              if (c.name === chapterName) {
+                return { ...c, lectureCount: newLectureCount };
+              }
+              return c;
+            });
+            return { ...s, chapters: newChapters };
+          }
+          return s;
+        });
+        return { ...p, subjects: newSubjects };
+      }
+      return p;
+    });
+
+    setProfiles(newProfiles);
+    saveData(newProfiles, activeProfileName);
+  };
+
   const updateTasks = (subjectName: string, newTasks: string[]) => {
     if (!activeProfileName) return;
     const newProfiles = profiles.map(profile => {
@@ -641,7 +669,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const value = { 
     user, loading, profiles, activeProfile, activeSubjectName, setActiveSubjectName,
     addProfile, switchProfile, updateSubjects, addSubject, removeSubject, addChapter, removeChapter,
-    updateTasks, updatePlannerNote, addNote, updateNote, deleteNote, addLink, updateLink, deleteLink,
+    updateChapter, updateTasks, updatePlannerNote, addNote, updateNote, deleteNote, addLink, updateLink, deleteLink,
     addTodo, updateTodo, deleteTodo, setTodos,
     exportData, importData, signOutUser,
     theme, setTheme, mode, setMode

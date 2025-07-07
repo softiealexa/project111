@@ -41,6 +41,7 @@ import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { getIconComponent } from '@/lib/icons';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import type { Chapter } from '@/lib/types';
 
 function SortableTaskItem({ id, task, onRemove }: { id: string, task: string, onRemove: () => void }) {
     const {
@@ -89,11 +90,12 @@ const themes = [
 ];
 
 export function CustomizationSheet() {
-    const { activeProfile, activeSubjectName, addSubject, removeSubject, addChapter, removeChapter, updateTasks, theme, setTheme } = useData();
+    const { activeProfile, activeSubjectName, addSubject, removeSubject, addChapter, removeChapter, updateChapter, updateTasks, theme, setTheme } = useData();
     const { toast } = useToast();
     
     const [selectedSubjectName, setSelectedSubjectName] = useState<string | null>(null);
     const [newTaskName, setNewTaskName] = useState('');
+    const [lectureCounts, setLectureCounts] = useState<Record<string, string>>({});
 
     useEffect(() => {
         if (activeProfile) {
@@ -102,6 +104,19 @@ export function CustomizationSheet() {
     }, [activeProfile, activeSubjectName]);
 
     const selectedSubject = activeProfile?.subjects.find(s => s.name === selectedSubjectName);
+    
+    useEffect(() => {
+        if (selectedSubject) {
+            const initialCounts = selectedSubject.chapters.reduce((acc, chap) => {
+                acc[chap.name] = String(chap.lectureCount);
+                return acc;
+            }, {} as Record<string, string>);
+            setLectureCounts(initialCounts);
+        } else {
+            setLectureCounts({});
+        }
+    }, [selectedSubject]);
+    
     const tasks = selectedSubject?.tasks || [];
 
     const handleAddTask = () => {
@@ -142,6 +157,32 @@ export function CustomizationSheet() {
           }
         }
     }
+    
+    const handleLectureCountChange = (chapterName: string) => {
+        if (!selectedSubject || !updateChapter) return;
+        const newCountStr = lectureCounts[chapterName];
+        const newCount = parseInt(newCountStr, 10);
+
+        const originalChapter = selectedSubject.chapters.find(c => c.name === chapterName);
+        if (!originalChapter) return;
+
+        if (isNaN(newCount) || newCount < 1 || newCount > 25) {
+            toast({
+                title: "Invalid Input",
+                description: "Lectures must be a number between 1 and 25.",
+                variant: "destructive",
+            });
+            // Revert to original value
+            setLectureCounts(prev => ({...prev, [chapterName]: String(originalChapter.lectureCount)}));
+        } else if (newCount !== originalChapter.lectureCount) {
+            updateChapter(selectedSubject.name, chapterName, newCount);
+            toast({
+                title: "Chapter Updated",
+                description: `Lecture count for "${chapterName}" set to ${newCount}.`
+            });
+        }
+    };
+
 
     if (!activeProfile) {
         return null;
@@ -264,7 +305,7 @@ export function CustomizationSheet() {
                     <div className={cn("space-y-6", !selectedSubject && "opacity-50 pointer-events-none")}>
                         {/* Sub-section for Chapters */}
                         <div className="space-y-2">
-                            <Label>Manage Chapters</Label>
+                            <Label>Manage Chapters & Lectures</Label>
                              <div className="flex gap-2">
                                 <AddChapterDialog onAddChapter={(newChapter) => addChapter(selectedSubjectName!, newChapter)}>
                                     <Button variant="outline" className="w-full justify-center" disabled={!selectedSubjectName}>
@@ -283,6 +324,32 @@ export function CustomizationSheet() {
                                         <Trash2 className="mr-2 h-4 w-4" /> Remove Chapter
                                     </Button>
                                 </RemoveChapterDialog>
+                            </div>
+                            <div className="space-y-2 rounded-md border p-2 min-h-24">
+                                {selectedSubject && selectedSubject.chapters.length > 0 ? selectedSubject.chapters.map((chapter: Chapter) => (
+                                    <div key={chapter.name} className="flex items-center justify-between gap-2 p-1">
+                                        <Label htmlFor={`lectures-${chapter.name}`} className="flex-1 truncate text-sm font-normal">
+                                            {chapter.name}
+                                        </Label>
+                                        <Input
+                                            id={`lectures-${chapter.name}`}
+                                            type="number"
+                                            min="1"
+                                            max="25"
+                                            className="w-20 h-8 text-center"
+                                            value={lectureCounts[chapter.name] || ''}
+                                            onChange={(e) => {
+                                                const value = e.target.value;
+                                                if (/^\d*$/.test(value)) { // only allow digits
+                                                   setLectureCounts(prev => ({ ...prev, [chapter.name]: value }));
+                                                }
+                                            }}
+                                            onBlur={() => handleLectureCountChange(chapter.name)}
+                                        />
+                                    </div>
+                                )) : (
+                                    <p className="text-sm text-muted-foreground text-center p-4">No chapters in this subject.</p>
+                                )}
                             </div>
                         </div>
 
