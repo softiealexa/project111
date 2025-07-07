@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -117,7 +118,7 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
 
 
   return (
-    <div ref={setNodeRef} style={style} className={cn("relative", isDragging && "shadow-2xl shadow-primary/20")}>
+    <div ref={setNodeRef} style={style} {...attributes} className={cn("relative", isDragging && "shadow-2xl shadow-primary/20")}>
        <Card className={cn(
           "overflow-hidden border bg-card transition-all group",
           "hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10",
@@ -127,7 +128,7 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
         <AccordionItem value={`item-${index}`} className="border-b-0">
           <AccordionPrimitive.Header className="group-hover:bg-primary/5">
             <AccordionPrimitive.Trigger className="flex w-full items-center justify-between gap-4 p-4 text-left hover:no-underline [&[data-state=open]>svg.accordion-chevron]:rotate-180">
-              <div className="flex min-w-0 flex-1 items-center gap-2" {...attributes}>
+              <div className="flex min-w-0 flex-1 items-center gap-2">
                  <div {...listeners} className="cursor-grab p-2 -ml-2 text-muted-foreground hover:text-foreground touch-none">
                     <GripVertical className="h-5 w-5" />
                  </div>
