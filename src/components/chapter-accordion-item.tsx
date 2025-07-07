@@ -74,17 +74,29 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
   
   const handleNoteChange = (lectureNum: number, newNote: string) => {
     if (!activeProfile) return;
+    
+    const trimmedNote = newNote.trim();
+    const originalNote = chapter.notes?.[`L${lectureNum}`] || '';
+
+    // Only update if the note has actually changed
+    if (trimmedNote === originalNote) {
+        return;
+    }
 
     const newSubjects = activeProfile.subjects.map(s => {
       if (s.name === subject.name) {
         const newChapters = s.chapters.map((c, i) => {
           if (i === index) {
             const lectureKey = `L${lectureNum}`;
-            const currentNotes = c.notes || {};
-            if (currentNotes[lectureKey] !== newNote) {
-              const newNotes = { ...currentNotes, [lectureKey]: newNote };
-              return { ...c, notes: newNotes };
+            const newNotes = { ...(c.notes || {}) };
+
+            if (trimmedNote) {
+                newNotes[lectureKey] = trimmedNote;
+            } else {
+                delete newNotes[lectureKey];
             }
+            
+            return { ...c, notes: newNotes };
           }
           return c;
         });
@@ -95,14 +107,22 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
     updateSubjects(newSubjects);
   };
 
+  const saveCurrentNote = () => {
+      if (editingLecture !== null) {
+          handleNoteChange(editingLecture, noteContent);
+      }
+  }
+
   const handleNoteBlur = () => {
-    if (editingLecture !== null) {
-      handleNoteChange(editingLecture, noteContent);
-      setEditingLecture(null);
-    }
+    saveCurrentNote();
+    setEditingLecture(null);
   };
 
   const handleNoteClick = (lectureNum: number) => {
+    // If we were already editing a different note, save it before switching
+    if (editingLecture !== null && editingLecture !== lectureNum) {
+       saveCurrentNote();
+    }
     setEditingLecture(lectureNum);
     setNoteContent(chapter.notes?.[`L${lectureNum}`] || '');
   };
