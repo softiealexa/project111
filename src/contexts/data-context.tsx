@@ -41,7 +41,6 @@ interface DataContextType {
   addNote: (title: string, content: string) => Note | undefined;
   updateNote: (note: Note) => void;
   deleteNote: (noteId: string) => void;
-  setNotes: (notes: Note[]) => void;
   addLink: (title: string, url: string) => void;
   updateLink: (link: ImportantLink) => void;
   deleteLink: (linkId: string) => void;
@@ -579,16 +578,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateProfiles(newProfiles, activeProfileName);
   }, [activeProfileName, profiles, updateProfiles]);
   
-  const setNotes = useCallback((notes: Note[]) => {
-    if (!activeProfileName) return;
-    const newProfiles = profiles.map(p => {
-      if (p.name === activeProfileName) {
-        return { ...p, notes: notes };
-      }
-      return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, updateProfiles]);
 
   const addLink = useCallback((title: string, url: string) => {
     if (!activeProfileName) return;
@@ -749,7 +738,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     user, loading, profiles, activeProfile, activeSubjectName, setActiveSubjectName,
     addProfile, switchProfile, updateSubjects, addSubject, removeSubject, renameSubject,
     addChapter, removeChapter, updateChapter, renameChapter, updateTasks, renameTask,
-    updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
+    updatePlannerNote, addNote, updateNote, deleteNote, addLink, updateLink, deleteLink, setLinks,
     addTodo, updateTodo, deleteTodo, setTodos,
     exportData, importData, signOutUser,
     theme, setTheme, mode, setMode,
@@ -757,7 +746,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     user, loading, profiles, activeProfile, activeSubjectName,
     addProfile, switchProfile, updateSubjects, addSubject, removeSubject, renameSubject,
     addChapter, removeChapter, updateChapter, renameChapter, updateTasks, renameTask,
-    updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
+    updatePlannerNote, addNote, updateNote, deleteNote, addLink, updateLink, deleteLink, setLinks,
     addTodo, updateTodo, deleteTodo, setTodos,
     exportData, importData, signOutUser,
     theme, setTheme, mode, setMode, setActiveSubjectName
