@@ -129,13 +129,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // Apply theme classes to the root element
     const root = window.document.documentElement;
 
-    root.classList.remove('light', 'dark');
-    root.classList.add(mode);
+    // The inline script in theme-script.tsx handles the initial load to prevent flashing.
+    // This effect now only handles UPDATES when the user toggles the mode or theme.
+    if (mode === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
 
-    // remove old theme classes
+    // remove old theme classes before adding the new one
     root.className.split(' ').forEach(c => {
         if (c.startsWith('theme-')) {
             root.classList.remove(c);

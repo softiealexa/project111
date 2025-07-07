@@ -5,6 +5,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { DataProvider } from '@/contexts/data-context';
 import { cn } from '@/lib/utils';
+import { ThemeScript } from '@/components/theme-script';
 
 const fontBody = Inter({
     subsets: ['latin'],
@@ -35,7 +36,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={cn(fontBody.variable, fontHeadline.variable)} suppressHydrationWarning>
-      <head />
+      <head>
+        <ThemeScript />
+      </head>
       <body className="font-body antialiased">
         <DataProvider>
           {children}
