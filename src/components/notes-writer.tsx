@@ -160,16 +160,7 @@ export default function NotesWriter() {
       setActiveNote(note);
   };
 
-  const noteSensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 5,
-      },
-    }),
-    useSensor(KeyboardSensor)
-  );
-  
-  const cardSensors = useSensors(
+  const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 8,
@@ -178,25 +169,29 @@ export default function NotesWriter() {
     useSensor(KeyboardSensor)
   );
 
-  const handleNoteDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    if (over && active.id !== over.id) {
-      const oldIndex = savedNotes.findIndex((note) => note.id === active.id);
-      const newIndex = savedNotes.findIndex((note) => note.id === over.id);
-      if (setNotes) {
-        setNotes(arrayMove(savedNotes, oldIndex, newIndex));
-      }
-    }
-  };
-  
-  const handleCardDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (over && active.id !== over.id) {
+    if (!over) return;
+
+    // Check if we are dragging a card
+    const isCardDrag = cardOrder.includes(active.id as string);
+
+    if (isCardDrag) {
+      if (cardOrder.includes(over.id as string) && active.id !== over.id) {
         setCardOrder((items) => {
-            const oldIndex = items.indexOf(active.id as string);
-            const newIndex = items.indexOf(over.id as string);
-            return arrayMove(items, oldIndex, newIndex);
+          const oldIndex = items.indexOf(active.id as string);
+          const newIndex = items.indexOf(over.id as string);
+          return arrayMove(items, oldIndex, newIndex);
         });
+      }
+    } else { // It's a note drag
+      if (active.id !== over.id) {
+        const oldIndex = savedNotes.findIndex((note) => note.id === active.id);
+        const newIndex = savedNotes.findIndex((note) => note.id === over.id);
+        if (setNotes && oldIndex !== -1 && newIndex !== -1) {
+          setNotes(arrayMove(savedNotes, oldIndex, newIndex));
+        }
+      }
     }
   };
   
@@ -267,20 +262,18 @@ export default function NotesWriter() {
         <CardContent>
             <ScrollArea className="h-[400px] pr-4">
                 {savedNotes.length > 0 ? (
-                    <DndContext sensors={noteSensors} collisionDetection={closestCenter} onDragEnd={handleNoteDragEnd}>
-                      <SortableContext items={savedNotes.map(n => n.id)} strategy={verticalListSortingStrategy}>
-                        <div className="space-y-3">
-                            {savedNotes.map(note => (
-                                <SortableNoteItem 
-                                    key={note.id} 
-                                    note={note} 
-                                    selectNote={selectNote}
-                                    handleDelete={handleDelete}
-                                />
-                            ))}
-                        </div>
-                      </SortableContext>
-                    </DndContext>
+                    <SortableContext items={savedNotes.map(n => n.id)} strategy={verticalListSortingStrategy}>
+                      <div className="space-y-3">
+                          {savedNotes.map(note => (
+                              <SortableNoteItem 
+                                  key={note.id} 
+                                  note={note} 
+                                  selectNote={selectNote}
+                                  handleDelete={handleDelete}
+                              />
+                          ))}
+                      </div>
+                    </SortableContext>
                 ) : (
                     <div className="flex items-center justify-center h-full">
                         <p className="text-center text-muted-foreground py-10">You have no saved notes yet.</p>
@@ -293,7 +286,7 @@ export default function NotesWriter() {
   };
 
   return (
-     <DndContext sensors={cardSensors} collisionDetection={closestCenter} onDragEnd={handleCardDragEnd}>
+     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={cardOrder} strategy={verticalListSortingStrategy}>
         <div className="grid gap-6">
           {cardOrder.map(id => {
