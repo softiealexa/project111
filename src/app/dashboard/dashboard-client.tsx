@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import LiveClock from '@/components/live-clock';
 import { getIconComponent } from '@/lib/icons';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Pencil, Timer, ListTodo, CalendarDays, Link as LinkIcon } from 'lucide-react';
+import { Pencil, Timer, ListTodo, CalendarDays, Link as LinkIcon, Keyboard } from 'lucide-react';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { useSearchParams } from 'next/navigation';
 
@@ -36,6 +36,9 @@ const PomodoroTimer = dynamic(() => import('@/components/pomodoro-timer'), {
 });
 const ImportantLinks = dynamic(() => import("@/components/important-links"), {
   loading: () => <LoadingSpinner containerClassName="h-96" text="Loading Links..." />
+});
+const QuestionTimer = dynamic(() => import('@/components/question-timer'), {
+    loading: () => <LoadingSpinner containerClassName="h-96" text="Loading Timer..." />
 });
 
 export default function DashboardClient() {
@@ -154,7 +157,11 @@ export default function DashboardClient() {
                            <TabsTrigger value="links" className="justify-start gap-2 py-2.5 text-base">
                               <LinkIcon className="h-5 w-5" />
                               Important Links
-                          </TabsTrigger>
+                           </TabsTrigger>
+                           <TabsTrigger value="question-timer" className="justify-start gap-2 py-2.5 text-base">
+                              <Keyboard className="h-5 w-5" />
+                              Question Timer
+                            </TabsTrigger>
                       </TabsList>
                       <div className="md:col-start-2">
                           <TabsContent value="planner" className="mt-0">
@@ -179,6 +186,9 @@ export default function DashboardClient() {
                           </TabsContent>
                           <TabsContent value="links" className="mt-0">
                               <ImportantLinks />
+                          </TabsContent>
+                          <TabsContent value="question-timer" className="mt-0">
+                              <QuestionTimer />
                           </TabsContent>
                       </div>
                   </div>
