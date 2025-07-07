@@ -216,6 +216,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return profile.subjects.length > 0 ? Math.round(totalProgressSum / profile.subjects.length) : 0;
   }, []);
 
+  const updateProfileWithProgress = useCallback((profile: Profile): Profile => {
+    const currentProgress = calculateOverallProgress(profile);
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    let history = [...(profile.progressHistory || [])];
+    const todayIndex = history.findIndex(h => h.date === todayStr);
+
+    if (todayIndex > -1) {
+        history[todayIndex] = { ...history[todayIndex], progress: currentProgress };
+    } else {
+        history.push({ date: todayStr, progress: currentProgress });
+    }
+
+    if (history.length > 90) {
+      history = history.slice(history.length - 90);
+    }
+    
+    return { ...profile, progressHistory: history };
+  }, [calculateOverallProgress]);
+
+
   useEffect(() => {
     if (activeProfile && !loading) {
       const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -223,23 +243,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const hasTodayEntry = history.some(p => p.date === todayStr);
 
       if (!hasTodayEntry) {
-        const currentProgress = calculateOverallProgress(activeProfile);
-        let newHistory: ProgressPoint[] = [...history, { date: todayStr, progress: currentProgress }];
-        
-        if (newHistory.length > 90) {
-          newHistory = newHistory.slice(newHistory.length - 90);
-        }
-
+        const updatedProfile = updateProfileWithProgress(activeProfile);
         const newProfiles = profiles.map(p => 
             p.name === activeProfile.name 
-            ? { ...p, progressHistory: newHistory } 
+            ? updatedProfile
             : p
         );
         setProfiles(newProfiles);
         saveData(newProfiles, activeProfileName);
       }
     }
-  }, [activeProfile, loading, calculateOverallProgress, profiles, activeProfileName, saveData]);
+  }, [activeProfile, loading, updateProfileWithProgress, profiles, activeProfileName, saveData]);
 
 
   useEffect(() => {
@@ -308,27 +322,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const updateSubjects = (newSubjects: Subject[]) => {
     if (!activeProfileName || !activeProfile) return;
 
-    const profileWithNewSubjects = { ...activeProfile, subjects: newSubjects };
-    const currentProgress = calculateOverallProgress(profileWithNewSubjects);
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
-    let history = profileWithNewSubjects.progressHistory || [];
-    const todayIndex = history.findIndex(h => h.date === todayStr);
-
-    if (todayIndex > -1) {
-        history[todayIndex] = { ...history[todayIndex], progress: currentProgress };
-    } else {
-        history.push({ date: todayStr, progress: currentProgress });
-    }
-
-    if (history.length > 90) {
-      history = history.slice(history.length - 90);
-    }
+    const updatedProfile = updateProfileWithProgress({ ...activeProfile, subjects: newSubjects });
     
-    const finalProfile = { ...profileWithNewSubjects, progressHistory: history };
-
     const newProfiles = profiles.map(p => 
         p.name === activeProfileName 
-        ? finalProfile
+        ? updatedProfile
         : p
     );
 
@@ -424,7 +422,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           }
           return s;
         });
-        return { ...p, subjects: newSubjects };
+        return updateProfileWithProgress({ ...p, subjects: newSubjects });
       }
       return p;
     });
@@ -443,7 +441,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           }
           return subject;
         });
-        return { ...profile, subjects: newSubjects };
+        return updateProfileWithProgress({ ...profile, subjects: newSubjects });
       }
       return profile;
     });
