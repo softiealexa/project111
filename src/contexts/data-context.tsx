@@ -3,13 +3,14 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
-import type { Subject, Profile, Chapter, Note, ImportantLink, Todo, Priority } from '@/lib/types';
+import type { Subject, Profile, Chapter, Note, ImportantLink, Todo, Priority, ProgressPoint } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { format } from 'date-fns';
 
 // --- Local Storage Keys ---
 const LOCAL_PROFILE_KEY_PREFIX = 'trackacademic_profile_';
@@ -87,6 +88,7 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
             notes: profile.notes || [],
             importantLinks: profile.importantLinks || [],
             todos: profile.todos || [],
+            progressHistory: profile.progressHistory || [],
         };
     });
 };
@@ -173,7 +175,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (typeof window === 'undefined') return;
 
     const localKey = getLocalKey(user?.displayName || null);
-    // Data is now serializable, no need to strip icons
     const dataToStore = { profiles: profilesToSave, activeProfileName: activeNameToSave };
     localStorage.setItem(localKey, JSON.stringify(dataToStore));
 
@@ -186,6 +187,58 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
     }
   }, [user, toast]);
+
+  const activeProfile = useMemo(() => {
+    return profiles.find(p => p.name === activeProfileName);
+  }, [profiles, activeProfileName]);
+
+  const calculateOverallProgress = useCallback((profile: Profile): number => {
+    if (!profile || profile.subjects.length === 0) return 0;
+    
+    const subjectProgressions = profile.subjects.map(subject => {
+        const tasksPerLecture = subject.tasks?.length || 0;
+        if (tasksPerLecture === 0) return 0;
+
+        let totalTasks = 0;
+        let completedTasks = 0;
+        subject.chapters.forEach(chapter => {
+            totalTasks += chapter.lectureCount * tasksPerLecture;
+            completedTasks += Object.values(chapter.checkedState || {}).filter(Boolean).length;
+        });
+
+        return totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+    });
+
+    const totalProgressSum = subjectProgressions.reduce((acc, curr) => acc + curr, 0);
+
+    return profile.subjects.length > 0 ? Math.round(totalProgressSum / profile.subjects.length) : 0;
+  }, []);
+
+  useEffect(() => {
+    if (activeProfile && !loading) {
+      const todayStr = format(new Date(), 'yyyy-MM-dd');
+      const history = activeProfile.progressHistory || [];
+      const hasTodayEntry = history.some(p => p.date === todayStr);
+
+      if (!hasTodayEntry) {
+        const currentProgress = calculateOverallProgress(activeProfile);
+        let newHistory: ProgressPoint[] = [...history, { date: todayStr, progress: currentProgress }];
+        
+        if (newHistory.length > 90) {
+          newHistory = newHistory.slice(newHistory.length - 90);
+        }
+
+        const newProfiles = profiles.map(p => 
+            p.name === activeProfile.name 
+            ? { ...p, progressHistory: newHistory } 
+            : p
+        );
+        setProfiles(newProfiles);
+        saveData(newProfiles, activeProfileName);
+      }
+    }
+  }, [activeProfile, loading, calculateOverallProgress, profiles, activeProfileName, saveData]);
+
 
   useEffect(() => {
     const unsubscribe = onAuthChanged(async (firebaseUser) => {
@@ -251,10 +304,34 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
 
   const updateSubjects = (newSubjects: Subject[]) => {
-      if (!activeProfileName) return;
-      const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, subjects: newSubjects } : p);
-      setProfiles(newProfiles);
-      saveData(newProfiles, activeProfileName);
+    if (!activeProfileName || !activeProfile) return;
+
+    const profileWithNewSubjects = { ...activeProfile, subjects: newSubjects };
+    const currentProgress = calculateOverallProgress(profileWithNewSubjects);
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    let history = profileWithNewSubjects.progressHistory || [];
+    const todayIndex = history.findIndex(h => h.date === todayStr);
+
+    if (todayIndex > -1) {
+        history[todayIndex] = { ...history[todayIndex], progress: currentProgress };
+    } else {
+        history.push({ date: todayStr, progress: currentProgress });
+    }
+
+    if (history.length > 90) {
+      history = history.slice(history.length - 90);
+    }
+    
+    const finalProfile = { ...profileWithNewSubjects, progressHistory: history };
+
+    const newProfiles = profiles.map(p => 
+        p.name === activeProfileName 
+        ? finalProfile
+        : p
+    );
+
+    setProfiles(newProfiles);
+    saveData(newProfiles, activeProfileName);
   };
 
   const addSubject = (subjectName: string, iconName: string) => {
@@ -560,9 +637,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(getLocalKey(null)); // Clear guest data on logout
   }
 
-  const activeProfile = useMemo(() => {
-    return profiles.find(p => p.name === activeProfileName);
-  }, [profiles, activeProfileName]);
   
   const value = { 
     user, loading, profiles, activeProfile, activeSubjectName, setActiveSubjectName,

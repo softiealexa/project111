@@ -36,6 +36,11 @@ export interface Subject {
   tasks: string[];
 }
 
+export interface ProgressPoint {
+  date: string; // 'YYYY-MM-DD'
+  progress: number;
+}
+
 export interface Profile {
   name: string;
   subjects: Subject[];
@@ -43,4 +48,5 @@ export interface Profile {
   notes?: Note[];
   importantLinks?: ImportantLink[];
   todos?: Todo[];
+  progressHistory?: ProgressPoint[];
 }

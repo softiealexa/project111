@@ -39,6 +39,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
+import { format } from "date-fns";
 
 const getProgress = (chapters: Chapter[], tasksPerLecture: number) => {
     if (tasksPerLecture === 0) return 0;
@@ -51,39 +52,14 @@ const getProgress = (chapters: Chapter[], tasksPerLecture: number) => {
     return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 };
 
-const generateMockLineData = (finalProgress: number) => {
-    const data = [];
-    const today = new Date();
-    for (let i = 13; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(today.getDate() - i);
-        
-        const randomFactor = (Math.random() - 0.5) * 10;
-        const trendFactor = (14 - i) / 14;
-        let progress = (finalProgress - 20) * trendFactor + randomFactor + 10;
-        
-        progress = Math.max(0, Math.min(progress, 100));
-
-        if (i === 0) {
-            progress = finalProgress;
-        }
-
-        data.push({
-            date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-            progress: Math.round(progress),
-        });
-    }
-    return data;
-}
-
 export function ProgressSummary({ profile }: { profile: Profile }) {
   const [chartType, setChartType] = useState("bar");
   const [selectedChapters, setSelectedChapters] = useState<Record<string, string[]>>({});
   const [progressGoal, setProgressGoal] = useState(75);
 
-  const { chartData, chartConfig, summaryStats, lineChartData } = useMemo(() => {
+  const { chartData, chartConfig, summaryStats, lineChartData, hasEnoughHistory } = useMemo(() => {
     if (!profile || profile.subjects.length === 0) {
-      return { chartData: [], chartConfig: {}, summaryStats: { subjectsCompleted: 0, chaptersCompleted: 0, averageCompletion: 0 }, lineChartData: [] };
+      return { chartData: [], chartConfig: {}, summaryStats: { subjectsCompleted: 0, chaptersCompleted: 0, averageCompletion: 0 }, lineChartData: [], hasEnoughHistory: false };
     }
     
     const config: ChartConfig = {};
@@ -130,9 +106,15 @@ export function ProgressSummary({ profile }: { profile: Profile }) {
         averageCompletion,
     };
     
-    const mockLineData = generateMockLineData(averageCompletion);
+    const history = profile.progressHistory || [];
+    const enoughHistory = history.length >= 2;
+    const lineData = history.map(point => ({
+        // Date is 'YYYY-MM-DD', needs to be parsed correctly. Add T00:00:00 to avoid timezone issues.
+        date: format(new Date(`${point.date}T00:00:00`), 'MMM d'),
+        progress: point.progress
+    })).slice(-30); // Show last 30 days max
 
-    return { chartData: data, chartConfig: config, summaryStats: stats, lineChartData: mockLineData };
+    return { chartData: data, chartConfig: config, summaryStats: stats, lineChartData: lineData, hasEnoughHistory: enoughHistory };
   }, [profile, selectedChapters]);
 
   const handleChapterSelect = useCallback((subjectName: string, chapterName: string, checked: boolean) => {
@@ -255,33 +237,36 @@ export function ProgressSummary({ profile }: { profile: Profile }) {
                         </ChartContainer>
                     </TabsContent>
                     <TabsContent value="line">
-                        <Alert variant="default" className="mb-4">
-                            <TrendingUp className="h-4 w-4" />
-                            <AlertTitle>Visual Preview</AlertTitle>
-                            <AlertDescription>
-                                This is a preview of the progress-over-time chart. Historical data tracking is not yet implemented, so this data is for demonstration purposes only.
-                            </AlertDescription>
-                        </Alert>
-                        <ChartContainer config={{ progress: { label: "Progress", color: "hsl(var(--primary))" } }} className="mx-auto aspect-video max-h-[400px]">
-                            <LineChart data={lineChartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-                                <CartesianGrid vertical={false} />
-                                <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
-                                <YAxis tickFormatter={(value) => `${value}%`} domain={[0, 100]} />
-                                <Tooltip
-                                    content={<ChartTooltipContent 
-                                        indicator="dot"
-                                        formatter={(value, name, item) => (
-                                            <div className="flex flex-col gap-0.5">
-                                                <span className="font-bold text-foreground text-sm">{item.payload.date}</span>
-                                                <span className="text-muted-foreground">{`Progress: ${value}%`}</span>
-                                            </div>
-                                        )}
-                                        hideLabel
-                                    />}
-                                />
-                                <Line type="monotone" dataKey="progress" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4, fill: "hsl(var(--primary))" }} />
-                            </LineChart>
-                        </ChartContainer>
+                        {!hasEnoughHistory ? (
+                            <Alert variant="default" className="my-4">
+                                <TrendingUp className="h-4 w-4" />
+                                <AlertTitle>Not Enough Data</AlertTitle>
+                                <AlertDescription>
+                                    Keep tracking your progress for a couple of days to see your historical data here.
+                                </AlertDescription>
+                            </Alert>
+                        ) : (
+                            <ChartContainer config={{ progress: { label: "Progress", color: "hsl(var(--primary))" } }} className="mx-auto aspect-video max-h-[400px]">
+                                <LineChart data={lineChartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                                    <CartesianGrid vertical={false} />
+                                    <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
+                                    <YAxis tickFormatter={(value) => `${value}%`} domain={[0, 100]} />
+                                    <Tooltip
+                                        content={<ChartTooltipContent 
+                                            indicator="dot"
+                                            formatter={(value, name, item) => (
+                                                <div className="flex flex-col gap-0.5">
+                                                    <span className="font-bold text-foreground text-sm">{item.payload.date}</span>
+                                                    <span className="text-muted-foreground">{`Progress: ${value}%`}</span>
+                                                </div>
+                                            )}
+                                            hideLabel
+                                        />}
+                                    />
+                                    <Line type="monotone" dataKey="progress" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4, fill: "hsl(var(--primary))" }} />
+                                </LineChart>
+                            </ChartContainer>
+                        )}
                     </TabsContent>
                 </Tabs>
             </CardContent>
@@ -379,7 +364,3 @@ export function ProgressSummary({ profile }: { profile: Profile }) {
     </div>
   );
 }
-
-    
-
-    
