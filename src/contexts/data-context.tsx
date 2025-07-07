@@ -52,7 +52,6 @@ interface DataContextType {
   setTheme: (theme: string) => void;
   mode: 'light' | 'dark';
   setMode: (mode: 'light' | 'dark') => void;
-  completeOnboarding: () => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -92,7 +91,6 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
             importantLinks: profile.importantLinks || [],
             todos: profile.todos || [],
             progressHistory: profile.progressHistory || [],
-            hasCompletedOnboarding: profile.hasCompletedOnboarding ?? false,
         };
     });
 };
@@ -294,7 +292,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   
 
   const addProfile = (name: string) => {
-    const newProfile: Profile = { name, subjects: [], todos: [], hasCompletedOnboarding: false };
+    const newProfile: Profile = { name, subjects: [], todos: [] };
     const newProfiles = [...profiles, newProfile];
     setProfiles(newProfiles);
     setActiveProfileName(name);
@@ -667,18 +665,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(getLocalKey(null)); // Clear guest data on logout
   }
 
-  const completeOnboarding = () => {
-    if (!activeProfileName) return;
-    const newProfiles = profiles.map(p => 
-        p.name === activeProfileName 
-        ? { ...p, hasCompletedOnboarding: true }
-        : p
-    );
-    setProfiles(newProfiles);
-    saveData(newProfiles, activeProfileName);
-  };
-
-  
   const value = { 
     user, loading, profiles, activeProfile, activeSubjectName, setActiveSubjectName,
     addProfile, switchProfile, updateSubjects, addSubject, removeSubject, addChapter, removeChapter,
@@ -686,7 +672,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addTodo, updateTodo, deleteTodo, setTodos,
     exportData, importData, signOutUser,
     theme, setTheme, mode, setMode,
-    completeOnboarding
   };
   
   if (!loading && pathname.startsWith('/dashboard') && profiles.length === 0) {

@@ -94,7 +94,7 @@ export default function Navbar() {
                   
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button id="customization-button" variant="ghost" size="icon" onClick={() => setIsCustomizationOpen(true)} disabled={!activeProfile}>
+                      <Button variant="ghost" size="icon" onClick={() => setIsCustomizationOpen(true)} disabled={!activeProfile}>
                         <SlidersHorizontal className="h-5 w-5" />
                         <span className="sr-only">Customization</span>
                       </Button>
@@ -106,7 +106,7 @@ export default function Navbar() {
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button id="profile-dropdown-trigger" variant="ghost" className="relative h-10 w-10 rounded-full">
+                      <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                         <Avatar className="h-10 w-10">
                            {user.photoURL ? (
                             <Image src={user.photoURL} alt={user.displayName || 'user'} width={40} height={40} />
