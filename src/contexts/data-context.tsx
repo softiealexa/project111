@@ -433,18 +433,48 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const updateTasks = (subjectName: string, newTasks: string[]) => {
     if (!activeProfileName) return;
+
     const newProfiles = profiles.map(profile => {
       if (profile.name === activeProfileName) {
+        // Find the original subject to compare task lists
+        const originalSubject = profile.subjects.find(s => s.name === subjectName);
+        if (!originalSubject) return profile;
+
+        const oldTasks = originalSubject.tasks || [];
+        const removedTasks = oldTasks.filter(t => !newTasks.includes(t));
+
         const newSubjects = profile.subjects.map(subject => {
           if (subject.name === subjectName) {
-            return { ...subject, tasks: newTasks };
+            let updatedChapters = subject.chapters;
+
+            // If tasks were removed, clean up checkedState in each chapter
+            if (removedTasks.length > 0) {
+              updatedChapters = subject.chapters.map(chapter => {
+                const oldCheckedState = chapter.checkedState || {};
+                const newCheckedState: Record<string, boolean> = {};
+                
+                Object.keys(oldCheckedState).forEach(key => {
+                  // A key looks like: "Subject-Chapter-L1-TaskName"
+                  // We check if the key contains the name of a removed task at the end
+                  const wasRemoved = removedTasks.some(removedTask => key.endsWith(`-${removedTask}`));
+                  if (!wasRemoved) {
+                    newCheckedState[key] = oldCheckedState[key];
+                  }
+                });
+                return { ...chapter, checkedState: newCheckedState };
+              });
+            }
+            
+            return { ...subject, tasks: newTasks, chapters: updatedChapters };
           }
           return subject;
         });
+
         return updateProfileWithProgress({ ...profile, subjects: newSubjects });
       }
       return profile;
     });
+    
     setProfiles(newProfiles);
     saveData(newProfiles, activeProfileName);
   };
