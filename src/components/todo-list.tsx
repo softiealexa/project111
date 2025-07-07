@@ -21,6 +21,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+import { useData } from "@/contexts/data-context";
+import type { Todo, Priority } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -50,15 +52,6 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
-type Priority = "High" | "Medium" | "Low";
-
-type Task = {
-  id: string;
-  text: string;
-  completed: boolean;
-  dueDate: Date | undefined;
-  priority: Priority;
-};
 
 const priorityVariant: Record<Priority, "destructive" | "secondary" | "outline"> = {
   High: "destructive",
@@ -71,7 +64,7 @@ function SortableTaskItem({
   toggleTaskCompletion, 
   deleteTask 
 }: { 
-  task: Task, 
+  task: Todo, 
   toggleTaskCompletion: (id: string) => void, 
   deleteTask: (id: string) => void 
 }) {
@@ -88,6 +81,8 @@ function SortableTaskItem({
     transform: CSS.Transform.toString(transform),
     transition,
   };
+  
+  const dueDate = task.dueDate ? new Date(task.dueDate) : undefined;
 
   return (
     <div
@@ -113,9 +108,9 @@ function SortableTaskItem({
       >
         {task.text}
       </Label>
-      {task.dueDate && (
+      {dueDate && (
         <span className="text-xs text-muted-foreground hidden sm:inline">
-          {format(task.dueDate, "MMM d")}
+          {format(dueDate, "MMM d")}
         </span>
       )}
       <Badge variant={priorityVariant[task.priority]} className="text-xs">{task.priority}</Badge>
@@ -127,15 +122,15 @@ function SortableTaskItem({
 }
 
 export default function TodoList() {
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: '1', text: 'Prepare for Physics test', completed: false, dueDate: new Date(), priority: 'High' },
-    { id: '2', text: 'Finish Maths homework', completed: false, dueDate: new Date(new Date().setDate(new Date().getDate() + 2)), priority: 'Medium' },
-    { id: '3', text: 'Read Chemistry chapter 5', completed: true, dueDate: undefined, priority: 'Low' },
-  ]);
+  const { activeProfile, addTodo, updateTodo, deleteTodo: deleteTodoFromContext, setTodos } = useData();
+  const { toast } = useToast();
+  
+  const tasks = activeProfile?.todos || [];
+
   const [inputText, setInputText] = useState("");
   const [dueDate, setDueDate] = useState<Date | undefined>();
   const [priority, setPriority] = useState<Priority>("Medium");
-  const { toast } = useToast();
+
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -149,11 +144,9 @@ export default function TodoList() {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
-      setTasks((currentTasks) => {
-        const oldIndex = currentTasks.findIndex((task) => task.id === active.id);
-        const newIndex = currentTasks.findIndex((task) => task.id === over.id);
-        return arrayMove(currentTasks, oldIndex, newIndex);
-      });
+      const oldIndex = tasks.findIndex((task) => task.id === active.id);
+      const newIndex = tasks.findIndex((task) => task.id === over.id);
+      setTodos(arrayMove(tasks, oldIndex, newIndex));
     }
   };
 
@@ -167,34 +160,26 @@ export default function TodoList() {
       return;
     }
 
-    const newTask: Task = {
-      id: crypto.randomUUID(),
-      text: inputText.trim(),
-      completed: false,
-      dueDate,
-      priority,
-    };
+    addTodo(inputText.trim(), dueDate, priority);
 
-    setTasks([newTask, ...tasks]);
     setInputText("");
     setDueDate(undefined);
     setPriority("Medium");
     toast({
         title: 'Task Added',
-        description: `"${newTask.text}" has been added to your list.`,
+        description: `"${inputText.trim()}" has been added to your list.`,
     });
   };
 
   const toggleTaskCompletion = (id: string) => {
-    setTasks(
-      tasks.map((task) =>
-        task.id === id ? { ...task, completed: !task.completed } : task
-      )
-    );
+    const task = tasks.find(t => t.id === id);
+    if (task) {
+        updateTodo({ ...task, completed: !task.completed });
+    }
   };
 
   const deleteTask = (id: string) => {
-    setTasks(tasks.filter((task) => task.id !== id));
+    deleteTodoFromContext(id);
     toast({
         title: 'Task Removed',
         description: `The task has been removed from your list.`,

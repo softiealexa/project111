@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
-import type { Subject, Profile, Chapter, Note, ImportantLink } from '@/lib/types';
+import type { Subject, Profile, Chapter, Note, ImportantLink, Todo, Priority } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,6 +38,10 @@ interface DataContextType {
   addLink: (title: string, url: string) => void;
   updateLink: (link: ImportantLink) => void;
   deleteLink: (linkId: string) => void;
+  addTodo: (text: string, dueDate: Date | undefined, priority: Priority) => void;
+  updateTodo: (todo: Todo) => void;
+  deleteTodo: (todoId: string) => void;
+  setTodos: (todos: Todo[]) => void;
   exportData: () => void;
   importData: (file: File) => void;
   signOutUser: () => Promise<void>;
@@ -82,6 +86,7 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
             plannerNotes: profile.plannerNotes || {},
             notes: profile.notes || [],
             importantLinks: profile.importantLinks || [],
+            todos: profile.todos || [],
         };
     });
 };
@@ -232,7 +237,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   
 
   const addProfile = (name: string) => {
-    const newProfile: Profile = { name, subjects: [] };
+    const newProfile: Profile = { name, subjects: [], todos: [] };
     const newProfiles = [...profiles, newProfile];
     setProfiles(newProfiles);
     setActiveProfileName(name);
@@ -447,6 +452,64 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setProfiles(newProfiles);
     saveData(newProfiles, activeProfileName);
   };
+
+  const addTodo = (text: string, dueDate: Date | undefined, priority: Priority) => {
+    if (!activeProfileName) return;
+    const newTodo: Todo = {
+      id: crypto.randomUUID(),
+      text,
+      completed: false,
+      dueDate: dueDate?.getTime(), // Convert Date to timestamp
+      priority,
+    };
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const updatedTodos = [newTodo, ...(p.todos || [])];
+        return { ...p, todos: updatedTodos };
+      }
+      return p;
+    });
+    setProfiles(newProfiles);
+    saveData(newProfiles, activeProfileName);
+  }
+
+  const updateTodo = (updatedTodo: Todo) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const updatedTodos = (p.todos || []).map(t => t.id === updatedTodo.id ? updatedTodo : t);
+        return { ...p, todos: updatedTodos };
+      }
+      return p;
+    });
+    setProfiles(newProfiles);
+    saveData(newProfiles, activeProfileName);
+  }
+
+  const deleteTodo = (todoId: string) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const updatedTodos = (p.todos || []).filter(t => t.id !== todoId);
+        return { ...p, todos: updatedTodos };
+      }
+      return p;
+    });
+    setProfiles(newProfiles);
+    saveData(newProfiles, activeProfileName);
+  }
+
+  const setTodos = (todos: Todo[]) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        return { ...p, todos: todos };
+      }
+      return p;
+    });
+    setProfiles(newProfiles);
+    saveData(newProfiles, activeProfileName);
+  }
   
   const exportData = () => {
     if (typeof window === 'undefined' || profiles.length === 0) {
@@ -505,6 +568,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     user, loading, profiles, activeProfile, activeSubjectName, setActiveSubjectName,
     addProfile, switchProfile, updateSubjects, addSubject, removeSubject, addChapter, removeChapter,
     updateTasks, updatePlannerNote, addNote, updateNote, deleteNote, addLink, updateLink, deleteLink,
+    addTodo, updateTodo, deleteTodo, setTodos,
     exportData, importData, signOutUser,
     theme, setTheme, mode, setMode
   };

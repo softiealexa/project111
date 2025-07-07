@@ -12,6 +12,16 @@ export interface ImportantLink {
   url: string;
 }
 
+export type Priority = "High" | "Medium" | "Low";
+
+export interface Todo {
+  id: string;
+  text: string;
+  completed: boolean;
+  dueDate?: number; // Using number (timestamp) for easier serialization
+  priority: Priority;
+}
+
 export interface Chapter {
   name: string;
   lectureCount: number;
@@ -32,4 +42,5 @@ export interface Profile {
   plannerNotes?: Record<string, string>;
   notes?: Note[];
   importantLinks?: ImportantLink[];
+  todos?: Todo[];
 }
