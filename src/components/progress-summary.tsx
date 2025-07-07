@@ -3,7 +3,7 @@
 
 import type { Profile, Subject, Chapter } from "@/lib/types";
 import { useMemo, useState, useCallback } from "react";
-import { Bar, BarChart, Pie, PieChart, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Legend, Tooltip, LabelList, ReferenceLine } from "recharts";
+import { Bar, BarChart, Pie, PieChart, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Legend, Tooltip, LabelList, ReferenceLine, LineChart, Line } from "recharts";
 import { CheckCircle, BookOpen, TrendingUp, Target, Filter } from "lucide-react";
 import {
   Card,
@@ -38,6 +38,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 
 const getProgress = (chapters: Chapter[], tasksPerLecture: number) => {
     if (tasksPerLecture === 0) return 0;
@@ -50,14 +51,39 @@ const getProgress = (chapters: Chapter[], tasksPerLecture: number) => {
     return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 };
 
+const generateMockLineData = (finalProgress: number) => {
+    const data = [];
+    const today = new Date();
+    for (let i = 13; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(today.getDate() - i);
+        
+        const randomFactor = (Math.random() - 0.5) * 10;
+        const trendFactor = (14 - i) / 14;
+        let progress = (finalProgress - 20) * trendFactor + randomFactor + 10;
+        
+        progress = Math.max(0, Math.min(progress, 100));
+
+        if (i === 0) {
+            progress = finalProgress;
+        }
+
+        data.push({
+            date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            progress: Math.round(progress),
+        });
+    }
+    return data;
+}
+
 export function ProgressSummary({ profile }: { profile: Profile }) {
   const [chartType, setChartType] = useState("bar");
   const [selectedChapters, setSelectedChapters] = useState<Record<string, string[]>>({});
   const [progressGoal, setProgressGoal] = useState(75);
 
-  const { chartData, chartConfig, summaryStats } = useMemo(() => {
+  const { chartData, chartConfig, summaryStats, lineChartData } = useMemo(() => {
     if (!profile || profile.subjects.length === 0) {
-      return { chartData: [], chartConfig: {}, summaryStats: { subjectsCompleted: 0, chaptersCompleted: 0, averageCompletion: 0 } };
+      return { chartData: [], chartConfig: {}, summaryStats: { subjectsCompleted: 0, chaptersCompleted: 0, averageCompletion: 0 }, lineChartData: [] };
     }
     
     const config: ChartConfig = {};
@@ -103,8 +129,10 @@ export function ProgressSummary({ profile }: { profile: Profile }) {
         chaptersCompleted: totalChaptersCompleted,
         averageCompletion,
     };
+    
+    const mockLineData = generateMockLineData(averageCompletion);
 
-    return { chartData: data, chartConfig: config, summaryStats: stats };
+    return { chartData: data, chartConfig: config, summaryStats: stats, lineChartData: mockLineData };
   }, [profile, selectedChapters]);
 
   const handleChapterSelect = useCallback((subjectName: string, chapterName: string, checked: boolean) => {
@@ -188,7 +216,7 @@ export function ProgressSummary({ profile }: { profile: Profile }) {
                     <TabsList className="grid w-full grid-cols-3 mb-4">
                         <TabsTrigger value="bar">Bar Chart</TabsTrigger>
                         <TabsTrigger value="pie">Pie Chart</TabsTrigger>
-                        <TabsTrigger value="line" disabled>Line Chart</TabsTrigger>
+                        <TabsTrigger value="line">Line Chart</TabsTrigger>
                     </TabsList>
                     <TabsContent value="bar">
                         <ChartContainer config={chartConfig} className="mx-auto aspect-video max-h-[400px]">
@@ -227,10 +255,33 @@ export function ProgressSummary({ profile }: { profile: Profile }) {
                         </ChartContainer>
                     </TabsContent>
                     <TabsContent value="line">
-                        <div className="flex flex-col items-center justify-center text-center h-[400px] border-2 border-dashed rounded-lg">
-                           <h3 className="text-lg font-medium text-muted-foreground">Coming Soon</h3>
-                           <p className="text-sm text-muted-foreground">Historical data tracking is required for this chart.</p>
-                        </div>
+                        <Alert variant="default" className="mb-4">
+                            <TrendingUp className="h-4 w-4" />
+                            <AlertTitle>Visual Preview</AlertTitle>
+                            <AlertDescription>
+                                This is a preview of the progress-over-time chart. Historical data tracking is not yet implemented, so this data is for demonstration purposes only.
+                            </AlertDescription>
+                        </Alert>
+                        <ChartContainer config={{ progress: { label: "Progress", color: "hsl(var(--primary))" } }} className="mx-auto aspect-video max-h-[400px]">
+                            <LineChart data={lineChartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                                <CartesianGrid vertical={false} />
+                                <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
+                                <YAxis tickFormatter={(value) => `${value}%`} domain={[0, 100]} />
+                                <Tooltip
+                                    content={<ChartTooltipContent 
+                                        indicator="dot"
+                                        formatter={(value, name, item) => (
+                                            <div className="flex flex-col gap-0.5">
+                                                <span className="font-bold text-foreground text-sm">{item.payload.date}</span>
+                                                <span className="text-muted-foreground">{`Progress: ${value}%`}</span>
+                                            </div>
+                                        )}
+                                        hideLabel
+                                    />}
+                                />
+                                <Line type="monotone" dataKey="progress" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4, fill: "hsl(var(--primary))" }} />
+                            </LineChart>
+                        </ChartContainer>
                     </TabsContent>
                 </Tabs>
             </CardContent>
@@ -328,5 +379,7 @@ export function ProgressSummary({ profile }: { profile: Profile }) {
     </div>
   );
 }
+
+    
 
     
