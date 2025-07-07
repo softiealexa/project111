@@ -325,6 +325,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const addProfile = useCallback((name: string) => {
     const newProfile: Profile = { name, subjects: [], todos: [] };
     const newProfiles = [...profiles, newProfile];
+    setActiveProfileName(name);
     updateProfiles(newProfiles, name);
   }, [profiles, updateProfiles]);
 
