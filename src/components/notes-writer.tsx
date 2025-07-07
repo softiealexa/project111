@@ -9,19 +9,79 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { ScrollArea } from './ui/scroll-area';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, GripVertical } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { cn } from '@/lib/utils';
+
+function SortableNoteItem({ note, selectNote, handleDelete }: { note: Note, selectNote: (note: Note) => void, handleDelete: (id: string, title: string) => void }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: note.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : 'auto',
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <Card className={cn("transition-colors relative group hover:border-primary/50", isDragging && "shadow-lg z-10")}>
+        <div className="flex items-center">
+            <button {...listeners} aria-label="Drag to reorder note" className="cursor-grab touch-none p-4 text-muted-foreground hover:text-foreground">
+                <GripVertical className="h-5 w-5" />
+            </button>
+            <div className="flex-1 py-3 pr-10 min-w-0 cursor-pointer" onClick={() => selectNote(note)}>
+                <CardTitle className="text-lg truncate">{note.title || 'Untitled'}</CardTitle>
+                <p className="text-sm text-muted-foreground line-clamp-2 mt-1 pr-2">{note.content}</p>
+            </div>
+            <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-1/2 -translate-y-1/2 right-2 h-7 w-7 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => { e.stopPropagation(); handleDelete(note.id, note.title || 'Untitled'); }}
+                aria-label={`Delete note: ${note.title || 'Untitled'}`}
+            >
+                <Trash2 className="h-4 w-4" />
+            </Button>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 
 export default function NotesWriter() {
-  const { activeProfile, addNote, updateNote, deleteNote } = useData();
+  const { activeProfile, addNote, updateNote, deleteNote, setNotes } = useData();
   const { toast } = useToast();
   
   const [activeNote, setActiveNote] = useState<Note | null>(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   
-  const savedNotes = activeProfile?.notes?.sort((a, b) => b.createdAt - a.createdAt) || [];
+  const savedNotes = activeProfile?.notes || [];
 
   const noteIsDirty = useMemo(() => {
     if (activeNote) {
@@ -68,10 +128,6 @@ export default function NotesWriter() {
         if (newNote) {
             setActiveNote(newNote);
         }
-        toast({
-            title: 'Note Saved',
-            description: `Your note "${title || 'Untitled'}" has been saved.`,
-        });
     }
   };
   
@@ -101,6 +157,26 @@ export default function NotesWriter() {
           handleSave();
       }
       setActiveNote(note);
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor)
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = savedNotes.findIndex((note) => note.id === active.id);
+      const newIndex = savedNotes.findIndex((note) => note.id === over.id);
+      if (setNotes) {
+        setNotes(arrayMove(savedNotes, oldIndex, newIndex));
+      }
+    }
   };
 
   return (
@@ -139,6 +215,11 @@ export default function NotesWriter() {
                     <Button onClick={handleSave} disabled={!noteIsDirty}>
                         {activeNote ? 'Update Note' : 'Save New Note'}
                     </Button>
+                    {activeNote && (
+                         <Button variant="destructive" onClick={() => handleDelete(activeNote.id, activeNote.title || 'Untitled')}>
+                            Delete Note
+                        </Button>
+                    )}
                 </div>
             </div>
         </CardContent>
@@ -147,30 +228,25 @@ export default function NotesWriter() {
       <Card>
         <CardHeader>
             <CardTitle>Saved Notes</CardTitle>
-            <CardDescription>Your previously saved notes. Click a note to edit.</CardDescription>
+            <CardDescription>Your previously saved notes. Click to edit, or drag to reorder.</CardDescription>
         </CardHeader>
         <CardContent>
-            <ScrollArea className="h-[300px] pr-4">
+            <ScrollArea className="h-[400px] pr-4">
                 {savedNotes.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {savedNotes.map(note => (
-                            <Card key={note.id} className="cursor-pointer hover:border-primary/50 transition-colors relative group" onClick={() => selectNote(note)}>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="absolute top-2 right-2 h-7 w-7 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={(e) => { e.stopPropagation(); handleDelete(note.id, note.title || 'Untitled'); }}
-                                    aria-label={`Delete note: ${note.title || 'Untitled'}`}
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                                <CardHeader>
-                                    <CardTitle className="text-lg truncate pr-8">{note.title || 'Untitled'}</CardTitle>
-                                </CardHeader>
-                                <CardContent><p className="text-sm text-muted-foreground line-clamp-3">{note.content}</p></CardContent>
-                            </Card>
-                        ))}
-                    </div>
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                      <SortableContext items={savedNotes.map(n => n.id)} strategy={verticalListSortingStrategy}>
+                        <div className="space-y-3">
+                            {savedNotes.map(note => (
+                                <SortableNoteItem 
+                                    key={note.id} 
+                                    note={note} 
+                                    selectNote={selectNote}
+                                    handleDelete={handleDelete}
+                                />
+                            ))}
+                        </div>
+                      </SortableContext>
+                    </DndContext>
                 ) : (
                     <div className="flex items-center justify-center h-full">
                         <p className="text-center text-muted-foreground py-10">You have no saved notes yet.</p>
@@ -182,5 +258,3 @@ export default function NotesWriter() {
     </div>
   );
 }
-
-    

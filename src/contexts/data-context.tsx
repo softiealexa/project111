@@ -41,6 +41,7 @@ interface DataContextType {
   addNote: (title: string, content: string) => Note | undefined;
   updateNote: (note: Note) => void;
   deleteNote: (noteId: string) => void;
+  setNotes: (notes: Note[]) => void;
   addLink: (title: string, url: string) => void;
   updateLink: (link: ImportantLink) => void;
   deleteLink: (linkId: string) => void;
@@ -538,14 +539,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
     const newProfiles = profiles.map(p => {
         if (p.name === activeProfileName) {
-            const updatedNotes = [...(p.notes || []), newNote];
+            const currentNotes = p.notes || [];
+            // New notes are now added to the beginning of the array.
+            const updatedNotes = [newNote, ...currentNotes];
             return { ...p, notes: updatedNotes };
         }
         return p;
     });
     updateProfiles(newProfiles, activeProfileName);
+    toast({
+        title: 'Note Saved',
+        description: `Your note "${title || 'Untitled'}" has been saved.`,
+    });
     return newNote;
-  }, [activeProfileName, profiles, updateProfiles]);
+  }, [activeProfileName, profiles, updateProfiles, toast]);
 
   const updateNote = useCallback((updatedNote: Note) => {
     if (!activeProfileName) return;
@@ -567,6 +574,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
             return { ...p, notes: updatedNotes };
         }
         return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+  
+  const setNotes = useCallback((notes: Note[]) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        return { ...p, notes: notes };
+      }
+      return p;
     });
     updateProfiles(newProfiles, activeProfileName);
   }, [activeProfileName, profiles, updateProfiles]);
@@ -719,18 +737,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
     user, loading, profiles, activeProfile, activeSubjectName, setActiveSubjectName,
     addProfile, switchProfile, updateSubjects, addSubject, removeSubject, renameSubject,
     addChapter, removeChapter, updateChapter, renameChapter, updateTasks, renameTask,
-    updatePlannerNote, addNote, updateNote, deleteNote, addLink, updateLink, deleteLink,
+    updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink,
     addTodo, updateTodo, deleteTodo, setTodos,
     exportData, importData, signOutUser,
     theme, setTheme, mode, setMode,
   }), [
-    user, loading, profiles, activeProfile, activeSubjectName, setActiveSubjectName,
+    user, loading, profiles, activeProfile, activeSubjectName,
     addProfile, switchProfile, updateSubjects, addSubject, removeSubject, renameSubject,
     addChapter, removeChapter, updateChapter, renameChapter, updateTasks, renameTask,
-    updatePlannerNote, addNote, updateNote, deleteNote, addLink, updateLink, deleteLink,
+    updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink,
     addTodo, updateTodo, deleteTodo, setTodos,
     exportData, importData, signOutUser,
-    theme, setTheme, mode, setMode
+    theme, setTheme, mode, setMode, setActiveSubjectName
   ]);
   
   if (!loading && pathname.startsWith('/dashboard') && profiles.length === 0) {
