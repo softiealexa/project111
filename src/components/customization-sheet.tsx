@@ -120,6 +120,55 @@ function SortableSubjectItem({ id, subject, onRemove }: { id: string, subject: S
     );
 }
 
+
+function SortableChapterItem({ id, chapter, lectureCount, onLectureCountChange, onLectureCountBlur, onRemove }: { id: string; chapter: Chapter; lectureCount: string; onLectureCountChange: (value: string) => void; onLectureCountBlur: () => void; onRemove: () => void; }) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+    };
+
+    return (
+        <div ref={setNodeRef} style={style} className={cn("flex items-center gap-2 p-2 rounded-md bg-muted/50", isDragging && "shadow-lg z-10")}>
+            <button {...listeners} {...attributes} aria-label="Drag to reorder chapter" className="cursor-grab touch-none p-1 text-muted-foreground hover:text-foreground">
+                <GripVertical className="h-5 w-5" />
+            </button>
+            <span className="flex-1">{chapter.name}</span>
+            <Input
+                type="number"
+                min="1"
+                max="25"
+                className="w-16 h-7 text-center"
+                value={lectureCount}
+                onChange={(e) => onLectureCountChange(e.target.value)}
+                onBlur={onLectureCountBlur}
+                aria-label={`Lectures for ${chapter.name}`}
+            />
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" disabled>
+                        <Pencil className="h-4 w-4" />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>Rename feature coming soon</p></TooltipContent>
+            </Tooltip>
+            <RemoveChapterDialog chapter={chapter} onConfirm={onRemove}>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" aria-label={`Remove chapter: ${chapter.name}`}>
+                    <Trash2 className="h-4 w-4" />
+                </Button>
+            </RemoveChapterDialog>
+        </div>
+    );
+}
+
 const themes = [
     { name: 'default', label: 'Teal', color: 'hsl(180 90% 45%)' },
     { name: 'zinc', label: 'Zinc', color: 'hsl(240 5.2% 95.1%)' },
@@ -238,6 +287,27 @@ export function CustomizationSheet() {
         }
     };
 
+    function handleChapterDragEnd(event: DragEndEvent) {
+        const { active, over } = event;
+    
+        if (over && active.id !== over.id && selectedSubject && activeProfile) {
+            const oldIndex = selectedSubject.chapters.findIndex(c => c.name === (active.id as string));
+            const newIndex = selectedSubject.chapters.findIndex(c => c.name === (over.id as string));
+          
+            if (oldIndex !== -1 && newIndex !== -1) {
+                const reorderedChapters = arrayMove(selectedSubject.chapters, oldIndex, newIndex);
+                
+                const newSubjects = activeProfile.subjects.map(s => {
+                    if (s.name === selectedSubject.name) {
+                        return { ...s, chapters: reorderedChapters };
+                    }
+                    return s;
+                });
+                updateSubjects(newSubjects);
+            }
+        }
+    }
+
 
     if (!activeProfile) {
         return null;
@@ -343,7 +413,7 @@ export function CustomizationSheet() {
                     
                     <div className={cn("space-y-6", !selectedSubject && "opacity-50 pointer-events-none")}>
                         {/* Sub-section for Chapters */}
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                             <Label>Manage Chapters & Lectures</Label>
                              <AddChapterDialog
                                 onAddChapter={(newChapter) => addChapter(selectedSubjectName!, newChapter)}
@@ -353,40 +423,29 @@ export function CustomizationSheet() {
                                     <Plus className="mr-2 h-4 w-4" /> Add Chapter
                                 </Button>
                             </AddChapterDialog>
-                            <div className="space-y-2 rounded-md border p-2 min-h-24">
-                                {selectedSubject && selectedSubject.chapters.length > 0 ? selectedSubject.chapters.map((chapter: Chapter) => (
-                                    <div key={chapter.name} className="flex items-center justify-between gap-2 p-1 group">
-                                        <Label htmlFor={`lectures-${chapter.name}`} className="flex-1 truncate text-sm font-normal">
-                                            {chapter.name}
-                                        </Label>
-                                        <Input
-                                            id={`lectures-${chapter.name}`}
-                                            type="number"
-                                            min="1"
-                                            max="25"
-                                            className="w-20 h-8 text-center"
-                                            value={lectureCounts[chapter.name] || ''}
-                                            onChange={(e) => {
-                                                const value = e.target.value;
-                                                if (/^\d*$/.test(value)) { // only allow digits
-                                                   setLectureCounts(prev => ({ ...prev, [chapter.name]: value }));
-                                                }
-                                            }}
-                                            onBlur={() => handleLectureCountChange(chapter.name)}
-                                        />
-                                        <RemoveChapterDialog 
-                                            chapter={chapter}
-                                            onConfirm={() => removeChapter(selectedSubjectName!, chapter.name)}
-                                        >
-                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity" aria-label={`Remove chapter: ${chapter.name}`}>
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </RemoveChapterDialog>
+                            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleChapterDragEnd}>
+                                <SortableContext items={selectedSubject?.chapters.map(c => c.name) || []} strategy={verticalListSortingStrategy}>
+                                    <div className="space-y-2 rounded-md border p-2 min-h-24">
+                                        {selectedSubject && selectedSubject.chapters.length > 0 ? selectedSubject.chapters.map((chapter: Chapter) => (
+                                            <SortableChapterItem
+                                                key={chapter.name}
+                                                id={chapter.name}
+                                                chapter={chapter}
+                                                lectureCount={lectureCounts[chapter.name] || ''}
+                                                onLectureCountChange={(value) => {
+                                                    if (/^\d*$/.test(value)) {
+                                                        setLectureCounts(prev => ({ ...prev, [chapter.name]: value }));
+                                                    }
+                                                }}
+                                                onLectureCountBlur={() => handleLectureCountChange(chapter.name)}
+                                                onRemove={() => removeChapter(selectedSubjectName!, chapter.name)}
+                                            />
+                                        )) : (
+                                            <p className="text-sm text-muted-foreground text-center p-4">No chapters in this subject.</p>
+                                        )}
                                     </div>
-                                )) : (
-                                    <p className="text-sm text-muted-foreground text-center p-4">No chapters in this subject.</p>
-                                )}
-                            </div>
+                                </SortableContext>
+                            </DndContext>
                         </div>
 
                         {/* Sub-section for Tasks */}
