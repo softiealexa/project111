@@ -6,7 +6,7 @@ import { useData } from '@/contexts/data-context';
 import type { ImportantLink } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
@@ -33,6 +33,17 @@ export default function ImportantLinks() {
     }
   };
 
+  const handleOpenChange = (isOpen: boolean) => {
+    setDialogOpen(isOpen);
+    if (!isOpen) {
+      // Reset state when the dialog closes. No timeout needed.
+      setIsEditing(null);
+      setTitle('');
+      setUrl('');
+      setError('');
+    }
+  }
+
   const handleSave = () => {
     if (!title.trim() || !url.trim()) {
       setError('Both title and URL are required.');
@@ -51,7 +62,7 @@ export default function ImportantLinks() {
       toast({ title: 'Link Added', description: `"${title}" has been added.` });
     }
 
-    handleCloseDialog();
+    handleOpenChange(false); // Close dialog and trigger cleanup
   };
 
   const handleOpenDialog = (link: ImportantLink | null = null) => {
@@ -66,17 +77,6 @@ export default function ImportantLinks() {
     }
     setError('');
     setDialogOpen(true);
-  };
-  
-  const handleCloseDialog = () => {
-    setDialogOpen(false);
-    // Add a small delay to allow the dialog to close before resetting state
-    setTimeout(() => {
-        setIsEditing(null);
-        setTitle('');
-        setUrl('');
-        setError('');
-    }, 150);
   };
 
   const handleDelete = (link: ImportantLink) => {
@@ -138,8 +138,8 @@ export default function ImportantLinks() {
         </CardContent>
       </Card>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent onPointerDownOutside={handleCloseDialog} onEscapeKeyDown={handleCloseDialog}>
+      <Dialog open={dialogOpen} onOpenChange={handleOpenChange}>
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>{isEditing ? 'Edit Link' : 'Add New Link'}</DialogTitle>
             <DialogDescription>
@@ -168,10 +168,10 @@ export default function ImportantLinks() {
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={handleCloseDialog}>Cancel</Button>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => handleOpenChange(false)}>Cancel</Button>
             <Button onClick={handleSave}>Save Link</Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </>
