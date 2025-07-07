@@ -11,7 +11,7 @@ import {
   SheetFooter
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Trash2, Plus, GripVertical } from 'lucide-react';
+import { Trash2, Plus, GripVertical, Check } from 'lucide-react';
 import { AddSubjectDialog } from './add-subject-dialog';
 import { RemoveSubjectDialog } from './remove-subject-dialog';
 import { AddChapterDialog } from './add-chapter-dialog';
@@ -69,8 +69,16 @@ function SortableTaskItem({ id, task, onRemove }: { id: string, task: string, on
     );
 }
 
+const themes = [
+    { name: 'default', label: 'Default', color: 'hsl(180 90% 45%)' },
+    { name: 'zinc', label: 'Zinc', color: 'hsl(240 5.9% 10%)' },
+    { name: 'rose', label: 'Rose', color: 'hsl(346.8 77.2% 49.8%)' },
+    { name: 'blue', label: 'Blue', color: 'hsl(221.2 83.2% 53.3%)' },
+    { name: 'green', label: 'Green', color: 'hsl(142.1 76.2% 36.3%)' },
+];
+
 export function CustomizationSheet() {
-    const { activeProfile, activeSubjectName, addSubject, removeSubject, addChapter, removeChapter, updateTasks } = useData();
+    const { activeProfile, activeSubjectName, addSubject, removeSubject, addChapter, removeChapter, updateTasks, theme, setTheme } = useData();
     const { toast } = useToast();
     
     const [selectedSubjectName, setSelectedSubjectName] = useState<string | null>(null);
@@ -166,6 +174,28 @@ export function CustomizationSheet() {
                                     <Trash2 className="mr-2 h-4 w-4" /> Remove Subject
                                 </Button>
                             </RemoveSubjectDialog>
+                        </div>
+                    </div>
+
+                    <Separator />
+                     {/* Section for Theme */}
+                    <div className="space-y-3">
+                        <h3 className="font-medium text-foreground">Select Theme</h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            {themes.map((t) => (
+                                <Button
+                                    key={t.name}
+                                    variant="outline"
+                                    className={cn("justify-start h-auto py-2", theme === t.name && "border-primary ring-1 ring-primary")}
+                                    onClick={() => setTheme(t.name)}
+                                >
+                                    <span className="flex items-center gap-2">
+                                        <span className="h-5 w-5 rounded-full border" style={{ backgroundColor: t.color }} />
+                                        <span>{t.label}</span>
+                                    </span>
+                                    {theme === t.name && <Check className="ml-auto h-4 w-4" />}
+                                </Button>
+                            ))}
                         </div>
                     </div>
 

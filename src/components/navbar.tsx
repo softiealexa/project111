@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useData } from '@/contexts/data-context';
 import { Button } from '@/components/ui/button';
-import { Book, Download, Upload, ChevronsUpDown, Check, LogOut, UserPlus, LogIn, SlidersHorizontal } from 'lucide-react';
+import { Book, Download, Upload, ChevronsUpDown, Check, LogOut, UserPlus, LogIn, SlidersHorizontal, Sun, Moon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 import {
@@ -22,7 +22,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetTrigger } from './ui/sheet';
 
 export default function Navbar() {
-  const { profiles, activeProfile, switchProfile, exportData, importData, user, signOutUser } = useData();
+  const { profiles, activeProfile, switchProfile, exportData, importData, user, signOutUser, mode, setMode } = useData();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const isMobile = useIsMobile();
@@ -136,6 +136,11 @@ export default function Navbar() {
                       <DropdownMenuItem onSelect={exportData}>
                         <Download className="mr-2 h-4 w-4" />
                         <span>Export Data</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onSelect={() => setMode(mode === 'light' ? 'dark' : 'light')}>
+                        {mode === 'dark' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
+                        <span>{mode === 'dark' ? 'Light' : 'Dark'} Mode</span>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onSelect={handleSignOut} className="text-destructive focus:bg-destructive/10 focus:text-destructive">

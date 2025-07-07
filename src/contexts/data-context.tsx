@@ -13,6 +13,8 @@ import { Label } from '@/components/ui/label';
 
 // --- Local Storage Keys ---
 const LOCAL_PROFILE_KEY_PREFIX = 'trackacademic_profile_';
+const THEME_KEY = 'trackacademic_theme';
+const MODE_KEY = 'trackacademic_mode';
 
 interface DataContextType {
   user: FirebaseUser | null;
@@ -32,6 +34,10 @@ interface DataContextType {
   exportData: () => void;
   importData: (file: File) => void;
   signOutUser: () => Promise<void>;
+  theme: string;
+  setTheme: (theme: string) => void;
+  mode: 'light' | 'dark';
+  setMode: (mode: 'light' | 'dark') => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -110,6 +116,39 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const pathname = usePathname();
+
+  const [theme, setTheme] = useState<string>('default');
+  const [mode, setMode] = useState<'light' | 'dark'>('dark');
+
+  useEffect(() => {
+    // Load theme from localStorage on initial load
+    const savedTheme = localStorage.getItem(THEME_KEY) || 'default';
+    const savedMode = (localStorage.getItem(MODE_KEY) || 'dark') as 'light' | 'dark';
+    setTheme(savedTheme);
+    setMode(savedMode);
+  }, []);
+
+  useEffect(() => {
+    // Apply theme classes to the root element
+    const root = window.document.documentElement;
+
+    root.classList.remove('light', 'dark');
+    root.classList.add(mode);
+
+    // remove old theme classes
+    root.className.split(' ').forEach(c => {
+        if (c.startsWith('theme-')) {
+            root.classList.remove(c);
+        }
+    });
+    
+    if (theme !== 'default') {
+        root.classList.add(`theme-${theme}`);
+    }
+
+    localStorage.setItem(THEME_KEY, theme);
+    localStorage.setItem(MODE_KEY, mode);
+  }, [theme, mode]);
 
   const saveData = useCallback(async (profilesToSave: Profile[], activeNameToSave: string | null) => {
     if (typeof window === 'undefined') return;
@@ -344,7 +383,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const value = { 
     user, loading, profiles, activeProfile, activeSubjectName, setActiveSubjectName,
     addProfile, switchProfile, updateSubjects, addSubject, removeSubject, addChapter, removeChapter,
-    updateTasks, exportData, importData, signOutUser
+    updateTasks, exportData, importData, signOutUser,
+    theme, setTheme, mode, setMode
   };
   
   if (!loading && pathname.startsWith('/dashboard') && profiles.length === 0) {
