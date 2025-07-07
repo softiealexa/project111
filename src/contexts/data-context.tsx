@@ -136,42 +136,45 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const pathname = usePathname();
 
-  const [theme, setTheme] = useState<string>('default');
-  const [mode, setMode] = useState<'light' | 'dark'>('dark');
+  const [theme, setThemeState] = useState<string>('default');
+  const [mode, setModeState] = useState<'light' | 'dark'>('dark');
 
-  useEffect(() => {
-    // Load theme from localStorage on initial load
-    const savedTheme = localStorage.getItem(THEME_KEY) || 'default';
-    const savedMode = (localStorage.getItem(MODE_KEY) || 'dark') as 'light' | 'dark';
-    setTheme(savedTheme);
-    setMode(savedMode);
+  const setMode = useCallback((mode: 'light' | 'dark') => {
+    setModeState(mode);
+    localStorage.setItem(MODE_KEY, mode);
+    document.documentElement.classList.toggle('dark', mode === 'dark');
   }, []);
 
-  useEffect(() => {
-    const root = window.document.documentElement;
-
-    // The inline script in theme-script.tsx handles the initial load to prevent flashing.
-    // This effect now only handles UPDATES when the user toggles the mode or theme.
-    if (mode === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-
-    // remove old theme classes before adding the new one
-    root.className.split(' ').forEach(c => {
+  const setTheme = useCallback((theme: string) => {
+    setThemeState(theme);
+    localStorage.setItem(THEME_KEY, theme);
+     const root = window.document.documentElement;
+     root.className.split(' ').forEach(c => {
         if (c.startsWith('theme-')) {
             root.classList.remove(c);
         }
     });
-    
     if (theme !== 'default') {
         root.classList.add(`theme-${theme}`);
     }
+  }, []);
 
-    localStorage.setItem(THEME_KEY, theme);
-    localStorage.setItem(MODE_KEY, mode);
-  }, [theme, mode]);
+  useEffect(() => {
+    const savedTheme = localStorage.getItem(THEME_KEY) || 'default';
+    const savedMode = (localStorage.getItem(MODE_KEY) || 'dark') as 'light' | 'dark';
+    setThemeState(savedTheme);
+    setModeState(savedMode);
+    document.documentElement.classList.toggle('dark', savedMode === 'dark');
+     const root = window.document.documentElement;
+     root.className.split(' ').forEach(c => {
+        if (c.startsWith('theme-')) {
+            root.classList.remove(c);
+        }
+    });
+    if (savedTheme !== 'default') {
+        root.classList.add(`theme-${savedTheme}`);
+    }
+  }, []);
 
   const saveData = useCallback(async (profilesToSave: Profile[], activeNameToSave: string | null) => {
     if (typeof window === 'undefined') return;
@@ -235,6 +238,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return { ...profile, progressHistory: history };
   }, [calculateOverallProgress]);
 
+  const updateProfiles = useCallback((newProfiles: Profile[], newActiveProfileName: string | null) => {
+    const profileToUpdate = newProfiles.find(p => p.name === newActiveProfileName);
+    let profilesToSave = newProfiles;
+
+    if (profileToUpdate) {
+        const updatedProfile = updateProfileWithProgress(profileToUpdate);
+        profilesToSave = newProfiles.map(p => p.name === newActiveProfileName ? updatedProfile : p);
+    }
+    
+    setProfiles(profilesToSave);
+    saveData(profilesToSave, newActiveProfileName);
+  }, [saveData, updateProfileWithProgress]);
+
 
   useEffect(() => {
     if (activeProfile && !loading) {
@@ -243,17 +259,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const hasTodayEntry = history.some(p => p.date === todayStr);
 
       if (!hasTodayEntry) {
-        const updatedProfile = updateProfileWithProgress(activeProfile);
-        const newProfiles = profiles.map(p => 
-            p.name === activeProfile.name 
-            ? updatedProfile
-            : p
-        );
-        setProfiles(newProfiles);
-        saveData(newProfiles, activeProfileName);
+        updateProfiles(profiles, activeProfileName);
       }
     }
-  }, [activeProfile, loading, updateProfileWithProgress, profiles, activeProfileName, saveData]);
+  }, [activeProfile, loading, profiles, activeProfileName, updateProfiles]);
 
 
   useEffect(() => {
@@ -305,34 +314,25 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [toast]);
   
 
-  const addProfile = (name: string) => {
+  const addProfile = useCallback((name: string) => {
     const newProfile: Profile = { name, subjects: [], todos: [] };
     const newProfiles = [...profiles, newProfile];
     setProfiles(newProfiles);
     setActiveProfileName(name);
     saveData(newProfiles, name);
-  };
+  }, [profiles, saveData]);
 
-  const switchProfile = (name: string) => {
+  const switchProfile = useCallback((name: string) => {
     setActiveProfileName(name);
     setActiveSubjectName(null);
     saveData(profiles, name);
-  };
+  }, [profiles, saveData]);
 
   const updateSubjects = useCallback((newSubjects: Subject[]) => {
-    if (!activeProfileName || !activeProfile) return;
-
-    const updatedProfile = updateProfileWithProgress({ ...activeProfile, subjects: newSubjects });
-    
-    const newProfiles = profiles.map(p => 
-        p.name === activeProfileName 
-        ? updatedProfile
-        : p
-    );
-
-    setProfiles(newProfiles);
-    saveData(newProfiles, activeProfileName);
-  }, [activeProfile, activeProfileName, profiles, saveData, updateProfileWithProgress]);
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, subjects: newSubjects } : p);
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
 
   const addSubject = useCallback((subjectName: string, iconName: string) => {
     if (!activeProfile) return;
@@ -342,7 +342,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
         chapters: [],
         tasks: ['Lecture', 'DPP', 'Module', 'Class Qs'],
     };
-    
     const updatedSubjects = [...activeProfile.subjects, newSubject];
     updateSubjects(updatedSubjects);
     setActiveSubjectName(subjectName);
@@ -350,24 +349,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
   
   const removeSubject = useCallback((subjectNameToRemove: string) => {
     if (!activeProfile) return;
-
     const updatedSubjects = activeProfile.subjects.filter(s => s.name !== subjectNameToRemove);
     updateSubjects(updatedSubjects);
-
     if (activeSubjectName === subjectNameToRemove) {
         setActiveSubjectName(updatedSubjects[0]?.name || null);
     }
   }, [activeProfile, activeSubjectName, updateSubjects]);
 
   const addChapter = useCallback((subjectName: string, newChapter: Chapter) => {
-      if (!activeProfile) return;
-      const newSubjects = activeProfile.subjects.map(s => {
-          if (s.name === subjectName) {
-              return { ...s, chapters: [...s.chapters, newChapter] };
-          }
-          return s;
-      });
-      updateSubjects(newSubjects);
+    if (!activeProfile) return;
+    const newSubjects = activeProfile.subjects.map(s => {
+        if (s.name === subjectName) {
+            return { ...s, chapters: [...s.chapters, newChapter] };
+        }
+        return s;
+    });
+    updateSubjects(newSubjects);
   }, [activeProfile, updateSubjects]);
 
   const removeChapter = useCallback((subjectName: string, chapterNameToRemove: string) => {
@@ -382,9 +379,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateSubjects(newSubjects);
   }, [activeProfile, updateSubjects]);
 
-  const updateChapter = (subjectName: string, chapterName: string, newLectureCount: number) => {
+  const updateChapter = useCallback((subjectName: string, chapterName: string, newLectureCount: number) => {
     if (!activeProfile) return;
-
     const newSubjects = activeProfile.subjects.map(s => {
       if (s.name === subjectName) {
         const newChapters = s.chapters.map(c => {
@@ -398,12 +394,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       return s;
     });
     updateSubjects(newSubjects);
-  };
+  }, [activeProfile, updateSubjects]);
 
-  const updateTasks = (subjectName: string, newTasks: string[]) => {
+  const updateTasks = useCallback((subjectName: string, newTasks: string[]) => {
     if (!activeProfile) return;
-
-    // Find the original subject to compare task lists
     const originalSubject = activeProfile.subjects.find(s => s.name === subjectName);
     if (!originalSubject) return;
 
@@ -414,15 +408,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (subject.name === subjectName) {
         let updatedChapters = subject.chapters;
 
-        // If tasks were removed, clean up checkedState in each chapter
         if (removedTasks.length > 0) {
           updatedChapters = subject.chapters.map(chapter => {
             const oldCheckedState = chapter.checkedState || {};
             const newCheckedState: Record<string, boolean> = {};
-            
             Object.keys(oldCheckedState).forEach(key => {
-              // A key looks like: "Subject-Chapter-L1-TaskName"
-              // We check if the key contains the name of a removed task at the end
               const wasRemoved = removedTasks.some(removedTask => key.endsWith(`-${removedTask}`));
               if (!wasRemoved) {
                 newCheckedState[key] = oldCheckedState[key];
@@ -436,11 +426,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
       return subject;
     });
-
     updateSubjects(newSubjects);
-  };
+  }, [activeProfile, updateSubjects]);
 
-  const updatePlannerNote = (dateKey: string, note: string) => {
+  const updatePlannerNote = useCallback((dateKey: string, note: string) => {
     if (!activeProfileName) return;
     const newProfiles = profiles.map(p => {
         if (p.name === activeProfileName) {
@@ -456,9 +445,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
     setProfiles(newProfiles);
     saveData(newProfiles, activeProfileName);
-  };
+  }, [activeProfileName, profiles, saveData]);
 
-  const addNote = (title: string, content: string) => {
+  const addNote = useCallback((title: string, content: string) => {
     if (!activeProfileName) return;
     const newNote: Note = {
         id: crypto.randomUUID(),
@@ -475,9 +464,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
     setProfiles(newProfiles);
     saveData(newProfiles, activeProfileName);
-  };
+  }, [activeProfileName, profiles, saveData]);
 
-  const updateNote = (updatedNote: Note) => {
+  const updateNote = useCallback((updatedNote: Note) => {
     if (!activeProfileName) return;
     const newProfiles = profiles.map(p => {
         if (p.name === activeProfileName) {
@@ -488,9 +477,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
     setProfiles(newProfiles);
     saveData(newProfiles, activeProfileName);
-  };
+  }, [activeProfileName, profiles, saveData]);
 
-  const deleteNote = (noteId: string) => {
+  const deleteNote = useCallback((noteId: string) => {
     if (!activeProfileName) return;
     const newProfiles = profiles.map(p => {
         if (p.name === activeProfileName) {
@@ -501,9 +490,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
     setProfiles(newProfiles);
     saveData(newProfiles, activeProfileName);
-  };
+  }, [activeProfileName, profiles, saveData]);
 
-  const addLink = (title: string, url: string) => {
+  const addLink = useCallback((title: string, url: string) => {
     if (!activeProfileName) return;
     const newLink: ImportantLink = {
       id: crypto.randomUUID(),
@@ -519,9 +508,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
     setProfiles(newProfiles);
     saveData(newProfiles, activeProfileName);
-  };
+  }, [activeProfileName, profiles, saveData]);
 
-  const updateLink = (updatedLink: ImportantLink) => {
+  const updateLink = useCallback((updatedLink: ImportantLink) => {
     if (!activeProfileName) return;
     const newProfiles = profiles.map(p => {
       if (p.name === activeProfileName) {
@@ -532,9 +521,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
     setProfiles(newProfiles);
     saveData(newProfiles, activeProfileName);
-  };
+  }, [activeProfileName, profiles, saveData]);
 
-  const deleteLink = (linkId: string) => {
+  const deleteLink = useCallback((linkId: string) => {
     if (!activeProfileName) return;
     const newProfiles = profiles.map(p => {
       if (p.name === activeProfileName) {
@@ -545,15 +534,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
     setProfiles(newProfiles);
     saveData(newProfiles, activeProfileName);
-  };
+  }, [activeProfileName, profiles, saveData]);
 
-  const addTodo = (text: string, dueDate: Date | undefined, priority: Priority) => {
+  const addTodo = useCallback((text: string, dueDate: Date | undefined, priority: Priority) => {
     if (!activeProfileName) return;
     const newTodo: Todo = {
       id: crypto.randomUUID(),
       text,
       completed: false,
-      dueDate: dueDate?.getTime(), // Convert Date to timestamp
+      dueDate: dueDate?.getTime(),
       priority,
     };
     const newProfiles = profiles.map(p => {
@@ -565,9 +554,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
     setProfiles(newProfiles);
     saveData(newProfiles, activeProfileName);
-  }
+  }, [activeProfileName, profiles, saveData]);
 
-  const updateTodo = (updatedTodo: Todo) => {
+  const updateTodo = useCallback((updatedTodo: Todo) => {
     if (!activeProfileName) return;
     const newProfiles = profiles.map(p => {
       if (p.name === activeProfileName) {
@@ -578,9 +567,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
     setProfiles(newProfiles);
     saveData(newProfiles, activeProfileName);
-  }
+  }, [activeProfileName, profiles, saveData]);
 
-  const deleteTodo = (todoId: string) => {
+  const deleteTodo = useCallback((todoId: string) => {
     if (!activeProfileName) return;
     const newProfiles = profiles.map(p => {
       if (p.name === activeProfileName) {
@@ -591,9 +580,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
     setProfiles(newProfiles);
     saveData(newProfiles, activeProfileName);
-  }
+  }, [activeProfileName, profiles, saveData]);
 
-  const setTodos = (todos: Todo[]) => {
+  const setTodos = useCallback((todos: Todo[]) => {
     if (!activeProfileName) return;
     const newProfiles = profiles.map(p => {
       if (p.name === activeProfileName) {
@@ -603,9 +592,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
     setProfiles(newProfiles);
     saveData(newProfiles, activeProfileName);
-  }
+  }, [activeProfileName, profiles, saveData]);
   
-  const exportData = () => {
+  const exportData = useCallback(() => {
     if (typeof window === 'undefined' || profiles.length === 0) {
         toast({ title: "Export Failed", description: "No data to export.", variant: "destructive" });
         return;
@@ -622,9 +611,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     toast({ title: "Export Successful", description: "Your data has been downloaded." });
-  };
+  }, [profiles, activeProfileName, user, toast]);
 
-  const importData = (file: File) => {
+  const importData = useCallback((file: File) => {
       const reader = new FileReader();
       reader.onload = (e) => {
           try {
@@ -644,24 +633,31 @@ export function DataProvider({ children }: { children: ReactNode }) {
           }
       };
       reader.readAsText(file);
-  };
+  }, [saveData, toast]);
   
-  const signOutUser = async () => {
+  const signOutUser = useCallback(async () => {
     await signOut();
     setProfiles([]);
     setActiveProfileName(null);
     setActiveSubjectName(null);
     localStorage.removeItem(getLocalKey(null)); // Clear guest data on logout
-  }
+  }, []);
 
-  const value = { 
+  const value = useMemo(() => ({
     user, loading, profiles, activeProfile, activeSubjectName, setActiveSubjectName,
     addProfile, switchProfile, updateSubjects, addSubject, removeSubject, addChapter, removeChapter,
     updateChapter, updateTasks, updatePlannerNote, addNote, updateNote, deleteNote, addLink, updateLink, deleteLink,
     addTodo, updateTodo, deleteTodo, setTodos,
     exportData, importData, signOutUser,
     theme, setTheme, mode, setMode,
-  };
+  }), [
+    user, loading, profiles, activeProfile, activeSubjectName,
+    addProfile, switchProfile, updateSubjects, addSubject, removeSubject, addChapter, removeChapter,
+    updateChapter, updateTasks, updatePlannerNote, addNote, updateNote, deleteNote, addLink, updateLink, deleteLink,
+    addTodo, updateTodo, deleteTodo, setTodos,
+    exportData, importData, signOutUser,
+    theme, setTheme, mode, setMode
+  ]);
   
   if (!loading && pathname.startsWith('/dashboard') && profiles.length === 0) {
       return (
