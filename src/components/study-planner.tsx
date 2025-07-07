@@ -23,10 +23,10 @@ export default function StudyPlanner() {
 
   const currentWeek = useMemo(() => {
     const today = new Date();
-    // Assuming week starts on Sunday for this calculation, can be adjusted.
+    // The isWithinInterval function expects `start` and `end` properties.
     return {
-      from: startOfWeek(today), 
-      to: endOfWeek(today),
+      start: startOfWeek(today), 
+      end: endOfWeek(today),
     };
   }, []);
 
