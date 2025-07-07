@@ -346,7 +346,10 @@ export function CustomizationSheet() {
                         <div className="space-y-2">
                             <Label>Manage Chapters & Lectures</Label>
                              <div className="flex gap-2">
-                                <AddChapterDialog onAddChapter={(newChapter) => addChapter(selectedSubjectName!, newChapter)}>
+                                <AddChapterDialog
+                                    onAddChapter={(newChapter) => addChapter(selectedSubjectName!, newChapter)}
+                                    existingChapterNames={selectedSubject?.chapters.map(c => c.name) || []}
+                                >
                                     <Button variant="outline" className="w-full justify-center" disabled={!selectedSubjectName}>
                                         <Plus className="mr-2 h-4 w-4" /> Add Chapter
                                     </Button>

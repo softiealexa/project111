@@ -19,9 +19,10 @@ import type { Chapter } from "@/lib/types";
 interface AddChapterDialogProps {
   onAddChapter: (newChapter: Chapter) => void;
   children: React.ReactNode;
+  existingChapterNames: string[];
 }
 
-export function AddChapterDialog({ onAddChapter, children }: AddChapterDialogProps) {
+export function AddChapterDialog({ onAddChapter, children, existingChapterNames }: AddChapterDialogProps) {
   const [open, setOpen] = useState(false);
   const [chapterName, setChapterName] = useState("");
   const [lectureCount, setLectureCount] = useState("");
@@ -29,8 +30,14 @@ export function AddChapterDialog({ onAddChapter, children }: AddChapterDialogPro
 
   const handleSubmit = () => {
     const lectures = parseInt(lectureCount, 10);
-    if (!chapterName.trim()) {
+    const trimmedName = chapterName.trim();
+
+    if (!trimmedName) {
         setError("Chapter name is required.");
+        return;
+    }
+    if (existingChapterNames.some(name => name.toLowerCase() === trimmedName.toLowerCase())) {
+        setError("A chapter with this name already exists in this subject.");
         return;
     }
     if (isNaN(lectures) || lectures < 1 || lectures > 25) {
@@ -38,7 +45,7 @@ export function AddChapterDialog({ onAddChapter, children }: AddChapterDialogPro
         return;
     }
 
-    onAddChapter({ name: chapterName, lectureCount: lectures });
+    onAddChapter({ name: trimmedName, lectureCount: lectures });
     setChapterName("");
     setLectureCount("");
     setError("");
