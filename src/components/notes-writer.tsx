@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useData } from '@/contexts/data-context';
 import type { Note } from '@/lib/types';
 import { Textarea } from '@/components/ui/textarea';
@@ -23,15 +23,21 @@ export default function NotesWriter() {
   
   const savedNotes = activeProfile?.notes?.sort((a, b) => b.createdAt - a.createdAt) || [];
 
+  const noteIsDirty = useMemo(() => {
+    if (activeNote) {
+        return title !== activeNote.title || content !== activeNote.content;
+    }
+    return title.trim() !== '' || content.trim() !== '';
+  }, [activeNote, title, content]);
+
   useEffect(() => {
     if (activeNote) {
       setTitle(activeNote.title);
       setContent(activeNote.content);
     } else {
-      // This logic is intentionally left blank.
-      // When activeNote is set to null (e.g., by handleNewNote),
-      // we want to preserve the current title and content in the form
-      // to prevent accidental data loss. The user can then save it as a new note.
+      // When there's no active note, clear the form for a new one.
+      setTitle('');
+      setContent('');
     }
   }, [activeNote]);
 
@@ -49,7 +55,9 @@ export default function NotesWriter() {
         // Update existing note
         const updated = { ...activeNote, title, content };
         updateNote(updated);
-        setActiveNote(updated); // Keep the form in "edit" mode
+        // We call setActiveNote to update the component's state with the saved version,
+        // which also sets noteIsDirty to false.
+        setActiveNote(updated); 
         toast({
             title: 'Note Updated',
             description: `Your note "${title || 'Untitled'}" has been updated.`,
@@ -61,13 +69,15 @@ export default function NotesWriter() {
             title: 'Note Saved',
             description: `Your note "${title || 'Untitled'}" has been saved.`,
         });
-        // Clear the form for the next note
-        setTitle('');
-        setContent('');
+        // Clear the form for the next note by setting activeNote to null
+        setActiveNote(null);
     }
   };
   
   const handleNewNote = () => {
+      if (noteIsDirty) {
+          handleSave();
+      }
       setActiveNote(null);
   };
   
@@ -80,12 +90,15 @@ export default function NotesWriter() {
       });
       if (activeNote?.id === noteId) {
           setActiveNote(null);
-          setTitle('');
-          setContent('');
       }
   };
 
   const selectNote = (note: Note) => {
+      if (note.id === activeNote?.id) return;
+      
+      if (noteIsDirty) {
+          handleSave();
+      }
       setActiveNote(note);
   };
 
@@ -95,7 +108,7 @@ export default function NotesWriter() {
         <CardHeader>
              <div className="flex justify-between items-center">
                 <CardTitle>{activeNote ? 'Edit Note' : 'Create Note'}</CardTitle>
-                <Button variant="outline" size="sm" onClick={handleNewNote} disabled={!activeNote}>
+                <Button variant="outline" size="sm" onClick={handleNewNote} disabled={!activeNote && !noteIsDirty}>
                     <Plus className="mr-2 h-4 w-4" /> New Note
                 </Button>
             </div>
