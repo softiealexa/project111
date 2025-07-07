@@ -52,7 +52,7 @@ const getProgress = (chapters: Chapter[], tasksPerLecture: number) => {
     return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 };
 
-export function ProgressSummary({ profile }: { profile: Profile }) {
+export default function ProgressSummary({ profile }: { profile: Profile }) {
   const [chartType, setChartType] = useState("bar");
   const [selectedChapters, setSelectedChapters] = useState<Record<string, string[]>>({});
   const [progressGoal, setProgressGoal] = useState(75);
