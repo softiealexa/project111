@@ -11,11 +11,12 @@ import LiveClock from '@/components/live-clock';
 import { ProgressSummary } from '@/components/progress-summary';
 import { getIconComponent } from '@/lib/icons';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Pencil, Timer, Terminal } from 'lucide-react';
+import { Pencil, Timer, Terminal, ListTodo } from 'lucide-react';
 import PomodoroTimer from '@/components/pomodoro-timer';
 import NotesWriter from '@/components/notes-writer';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { LoadingSpinner } from '@/components/loading-spinner';
+import TodoList from '@/components/todo-list';
 
 export default function DashboardPage() {
   const { activeProfile, activeSubjectName, setActiveSubjectName } = useData();
@@ -113,6 +114,10 @@ export default function DashboardPage() {
                                 <Timer className="h-5 w-5" />
                                 Pomodoro Timer
                             </TabsTrigger>
+                            <TabsTrigger value="todo" className="justify-start gap-2 py-2.5 text-base">
+                                <ListTodo className="h-5 w-5" />
+                                To-Do List
+                            </TabsTrigger>
                         </TabsList>
                         <div className="md:col-start-2">
                             <TabsContent value="notes" className="mt-0">
@@ -128,6 +133,9 @@ export default function DashboardPage() {
                                         <PomodoroTimer />
                                     </CardContent>
                                 </Card>
+                            </TabsContent>
+                             <TabsContent value="todo" className="mt-0">
+                                <TodoList />
                             </TabsContent>
                         </div>
                     </div>
