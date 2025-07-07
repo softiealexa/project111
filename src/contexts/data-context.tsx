@@ -30,10 +30,13 @@ interface DataContextType {
   updateSubjects: (newSubjects: Subject[]) => void;
   addSubject: (subjectName: string, iconName: string) => void;
   removeSubject: (subjectNameToRemove: string) => void;
+  renameSubject: (oldName: string, newName: string) => void;
   addChapter: (subjectName: string, newChapter: Chapter) => void;
   removeChapter: (subjectName: string, chapterNameToRemove: string) => void;
   updateChapter: (subjectName: string, chapterName: string, newLectureCount: number) => void;
+  renameChapter: (subjectName: string, oldName: string, newName: string) => void;
   updateTasks: (subjectName: string, newTasks: string[]) => void;
+  renameTask: (subjectName: string, oldName: string, newName: string) => void;
   updatePlannerNote: (dateKey: string, note: string) => void;
   addNote: (title: string, content: string) => Note | undefined;
   updateNote: (note: Note) => void;
@@ -354,6 +357,32 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [activeProfile, activeSubjectName, updateSubjects]);
 
+  const renameSubject = useCallback((oldName: string, newName: string) => {
+    if (!activeProfile) return;
+    const newSubjects = activeProfile.subjects.map(s => {
+        if (s.name === oldName) {
+            const newChapters = s.chapters.map(c => {
+                const newCheckedState: Record<string, boolean> = {};
+                if (c.checkedState) {
+                    Object.keys(c.checkedState).forEach(key => {
+                        const newKey = key.replace(`${oldName}-`, `${newName}-`);
+                        newCheckedState[newKey] = c.checkedState![key];
+                    });
+                }
+                return { ...c, checkedState: newCheckedState };
+            });
+            return { ...s, name: newName, chapters: newChapters };
+        }
+        return s;
+    });
+
+    updateSubjects(newSubjects);
+    if (activeSubjectName === oldName) {
+        setActiveSubjectName(newName);
+    }
+    toast({ title: "Subject Renamed", description: `"${oldName}" is now "${newName}".` });
+  }, [activeProfile, updateSubjects, activeSubjectName, toast]);
+
   const addChapter = useCallback((subjectName: string, newChapter: Chapter) => {
     if (!activeProfile) return;
     const newSubjects = activeProfile.subjects.map(s => {
@@ -394,6 +423,31 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateSubjects(newSubjects);
   }, [activeProfile, updateSubjects]);
 
+  const renameChapter = useCallback((subjectName: string, oldName: string, newName: string) => {
+    if (!activeProfile) return;
+    const newSubjects = activeProfile.subjects.map(s => {
+        if (s.name === subjectName) {
+            const newChapters = s.chapters.map(c => {
+                if (c.name === oldName) {
+                     const newCheckedState: Record<string, boolean> = {};
+                     if (c.checkedState) {
+                        Object.keys(c.checkedState).forEach(key => {
+                            const newKey = key.replace(`-${oldName}-`, `-${newName}-`);
+                            newCheckedState[newKey] = c.checkedState![key];
+                        });
+                    }
+                    return { ...c, name: newName, checkedState: newCheckedState };
+                }
+                return c;
+            });
+            return { ...s, chapters: newChapters };
+        }
+        return s;
+    });
+    updateSubjects(newSubjects);
+    toast({ title: "Chapter Renamed", description: `"${oldName}" is now "${newName}".` });
+  }, [activeProfile, updateSubjects, toast]);
+
   const updateTasks = useCallback((subjectName: string, newTasks: string[]) => {
     if (!activeProfile) return;
     const originalSubject = activeProfile.subjects.find(s => s.name === subjectName);
@@ -426,6 +480,36 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
     updateSubjects(newSubjects);
   }, [activeProfile, updateSubjects]);
+
+  const renameTask = useCallback((subjectName: string, oldName: string, newName: string) => {
+    if (!activeProfile) return;
+    const subject = activeProfile.subjects.find(s => s.name === subjectName);
+    if (!subject) return;
+
+    const newSubjects = activeProfile.subjects.map(s => {
+        if (s.name === subjectName) {
+            const newTasks = s.tasks.map(t => t === oldName ? newName : t);
+            const newChapters = s.chapters.map(c => {
+                const newCheckedState: Record<string, boolean> = {};
+                if (c.checkedState) {
+                    Object.keys(c.checkedState).forEach(key => {
+                        if (key.endsWith(`-${oldName}`)) {
+                            const newKey = key.replace(`-${oldName}`, `-${newName}`);
+                            newCheckedState[newKey] = c.checkedState![key];
+                        } else {
+                            newCheckedState[key] = c.checkedState![key];
+                        }
+                    });
+                }
+                return { ...c, checkedState: newCheckedState };
+            });
+            return { ...s, tasks: newTasks, chapters: newChapters };
+        }
+        return s;
+    });
+    updateSubjects(newSubjects);
+    toast({ title: "Task Renamed", description: `"${oldName}" is now "${newName}".`});
+  }, [activeProfile, updateSubjects, toast]);
 
   const updatePlannerNote = useCallback((dateKey: string, note: string) => {
     if (!activeProfileName) return;
@@ -633,15 +717,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(() => ({
     user, loading, profiles, activeProfile, activeSubjectName, setActiveSubjectName,
-    addProfile, switchProfile, updateSubjects, addSubject, removeSubject, addChapter, removeChapter,
-    updateChapter, updateTasks, updatePlannerNote, addNote, updateNote, deleteNote, addLink, updateLink, deleteLink,
+    addProfile, switchProfile, updateSubjects, addSubject, removeSubject, renameSubject,
+    addChapter, removeChapter, updateChapter, renameChapter, updateTasks, renameTask,
+    updatePlannerNote, addNote, updateNote, deleteNote, addLink, updateLink, deleteLink,
     addTodo, updateTodo, deleteTodo, setTodos,
     exportData, importData, signOutUser,
     theme, setTheme, mode, setMode,
   }), [
     user, loading, profiles, activeProfile, activeSubjectName, setActiveSubjectName,
-    addProfile, switchProfile, updateSubjects, addSubject, removeSubject, addChapter, removeChapter,
-    updateChapter, updateTasks, updatePlannerNote, addNote, updateNote, deleteNote, addLink, updateLink, deleteLink,
+    addProfile, switchProfile, updateSubjects, addSubject, removeSubject, renameSubject,
+    addChapter, removeChapter, updateChapter, renameChapter, updateTasks, renameTask,
+    updatePlannerNote, addNote, updateNote, deleteNote, addLink, updateLink, deleteLink,
     addTodo, updateTodo, deleteTodo, setTodos,
     exportData, importData, signOutUser,
     theme, setTheme, mode, setMode
@@ -665,7 +751,3 @@ export function useData() {
   }
   return context;
 }
-
-    
-
-    

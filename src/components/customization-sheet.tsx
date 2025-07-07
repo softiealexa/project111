@@ -16,6 +16,7 @@ import { AddSubjectDialog } from './add-subject-dialog';
 import { RemoveSubjectDialog } from './remove-subject-dialog';
 import { AddChapterDialog } from './add-chapter-dialog';
 import { RemoveChapterDialog } from './remove-chapter-dialog';
+import { RenameDialog } from './rename-dialog';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Separator } from './ui/separator';
@@ -43,7 +44,7 @@ import { getIconComponent } from '@/lib/icons';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import type { Chapter, Subject } from '@/lib/types';
 
-function SortableTaskItem({ id, task, onRemove }: { id: string, task: string, onRemove: () => void }) {
+function SortableTaskItem({ id, task, onRemove, onRename, existingTaskNames }: { id: string, task: string, onRemove: () => void, onRename: (newName: string) => void, existingTaskNames: string[] }) {
     const {
         attributes,
         listeners,
@@ -64,14 +65,21 @@ function SortableTaskItem({ id, task, onRemove }: { id: string, task: string, on
                 <GripVertical className="h-5 w-5" />
             </button>
             <span className="flex-1">{task}</span>
-             <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" disabled>
-                        <Pencil className="h-4 w-4" />
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent><p>Rename feature coming soon</p></TooltipContent>
-            </Tooltip>
+            <RenameDialog
+                itemType="Task"
+                currentName={task}
+                onRename={onRename}
+                existingNames={existingTaskNames}
+            >
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
+                            <Pencil className="h-4 w-4" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>Rename Task</p></TooltipContent>
+                </Tooltip>
+            </RenameDialog>
             <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={onRemove} aria-label={`Remove task: ${task}`}>
                 <Trash2 className="h-4 w-4" />
             </Button>
@@ -79,7 +87,7 @@ function SortableTaskItem({ id, task, onRemove }: { id: string, task: string, on
     );
 }
 
-function SortableSubjectItem({ id, subject, onRemove }: { id: string, subject: Subject, onRemove: () => void }) {
+function SortableSubjectItem({ id, subject, onRemove, onRename, existingSubjectNames }: { id: string, subject: Subject, onRemove: () => void, onRename: (newName: string) => void, existingSubjectNames: string[] }) {
     const {
         attributes,
         listeners,
@@ -103,14 +111,21 @@ function SortableSubjectItem({ id, subject, onRemove }: { id: string, subject: S
             </button>
             <Icon className="h-5 w-5 text-muted-foreground" />
             <span className="flex-1">{subject.name}</span>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" disabled>
-                        <Pencil className="h-4 w-4" />
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent><p>Rename feature coming soon</p></TooltipContent>
-            </Tooltip>
+            <RenameDialog
+                itemType="Subject"
+                currentName={subject.name}
+                onRename={onRename}
+                existingNames={existingSubjectNames}
+            >
+                 <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
+                            <Pencil className="h-4 w-4" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>Rename Subject</p></TooltipContent>
+                </Tooltip>
+            </RenameDialog>
             <RemoveSubjectDialog subject={subject} onConfirm={onRemove}>
                 <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" aria-label={`Remove subject: ${subject.name}`}>
                     <Trash2 className="h-4 w-4" />
@@ -121,7 +136,7 @@ function SortableSubjectItem({ id, subject, onRemove }: { id: string, subject: S
 }
 
 
-function SortableChapterItem({ id, chapter, lectureCount, onLectureCountChange, onLectureCountBlur, onRemove }: { id: string; chapter: Chapter; lectureCount: string; onLectureCountChange: (value: string) => void; onLectureCountBlur: () => void; onRemove: () => void; }) {
+function SortableChapterItem({ id, chapter, lectureCount, onLectureCountChange, onLectureCountBlur, onRemove, onRename, existingChapterNames }: { id: string; chapter: Chapter; lectureCount: string; onLectureCountChange: (value: string) => void; onLectureCountBlur: () => void; onRemove: () => void; onRename: (newName: string) => void; existingChapterNames: string[] }) {
     const {
         attributes,
         listeners,
@@ -152,14 +167,21 @@ function SortableChapterItem({ id, chapter, lectureCount, onLectureCountChange, 
                 onBlur={onLectureCountBlur}
                 aria-label={`Lectures for ${chapter.name}`}
             />
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" disabled>
-                        <Pencil className="h-4 w-4" />
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent><p>Rename feature coming soon</p></TooltipContent>
-            </Tooltip>
+            <RenameDialog
+                itemType="Chapter"
+                currentName={chapter.name}
+                onRename={onRename}
+                existingNames={existingChapterNames}
+            >
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
+                            <Pencil className="h-4 w-4" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>Rename Chapter</p></TooltipContent>
+                </Tooltip>
+            </RenameDialog>
             <RemoveChapterDialog chapter={chapter} onConfirm={onRemove}>
                 <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" aria-label={`Remove chapter: ${chapter.name}`}>
                     <Trash2 className="h-4 w-4" />
@@ -180,7 +202,7 @@ const themes = [
 ];
 
 export function CustomizationSheet() {
-    const { activeProfile, activeSubjectName, updateSubjects, addSubject, removeSubject, addChapter, removeChapter, updateChapter, updateTasks, theme, setTheme } = useData();
+    const { activeProfile, activeSubjectName, updateSubjects, addSubject, removeSubject, renameSubject, addChapter, removeChapter, updateChapter, renameChapter, updateTasks, renameTask, theme, setTheme } = useData();
     const { toast } = useToast();
     
     const [selectedSubjectName, setSelectedSubjectName] = useState<string | null>(null);
@@ -189,9 +211,16 @@ export function CustomizationSheet() {
 
     useEffect(() => {
         if (activeProfile) {
-            setSelectedSubjectName(activeSubjectName);
+            if (activeProfile.subjects.some(s => s.name === activeSubjectName)) {
+                setSelectedSubjectName(activeSubjectName);
+            } else if (activeProfile.subjects.length > 0) {
+                setSelectedSubjectName(activeProfile.subjects[0].name);
+            } else {
+                setSelectedSubjectName(null);
+            }
         }
     }, [activeProfile, activeSubjectName]);
+
 
     const selectedSubject = activeProfile?.subjects.find(s => s.name === selectedSubjectName);
     
@@ -211,16 +240,16 @@ export function CustomizationSheet() {
 
     const handleAddTask = () => {
         if (!selectedSubject) return;
-        const trimmedName = newTaskName.trim().toLowerCase();
+        const trimmedName = newTaskName.trim();
         if (!trimmedName) {
             toast({ title: "Error", description: "Task name cannot be empty.", variant: "destructive" });
             return;
         }
-        if (tasks.some(task => task.toLowerCase() === trimmedName)) {
+        if (tasks.some(task => task.toLowerCase() === trimmedName.toLowerCase())) {
             toast({ title: "Error", description: "This task already exists.", variant: "destructive" });
             return;
         }
-        updateTasks(selectedSubject.name, [...tasks, newTaskName.trim()]);
+        updateTasks(selectedSubject.name, [...tasks, trimmedName]);
         setNewTaskName('');
     };
 
@@ -377,6 +406,8 @@ export function CustomizationSheet() {
                                                 id={subject.name} 
                                                 subject={subject} 
                                                 onRemove={() => removeSubject(subject.name)} 
+                                                onRename={(newName) => renameSubject(subject.name, newName)}
+                                                existingSubjectNames={activeProfile.subjects.map(s => s.name)}
                                             />
                                         )) : (
                                             <p className="text-sm text-muted-foreground text-center p-4">No subjects yet.</p>
@@ -439,6 +470,8 @@ export function CustomizationSheet() {
                                                 }}
                                                 onLectureCountBlur={() => handleLectureCountChange(chapter.name)}
                                                 onRemove={() => removeChapter(selectedSubjectName!, chapter.name)}
+                                                onRename={(newName) => renameChapter(selectedSubjectName!, chapter.name, newName)}
+                                                existingChapterNames={selectedSubject.chapters.map(c => c.name)}
                                             />
                                         )) : (
                                             <p className="text-sm text-muted-foreground text-center p-4">No chapters in this subject.</p>
@@ -470,7 +503,9 @@ export function CustomizationSheet() {
                                                 key={task} 
                                                 id={task} 
                                                 task={task} 
-                                                onRemove={() => handleRemoveTask(task)} 
+                                                onRemove={() => handleRemoveTask(task)}
+                                                onRename={(newName) => renameTask(selectedSubjectName!, task, newName)}
+                                                existingTaskNames={tasks}
                                             />
                                         )) : (
                                             <p className="text-sm text-muted-foreground text-center p-4">No repeatable tasks.</p>
