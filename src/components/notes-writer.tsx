@@ -11,14 +11,50 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { ScrollArea } from './ui/scroll-area';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
-function NoteItem({ note, selectNote, handleDelete }: { note: Note, selectNote: (note: Note) => void, handleDelete: (id: string, title: string) => void }) {
-    return (
-        <Card className="transition-colors relative group hover:border-primary/50">
+
+function SortableNoteItem({ note, selectNote, handleDelete }: { note: Note, selectNote: (note: Note) => void, handleDelete: (id: string, title: string) => void }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: note.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : 'auto',
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+        <Card className={cn("transition-colors relative group hover:border-primary/50", isDragging && "shadow-lg z-10 bg-card ring-1 ring-primary")}>
             <div className="flex items-center">
-                <div className="flex-1 py-3 pl-4 pr-10 min-w-0 cursor-pointer" onClick={() => selectNote(note)}>
+                <button {...listeners} aria-label="Drag to reorder note" className="cursor-grab touch-none p-3 text-muted-foreground hover:text-foreground">
+                    <GripVertical className="h-5 w-5" />
+                </button>
+                <div className="flex-1 py-3 pr-10 min-w-0 cursor-pointer" onClick={() => selectNote(note)}>
                     <CardTitle className="text-lg truncate">{note.title || 'Untitled'}</CardTitle>
                     <p className="text-sm text-muted-foreground line-clamp-2 mt-1 pr-2">{note.content}</p>
                 </div>
@@ -33,18 +69,19 @@ function NoteItem({ note, selectNote, handleDelete }: { note: Note, selectNote: 
                 </Button>
             </div>
         </Card>
-    );
+    </div>
+  );
 }
 
 export default function NotesWriter() {
-  const { activeProfile, addNote, updateNote, deleteNote } = useData();
+  const { activeProfile, addNote, updateNote, deleteNote, setNotes } = useData();
   const { toast } = useToast();
   
   const [activeNote, setActiveNote] = useState<Note | null>(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   
-  const savedNotes = activeProfile?.notes || [];
+  const savedNotes = useMemo(() => activeProfile?.notes || [], [activeProfile?.notes]);
 
   const noteIsDirty = useMemo(() => {
     if (activeNote) {
@@ -121,6 +158,28 @@ export default function NotesWriter() {
       }
       setActiveNote(note);
   };
+  
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor)
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = savedNotes.findIndex((note) => note.id === active.id);
+      const newIndex = savedNotes.findIndex((note) => note.id === over.id);
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const reorderedNotes = arrayMove(savedNotes, oldIndex, newIndex);
+        setNotes(reorderedNotes);
+      }
+    }
+  };
+
 
   return (
     <div className="grid gap-6">
@@ -171,21 +230,25 @@ export default function NotesWriter() {
       <Card>
         <CardHeader>
             <CardTitle>Saved Notes</CardTitle>
-            <CardDescription>Your previously saved notes. Click to edit.</CardDescription>
+            <CardDescription>Your previously saved notes. Click to edit, or drag to reorder.</CardDescription>
         </CardHeader>
         <CardContent>
             <ScrollArea className="h-[400px] pr-4">
                 {savedNotes.length > 0 ? (
-                    <div className="space-y-3">
-                        {savedNotes.map(note => (
-                            <NoteItem 
-                                key={note.id} 
-                                note={note} 
-                                selectNote={selectNote}
-                                handleDelete={handleDelete}
-                            />
-                        ))}
-                    </div>
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                        <SortableContext items={savedNotes.map(n => n.id)} strategy={verticalListSortingStrategy}>
+                            <div className="space-y-3">
+                                {savedNotes.map(note => (
+                                    <SortableNoteItem
+                                        key={note.id}
+                                        note={note}
+                                        selectNote={selectNote}
+                                        handleDelete={handleDelete}
+                                    />
+                                ))}
+                            </div>
+                        </SortableContext>
+                    </DndContext>
                 ) : (
                     <div className="flex items-center justify-center h-full">
                         <p className="text-center text-muted-foreground py-10">You have no saved notes yet.</p>
