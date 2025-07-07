@@ -41,7 +41,7 @@ import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { getIconComponent } from '@/lib/icons';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
-import type { Chapter } from '@/lib/types';
+import type { Chapter, Subject } from '@/lib/types';
 
 function SortableTaskItem({ id, task, onRemove }: { id: string, task: string, onRemove: () => void }) {
     const {
@@ -79,6 +79,47 @@ function SortableTaskItem({ id, task, onRemove }: { id: string, task: string, on
     );
 }
 
+function SortableSubjectItem({ id, subject, onRemove }: { id: string, subject: Subject, onRemove: () => void }) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+    };
+
+    const Icon = getIconComponent(subject.icon);
+    
+    return (
+        <div ref={setNodeRef} style={style} className={cn("flex items-center gap-2 p-2 border-b last:border-b-0", isDragging && "shadow-lg z-10 bg-card")}>
+            <div {...listeners} {...attributes} className="cursor-grab touch-none p-1 text-muted-foreground hover:text-foreground">
+                <GripVertical className="h-5 w-5" />
+            </div>
+            <Icon className="h-5 w-5 text-muted-foreground" />
+            <span className="flex-1">{subject.name}</span>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" disabled>
+                        <Pencil className="h-4 w-4" />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>Rename feature coming soon</p></TooltipContent>
+            </Tooltip>
+            <RemoveSubjectDialog subjects={[subject]} onConfirm={onRemove}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
+                    <Trash2 className="h-4 w-4" />
+                </Button>
+            </RemoveSubjectDialog>
+        </div>
+    );
+}
+
 const themes = [
     { name: 'default', label: 'Teal', color: 'hsl(180 90% 45%)' },
     { name: 'zinc', label: 'Zinc', color: 'hsl(240 5.2% 95.1%)' },
@@ -90,7 +131,7 @@ const themes = [
 ];
 
 export function CustomizationSheet() {
-    const { activeProfile, activeSubjectName, addSubject, removeSubject, addChapter, removeChapter, updateChapter, updateTasks, theme, setTheme } = useData();
+    const { activeProfile, activeSubjectName, updateSubjects, addSubject, removeSubject, addChapter, removeChapter, updateChapter, updateTasks, theme, setTheme } = useData();
     const { toast } = useToast();
     
     const [selectedSubjectName, setSelectedSubjectName] = useState<string | null>(null);
@@ -144,7 +185,7 @@ export function CustomizationSheet() {
         useSensor(KeyboardSensor)
     );
 
-    function handleDragEnd(event: DragEndEvent) {
+    function handleTaskDragEnd(event: DragEndEvent) {
         const { active, over } = event;
     
         if (over && active.id !== over.id && selectedSubject) {
@@ -154,6 +195,20 @@ export function CustomizationSheet() {
           if (oldIndex !== -1 && newIndex !== -1) {
             const reorderedTasks = arrayMove(tasks, oldIndex, newIndex);
             updateTasks(selectedSubject.name, reorderedTasks);
+          }
+        }
+    }
+
+    function handleSubjectDragEnd(event: DragEndEvent) {
+        const { active, over } = event;
+    
+        if (over && active.id !== over.id && activeProfile) {
+          const oldIndex = activeProfile.subjects.findIndex(s => s.name === (active.id as string));
+          const newIndex = activeProfile.subjects.findIndex(s => s.name === (over.id as string));
+          
+          if (oldIndex !== -1 && newIndex !== -1) {
+            const reorderedSubjects = arrayMove(activeProfile.subjects, oldIndex, newIndex);
+            updateSubjects(reorderedSubjects);
           }
         }
     }
@@ -210,7 +265,7 @@ export function CustomizationSheet() {
                                                 <button
                                                     onClick={() => setTheme(t.name)}
                                                     className={cn(
-                                                        "h-10 w-10 rounded-full border-2 flex items-center justify-center transition-all",
+                                                        "relative h-10 w-10 rounded-full border-2 flex items-center justify-center transition-all",
                                                         theme === t.name ? "border-primary ring-2 ring-primary ring-offset-2 ring-offset-background" : "border-muted"
                                                     )}
                                                     aria-label={`Select ${t.label} theme`}
@@ -243,38 +298,22 @@ export function CustomizationSheet() {
                                     <Plus className="mr-2 h-4 w-4" /> Add Subject
                                 </Button>
                             </AddSubjectDialog>
-                            <div className="rounded-md border">
-                                {activeProfile.subjects.length > 0 ? activeProfile.subjects.map(subject => {
-                                    const Icon = getIconComponent(subject.icon);
-                                    return (
-                                        <div key={subject.name} className="flex items-center gap-2 p-2 border-b last:border-b-0">
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <div className="cursor-not-allowed p-1 text-muted-foreground/50"><GripVertical className="h-5 w-5" /></div>
-                                                </TooltipTrigger>
-                                                <TooltipContent><p>Reordering coming soon</p></TooltipContent>
-                                            </Tooltip>
-                                            <Icon className="h-5 w-5 text-muted-foreground" />
-                                            <span className="flex-1">{subject.name}</span>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                     <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" disabled>
-                                                        <Pencil className="h-4 w-4" />
-                                                    </Button>
-                                                </TooltipTrigger>
-                                                <TooltipContent><p>Rename feature coming soon</p></TooltipContent>
-                                            </Tooltip>
-                                            <RemoveSubjectDialog subjects={[subject]} onConfirm={() => removeSubject(subject.name)}>
-                                                 <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </RemoveSubjectDialog>
-                                        </div>
-                                    )
-                                }) : (
-                                    <p className="text-sm text-muted-foreground text-center p-4">No subjects yet.</p>
-                                )}
-                            </div>
+                            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSubjectDragEnd}>
+                                <SortableContext items={activeProfile.subjects.map(s => s.name)} strategy={verticalListSortingStrategy}>
+                                    <div className="rounded-md border">
+                                        {activeProfile.subjects.length > 0 ? activeProfile.subjects.map(subject => (
+                                            <SortableSubjectItem 
+                                                key={subject.name} 
+                                                id={subject.name} 
+                                                subject={subject} 
+                                                onRemove={() => removeSubject(subject.name)} 
+                                            />
+                                        )) : (
+                                            <p className="text-sm text-muted-foreground text-center p-4">No subjects yet.</p>
+                                        )}
+                                    </div>
+                                </SortableContext>
+                            </DndContext>
                         </div>
                     </div>
 
@@ -367,7 +406,7 @@ export function CustomizationSheet() {
                                 />
                                 <Button onClick={handleAddTask} disabled={!selectedSubjectName}>Add</Button>
                             </div>
-                            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleTaskDragEnd}>
                                 <SortableContext items={tasks} strategy={verticalListSortingStrategy}>
                                     <div className="space-y-2 rounded-md border p-2 min-h-24">
                                         {tasks.length > 0 ? tasks.map(task => (
