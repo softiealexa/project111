@@ -19,6 +19,7 @@ import { AddProfileDialog } from './add-profile-dialog';
 import { CustomizationSheet } from './customization-sheet';
 import Image from 'next/image';
 import { Sheet } from './ui/sheet';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
 export default function Navbar() {
   const { profiles, activeProfile, switchProfile, exportData, importData, user, signOutUser, mode, setMode } = useData();
@@ -91,6 +92,18 @@ export default function Navbar() {
                       accept=".json"
                   />
                   
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" onClick={() => setIsCustomizationOpen(true)} disabled={!activeProfile}>
+                        <SlidersHorizontal className="h-5 w-5" />
+                        <span className="sr-only">Customization</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Customization</p>
+                    </TooltipContent>
+                  </Tooltip>
+
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="relative h-10 w-10 rounded-full">
