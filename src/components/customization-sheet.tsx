@@ -162,16 +162,16 @@ export function CustomizationSheet() {
 
     const handleAddTask = () => {
         if (!selectedSubject) return;
-        const trimmedName = newTaskName.trim();
+        const trimmedName = newTaskName.trim().toLowerCase();
         if (!trimmedName) {
             toast({ title: "Error", description: "Task name cannot be empty.", variant: "destructive" });
             return;
         }
-        if (tasks.some(task => task.toLowerCase() === trimmedName.toLowerCase())) {
+        if (tasks.some(task => task.toLowerCase() === trimmedName)) {
             toast({ title: "Error", description: "This task already exists.", variant: "destructive" });
             return;
         }
-        updateTasks(selectedSubject.name, [...tasks, trimmedName]);
+        updateTasks(selectedSubject.name, [...tasks, newTaskName.trim()]);
         setNewTaskName('');
     };
 
@@ -345,31 +345,17 @@ export function CustomizationSheet() {
                         {/* Sub-section for Chapters */}
                         <div className="space-y-2">
                             <Label>Manage Chapters & Lectures</Label>
-                             <div className="flex gap-2">
-                                <AddChapterDialog
-                                    onAddChapter={(newChapter) => addChapter(selectedSubjectName!, newChapter)}
-                                    existingChapterNames={selectedSubject?.chapters.map(c => c.name) || []}
-                                >
-                                    <Button variant="outline" className="w-full justify-center" disabled={!selectedSubjectName}>
-                                        <Plus className="mr-2 h-4 w-4" /> Add Chapter
-                                    </Button>
-                                </AddChapterDialog>
-                                <RemoveChapterDialog 
-                                    chapters={selectedSubject?.chapters || []} 
-                                    onConfirm={(chapterName) => removeChapter(selectedSubjectName!, chapterName)}
-                                >
-                                    <Button 
-                                        variant="outline" 
-                                        className="w-full justify-center text-destructive hover:text-destructive focus:text-destructive"
-                                        disabled={!selectedSubjectName || (selectedSubject?.chapters?.length ?? 0) === 0}
-                                    >
-                                        <Trash2 className="mr-2 h-4 w-4" /> Remove Chapter
-                                    </Button>
-                                </RemoveChapterDialog>
-                            </div>
+                             <AddChapterDialog
+                                onAddChapter={(newChapter) => addChapter(selectedSubjectName!, newChapter)}
+                                existingChapterNames={selectedSubject?.chapters.map(c => c.name) || []}
+                            >
+                                <Button variant="outline" className="w-full justify-center" disabled={!selectedSubjectName}>
+                                    <Plus className="mr-2 h-4 w-4" /> Add Chapter
+                                </Button>
+                            </AddChapterDialog>
                             <div className="space-y-2 rounded-md border p-2 min-h-24">
                                 {selectedSubject && selectedSubject.chapters.length > 0 ? selectedSubject.chapters.map((chapter: Chapter) => (
-                                    <div key={chapter.name} className="flex items-center justify-between gap-2 p-1">
+                                    <div key={chapter.name} className="flex items-center justify-between gap-2 p-1 group">
                                         <Label htmlFor={`lectures-${chapter.name}`} className="flex-1 truncate text-sm font-normal">
                                             {chapter.name}
                                         </Label>
@@ -388,6 +374,14 @@ export function CustomizationSheet() {
                                             }}
                                             onBlur={() => handleLectureCountChange(chapter.name)}
                                         />
+                                        <RemoveChapterDialog 
+                                            chapter={chapter}
+                                            onConfirm={() => removeChapter(selectedSubjectName!, chapter.name)}
+                                        >
+                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity" aria-label={`Remove chapter: ${chapter.name}`}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </RemoveChapterDialog>
                                     </div>
                                 )) : (
                                     <p className="text-sm text-muted-foreground text-center p-4">No chapters in this subject.</p>
