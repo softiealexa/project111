@@ -11,7 +11,7 @@ import {
   SheetFooter
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Trash2, Plus, GripVertical, Check } from 'lucide-react';
+import { Trash2, Plus, GripVertical, Check, Pencil, Edit } from 'lucide-react';
 import { AddSubjectDialog } from './add-subject-dialog';
 import { RemoveSubjectDialog } from './remove-subject-dialog';
 import { AddChapterDialog } from './add-chapter-dialog';
@@ -39,7 +39,8 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-
+import { getIconComponent } from '@/lib/icons';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
 function SortableTaskItem({ id, task, onRemove }: { id: string, task: string, onRemove: () => void }) {
     const {
@@ -58,11 +59,19 @@ function SortableTaskItem({ id, task, onRemove }: { id: string, task: string, on
     
     return (
         <div ref={setNodeRef} style={style} className={cn("flex items-center gap-2 p-2 rounded-md bg-muted/50", isDragging && "shadow-lg z-10")}>
-            <div {...listeners} {...attributes} className="cursor-grab touch-none p-1">
-                <GripVertical className="h-5 w-5 text-muted-foreground" />
+            <div {...listeners} {...attributes} className="cursor-grab touch-none p-1 text-muted-foreground hover:text-foreground">
+                <GripVertical className="h-5 w-5" />
             </div>
             <span className="flex-1">{task}</span>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={onRemove}>
+             <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" disabled>
+                        <Pencil className="h-4 w-4" />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>Rename feature coming soon</p></TooltipContent>
+            </Tooltip>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={onRemove}>
                 <Trash2 className="h-4 w-4" />
             </Button>
         </div>
@@ -70,13 +79,13 @@ function SortableTaskItem({ id, task, onRemove }: { id: string, task: string, on
 }
 
 const themes = [
-    { name: 'default', label: 'Default', color: 'hsl(180 90% 45%)' },
-    { name: 'zinc', label: 'Zinc', color: 'hsl(240 5.9% 10%)' },
+    { name: 'default', label: 'Teal', color: 'hsl(180 90% 45%)' },
+    { name: 'zinc', label: 'Zinc', color: 'hsl(240 5.2% 95.1%)' },
     { name: 'rose', label: 'Rose', color: 'hsl(346.8 77.2% 49.8%)' },
     { name: 'blue', label: 'Blue', color: 'hsl(221.2 83.2% 53.3%)' },
     { name: 'green', label: 'Green', color: 'hsl(142.1 76.2% 36.3%)' },
-    { name: 'violet', label: 'Violet', color: '#a78bfa' },
-    { name: 'lavender', label: 'Lavender', color: '#e9d8fd' },
+    { name: 'violet', label: 'Violet', color: 'hsl(255 92% 76%)' },
+    { name: 'lavender', label: 'Lavender', color: 'hsl(267 84% 92%)' },
 ];
 
 export function CustomizationSheet() {
@@ -87,7 +96,6 @@ export function CustomizationSheet() {
     const [newTaskName, setNewTaskName] = useState('');
 
     useEffect(() => {
-        // When the panel opens, sync the selected subject with the active one from the dashboard
         if (activeProfile) {
             setSelectedSubjectName(activeSubjectName);
         }
@@ -104,7 +112,7 @@ export function CustomizationSheet() {
             return;
         }
         if (tasks.includes(trimmedName)) {
-            toast({ title: "Error", description: "This task already exists for this subject.", variant: "destructive" });
+            toast({ title: "Error", description: "This task already exists.", variant: "destructive" });
             return;
         }
         updateTasks(selectedSubject.name, [...tasks, trimmedName]);
@@ -143,14 +151,49 @@ export function CustomizationSheet() {
         <SheetContent className="w-full sm:max-w-md flex flex-col">
             <SheetHeader className="pr-6">
                 <SheetTitle>Customization</SheetTitle>
-                <SheetDescription>Manage your subjects, chapters, and tasks for the '{activeProfile.name}' profile.</SheetDescription>
+                <SheetDescription>Manage subjects, themes, and more for the '{activeProfile.name}' profile.</SheetDescription>
             </SheetHeader>
             <ScrollArea className="flex-1 -mx-6 px-6">
-                <div className="py-4 space-y-6">
-                    {/* Section for Subjects */}
-                    <div className="space-y-3">
-                        <h3 className="font-medium text-foreground">Manage Subjects</h3>
-                        <div className="flex flex-col sm:flex-row gap-2">
+                <div className="py-4 space-y-8">
+
+                    {/* Section: General */}
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-medium text-muted-foreground px-2">General</h3>
+                        <div className='px-2 space-y-4'>
+                            <div className="space-y-2">
+                                <Label>Theme</Label>
+                                <div className="grid grid-cols-5 gap-3">
+                                    {themes.map((t) => (
+                                       <Tooltip key={t.name}>
+                                            <TooltipTrigger asChild>
+                                                <button
+                                                    onClick={() => setTheme(t.name)}
+                                                    className={cn(
+                                                        "h-10 w-10 rounded-full border-2 flex items-center justify-center transition-all",
+                                                        theme === t.name ? "border-primary ring-2 ring-primary ring-offset-2 ring-offset-background" : "border-muted"
+                                                    )}
+                                                    aria-label={`Select ${t.label} theme`}
+                                                >
+                                                    <span className="h-6 w-6 rounded-full border" style={{ backgroundColor: t.color }} />
+                                                    {theme === t.name && (
+                                                        <Check className="h-4 w-4 absolute text-primary-foreground mix-blend-difference" />
+                                                    )}
+                                                </button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>{t.label}</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Section: Subjects */}
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-medium text-muted-foreground px-2">Manage Profile</h3>
+                        <div className="space-y-2">
                             <AddSubjectDialog 
                                 onAddSubject={addSubject}
                                 existingSubjects={activeProfile.subjects.map(s => s.name)}
@@ -159,73 +202,57 @@ export function CustomizationSheet() {
                                     <Plus className="mr-2 h-4 w-4" /> Add Subject
                                 </Button>
                             </AddSubjectDialog>
-                            <RemoveSubjectDialog 
-                                subjects={activeProfile.subjects} 
-                                onConfirm={(subjectName) => {
-                                    removeSubject(subjectName);
-                                    if (selectedSubjectName === subjectName) {
-                                        setSelectedSubjectName(null);
-                                    }
-                                }}
+                            <div className="rounded-md border">
+                                {activeProfile.subjects.length > 0 ? activeProfile.subjects.map(subject => {
+                                    const Icon = getIconComponent(subject.icon);
+                                    return (
+                                        <div key={subject.name} className="flex items-center gap-2 p-2 border-b last:border-b-0">
+                                            <div className="cursor-not-allowed p-1 text-muted-foreground/50"><GripVertical className="h-5 w-5" /></div>
+                                            <Icon className="h-5 w-5 text-muted-foreground" />
+                                            <span className="flex-1">{subject.name}</span>
+                                            <RemoveSubjectDialog subjects={[subject]} onConfirm={() => removeSubject(subject.name)}>
+                                                 <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </RemoveSubjectDialog>
+                                        </div>
+                                    )
+                                }) : (
+                                    <p className="text-sm text-muted-foreground text-center p-4">No subjects yet.</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    <Separator />
+                    
+                    {/* Section: Edit Subject Details */}
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-medium text-muted-foreground px-2">Edit Subject Details</h3>
+                         <div className="space-y-2">
+                            <Label htmlFor="subject-select">Select Subject</Label>
+                            <Select 
+                                value={selectedSubjectName || ""} 
+                                onValueChange={(value) => setSelectedSubjectName(value)}
+                                disabled={activeProfile.subjects.length === 0}
                             >
-                                <Button 
-                                    variant="outline" 
-                                    className="w-full justify-center text-destructive hover:text-destructive focus:text-destructive"
-                                    disabled={activeProfile.subjects.length === 0}
-                                >
-                                    <Trash2 className="mr-2 h-4 w-4" /> Remove Subject
-                                </Button>
-                            </RemoveSubjectDialog>
+                                <SelectTrigger id="subject-select">
+                                    <SelectValue placeholder="Select a subject to edit" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {activeProfile.subjects.map(subject => (
+                                        <SelectItem key={subject.name} value={subject.name}>{subject.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
-                    </div>
-
-                    <Separator />
-                     {/* Section for Theme */}
-                    <div className="space-y-3">
-                        <h3 className="font-medium text-foreground">Select Theme</h3>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                            {themes.map((t) => (
-                                <Button
-                                    key={t.name}
-                                    variant="outline"
-                                    className={cn("justify-start h-auto py-2", theme === t.name && "border-primary ring-1 ring-primary")}
-                                    onClick={() => setTheme(t.name)}
-                                >
-                                    <span className="flex items-center gap-2">
-                                        <span className="h-5 w-5 rounded-full border" style={{ backgroundColor: t.color }} />
-                                        <span>{t.label}</span>
-                                    </span>
-                                    {theme === t.name && <Check className="ml-auto h-4 w-4" />}
-                                </Button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <Separator />
-
-                    <div className="space-y-3">
-                        <Label htmlFor="subject-select" className="font-medium text-foreground">Editing Subject</Label>
-                        <Select 
-                            value={selectedSubjectName || ""} 
-                            onValueChange={(value) => setSelectedSubjectName(value)}
-                            disabled={activeProfile.subjects.length === 0}
-                        >
-                            <SelectTrigger id="subject-select">
-                                <SelectValue placeholder="Select a subject to edit" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {activeProfile.subjects.map(subject => (
-                                    <SelectItem key={subject.name} value={subject.name}>{subject.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
                     </div>
                     
                     <div className={cn("space-y-6", !selectedSubject && "opacity-50 pointer-events-none")}>
-                        {/* Section for Chapters */}
-                        <div className="space-y-3">
-                            <h3 className="font-medium text-foreground">Manage Chapters</h3>
-                            <div className="flex flex-col sm:flex-row gap-2">
+                        {/* Sub-section for Chapters */}
+                        <div className="space-y-2">
+                            <Label>Manage Chapters</Label>
+                             <div className="flex gap-2">
                                 <AddChapterDialog onAddChapter={(newChapter) => addChapter(selectedSubjectName!, newChapter)}>
                                     <Button variant="outline" className="w-full justify-center" disabled={!selectedSubjectName}>
                                         <Plus className="mr-2 h-4 w-4" /> Add Chapter
@@ -246,36 +273,33 @@ export function CustomizationSheet() {
                             </div>
                         </div>
 
-                        <Separator />
-
-                        {/* Section for Tasks */}
+                        {/* Sub-section for Tasks */}
                         <div className="space-y-3">
-                            <h3 className="font-medium text-foreground">Manage Tasks</h3>
-                            <div className="space-y-2">
-                                <Label htmlFor="new-task">Add New Task</Label>
-                                <div className="flex gap-2">
-                                    <Input 
-                                        id="new-task" 
-                                        placeholder="e.g. Revision" 
-                                        value={newTaskName}
-                                        onChange={(e) => setNewTaskName(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
-                                        disabled={!selectedSubjectName}
-                                    />
-                                    <Button onClick={handleAddTask} disabled={!selectedSubjectName}>Add</Button>
-                                </div>
+                            <Label>Manage Repeatable Tasks</Label>
+                            <div className="flex gap-2">
+                                <Input 
+                                    id="new-task" 
+                                    placeholder="e.g. Revision" 
+                                    value={newTaskName}
+                                    onChange={(e) => setNewTaskName(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
+                                    disabled={!selectedSubjectName}
+                                />
+                                <Button onClick={handleAddTask} disabled={!selectedSubjectName}>Add</Button>
                             </div>
                             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                                 <SortableContext items={tasks} strategy={verticalListSortingStrategy}>
-                                    <div className="space-y-2">
-                                        {tasks.map(task => (
+                                    <div className="space-y-2 rounded-md border p-2 min-h-24">
+                                        {tasks.length > 0 ? tasks.map(task => (
                                         <SortableTaskItem 
                                                 key={task} 
                                                 id={task} 
                                                 task={task} 
                                                 onRemove={() => handleRemoveTask(task)} 
                                             />
-                                        ))}
+                                        )) : (
+                                            <p className="text-sm text-muted-foreground text-center p-4">No repeatable tasks.</p>
+                                        )}
                                     </div>
                                 </SortableContext>
                             </DndContext>
