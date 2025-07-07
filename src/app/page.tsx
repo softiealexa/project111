@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -5,7 +6,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Book, ArrowRight, BarChart3, Timer, Settings, Cloud } from 'lucide-react';
 import { useData } from '@/contexts/data-context';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/loading-spinner';
@@ -13,6 +14,11 @@ import { LoadingSpinner } from '@/components/loading-spinner';
 export default function LandingPage() {
   const { user, loading } = useData();
   const router = useRouter();
+  const [currentYear, setCurrentYear] = useState<number | null>(null);
+
+  useEffect(() => {
+    setCurrentYear(new Date().getFullYear());
+  }, []);
 
   useEffect(() => {
     if (!loading && user) {
@@ -147,7 +153,7 @@ export default function LandingPage() {
             <div className="flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0">
                 <Book className="h-6 w-6 text-primary" />
                 <p className="text-center text-sm leading-loose md:text-left">
-                    Built for focused learners. &copy; {new Date().getFullYear()} TrackAcademic.
+                    Built for focused learners. &copy; {currentYear} TrackAcademic.
                 </p>
             </div>
          </div>

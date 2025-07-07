@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useData } from '@/contexts/data-context';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -39,6 +39,11 @@ const ImportantLinks = dynamic(() => import("@/components/important-links"), {
 
 export default function DashboardPage() {
   const { activeProfile, activeSubjectName, setActiveSubjectName } = useData();
+  const [currentYear, setCurrentYear] = useState<number | null>(null);
+
+  useEffect(() => {
+    setCurrentYear(new Date().getFullYear());
+  }, []);
 
   useEffect(() => {
     if (activeProfile && activeProfile.subjects.length > 0 && !activeSubjectName) {
@@ -177,7 +182,7 @@ export default function DashboardPage() {
       </div>
 
       <footer className="w-full max-w-5xl px-4 py-6 mt-8 text-center text-sm text-muted-foreground">
-        <p>Built for focused learners. &copy; {new Date().getFullYear()} TrackAcademic.</p>
+        <p>Built for focused learners. &copy; {currentYear} TrackAcademic.</p>
       </footer>
     </div>
   );
