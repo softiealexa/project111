@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { Chapter, Subject } from "@/lib/types";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle2, Circle, GripVertical, ChevronDown } from 'lucide-react';
+import { GripVertical, ChevronDown } from 'lucide-react';
 import { useData } from '@/contexts/data-context';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -111,9 +111,9 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
   const isCompleted = progress === 100;
 
   const progressColorClass = useMemo(() => {
-    if (progress <= 33) return 'bg-progress-beginner';
-    if (progress <= 66) return 'bg-progress-intermediate';
-    return 'bg-progress-advanced';
+    if (progress < 25) return 'bg-progress-beginner'; // Red
+    if (progress <= 75) return 'bg-progress-intermediate'; // Yellow
+    return 'bg-progress-advanced'; // Green
   }, [progress]);
 
 
@@ -122,17 +122,15 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
        <Card className={cn(
           "overflow-hidden border bg-card transition-all group",
           "hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10",
-          isCompleted && "bg-primary/10 border-primary/30",
           isDragging && "border-primary/50"
       )}>
         <AccordionItem value={`item-${index}`} className="border-b-0">
           <AccordionPrimitive.Header className="group-hover:bg-primary/5">
             <AccordionPrimitive.Trigger className="flex w-full items-center justify-between gap-4 p-4 text-left hover:no-underline [&[data-state=open]>svg.accordion-chevron]:rotate-180">
-              <div className="flex min-w-0 flex-1 items-center gap-2">
+              <div className="flex min-w-0 flex-1 items-center gap-3">
                  <div {...listeners} className="cursor-grab p-2 -ml-2 text-muted-foreground hover:text-foreground touch-none">
                     <GripVertical className="h-5 w-5" />
                  </div>
-                 {isCompleted ? <CheckCircle2 className="h-6 w-6 text-primary" /> : <div className="h-6 w-6 p-0.5"><Circle className="h-5 w-5 text-muted-foreground"/></div>}
                 <div className="min-w-0 flex-1">
                   <h3 className="truncate font-headline text-lg font-medium text-foreground">
                     {chapter.name}
@@ -142,9 +140,17 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                  <span className="hidden w-20 text-right text-sm font-medium text-muted-foreground sm:inline-block">{completedTasks} / {totalTasks}</span>
-                  <Progress value={progress} className="hidden w-32 sm:inline-block" indicatorClassName={progressColorClass} />
+              <div className="flex items-center gap-4 sm:w-1/3">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                       <div className="w-full">
+                         <Progress value={progress} indicatorClassName={progressColorClass} />
+                       </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{completedTasks} of {totalTasks} tasks completed ({Math.round(progress)}%)</p>
+                    </TooltipContent>
+                  </Tooltip>
                   <ChevronDown className="accordion-chevron h-4 w-4 shrink-0 transition-transform duration-200" />
               </div>
             </AccordionPrimitive.Trigger>
