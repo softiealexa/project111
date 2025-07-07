@@ -35,7 +35,7 @@ interface DataContextType {
   updateChapter: (subjectName: string, chapterName: string, newLectureCount: number) => void;
   updateTasks: (subjectName: string, newTasks: string[]) => void;
   updatePlannerNote: (dateKey: string, note: string) => void;
-  addNote: (title: string, content: string) => void;
+  addNote: (title: string, content: string) => Note | undefined;
   updateNote: (note: Note) => void;
   deleteNote: (noteId: string) => void;
   addLink: (title: string, url: string) => void;
@@ -317,10 +317,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const addProfile = useCallback((name: string) => {
     const newProfile: Profile = { name, subjects: [], todos: [] };
     const newProfiles = [...profiles, newProfile];
-    setProfiles(newProfiles);
-    setActiveProfileName(name);
-    saveData(newProfiles, name);
-  }, [profiles, saveData]);
+    updateProfiles(newProfiles, name);
+  }, [profiles, updateProfiles]);
 
   const switchProfile = useCallback((name: string) => {
     setActiveProfileName(name);
@@ -443,11 +441,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
         return p;
     });
-    setProfiles(newProfiles);
-    saveData(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, saveData]);
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
 
-  const addNote = useCallback((title: string, content: string) => {
+  const addNote = useCallback((title: string, content: string): Note | undefined => {
     if (!activeProfileName) return;
     const newNote: Note = {
         id: crypto.randomUUID(),
@@ -462,9 +459,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
         return p;
     });
-    setProfiles(newProfiles);
-    saveData(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, saveData]);
+    updateProfiles(newProfiles, activeProfileName);
+    return newNote;
+  }, [activeProfileName, profiles, updateProfiles]);
 
   const updateNote = useCallback((updatedNote: Note) => {
     if (!activeProfileName) return;
@@ -475,9 +472,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
         return p;
     });
-    setProfiles(newProfiles);
-    saveData(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, saveData]);
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
 
   const deleteNote = useCallback((noteId: string) => {
     if (!activeProfileName) return;
@@ -488,9 +484,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
         return p;
     });
-    setProfiles(newProfiles);
-    saveData(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, saveData]);
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
 
   const addLink = useCallback((title: string, url: string) => {
     if (!activeProfileName) return;
@@ -506,9 +501,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
       return p;
     });
-    setProfiles(newProfiles);
-    saveData(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, saveData]);
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
 
   const updateLink = useCallback((updatedLink: ImportantLink) => {
     if (!activeProfileName) return;
@@ -519,9 +513,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
       return p;
     });
-    setProfiles(newProfiles);
-    saveData(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, saveData]);
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
 
   const deleteLink = useCallback((linkId: string) => {
     if (!activeProfileName) return;
@@ -532,9 +525,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
       return p;
     });
-    setProfiles(newProfiles);
-    saveData(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, saveData]);
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
 
   const addTodo = useCallback((text: string, dueDate: Date | undefined, priority: Priority) => {
     if (!activeProfileName) return;
@@ -552,9 +544,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
       return p;
     });
-    setProfiles(newProfiles);
-    saveData(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, saveData]);
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
 
   const updateTodo = useCallback((updatedTodo: Todo) => {
     if (!activeProfileName) return;
@@ -565,9 +556,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
       return p;
     });
-    setProfiles(newProfiles);
-    saveData(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, saveData]);
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
 
   const deleteTodo = useCallback((todoId: string) => {
     if (!activeProfileName) return;
@@ -578,9 +568,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
       return p;
     });
-    setProfiles(newProfiles);
-    saveData(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, saveData]);
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
 
   const setTodos = useCallback((todos: Todo[]) => {
     if (!activeProfileName) return;
@@ -590,9 +579,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
       return p;
     });
-    setProfiles(newProfiles);
-    saveData(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, saveData]);
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
   
   const exportData = useCallback(() => {
     if (typeof window === 'undefined' || profiles.length === 0) {
@@ -651,7 +639,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     exportData, importData, signOutUser,
     theme, setTheme, mode, setMode,
   }), [
-    user, loading, profiles, activeProfile, activeSubjectName,
+    user, loading, profiles, activeProfile, activeSubjectName, setActiveSubjectName,
     addProfile, switchProfile, updateSubjects, addSubject, removeSubject, addChapter, removeChapter,
     updateChapter, updateTasks, updatePlannerNote, addNote, updateNote, deleteNote, addLink, updateLink, deleteLink,
     addTodo, updateTodo, deleteTodo, setTodos,
@@ -677,5 +665,7 @@ export function useData() {
   }
   return context;
 }
+
+    
 
     

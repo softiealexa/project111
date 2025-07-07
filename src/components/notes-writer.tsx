@@ -64,13 +64,14 @@ export default function NotesWriter() {
         });
     } else {
         // Add new note
-        addNote(title, content);
+        const newNote = addNote(title, content);
+        if (newNote) {
+            setActiveNote(newNote);
+        }
         toast({
             title: 'Note Saved',
             description: `Your note "${title || 'Untitled'}" has been saved.`,
         });
-        // Clear the form for the next note by setting activeNote to null
-        setActiveNote(null);
     }
   };
   
@@ -108,7 +109,7 @@ export default function NotesWriter() {
         <CardHeader>
              <div className="flex justify-between items-center">
                 <CardTitle>{activeNote ? 'Edit Note' : 'Create Note'}</CardTitle>
-                <Button variant="outline" size="sm" onClick={handleNewNote} disabled={!activeNote && !noteIsDirty}>
+                <Button variant="outline" size="sm" onClick={handleNewNote}>
                     <Plus className="mr-2 h-4 w-4" /> New Note
                 </Button>
             </div>
@@ -135,7 +136,7 @@ export default function NotesWriter() {
                     />
                 </div>
                 <div className="flex gap-2">
-                    <Button onClick={handleSave}>
+                    <Button onClick={handleSave} disabled={!noteIsDirty}>
                         {activeNote ? 'Update Note' : 'Save New Note'}
                     </Button>
                 </div>
@@ -181,3 +182,5 @@ export default function NotesWriter() {
     </div>
   );
 }
+
+    
