@@ -125,20 +125,18 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
           isDragging && "border-primary/50"
       )}>
         <AccordionItem value={`item-${index}`} className="border-b-0">
-          <AccordionPrimitive.Header className="group-hover:bg-primary/5">
-            <AccordionPrimitive.Trigger className="flex w-full items-center justify-between gap-4 p-4 text-left hover:no-underline [&[data-state=open]>svg.accordion-chevron]:rotate-180">
-              <div className="flex min-w-0 flex-1 items-center gap-3">
-                 <button {...listeners} aria-label="Drag to reorder chapter" className="cursor-grab p-2 -ml-2 text-muted-foreground hover:text-foreground touch-none">
-                    <GripVertical className="h-5 w-5" />
-                 </button>
-                <div className="min-w-0 flex-1">
-                  <h3 className="truncate font-headline text-lg font-medium text-foreground">
-                    {chapter.name}
-                  </h3>
-                  <p className={cn("text-sm text-muted-foreground", isCompleted && "text-primary/80")}>
-                    {chapter.lectureCount} lectures
-                  </p>
-                </div>
+          <AccordionPrimitive.Header className="flex w-full items-center group-hover:bg-primary/5">
+            <button {...listeners} aria-label="Drag to reorder chapter" className="cursor-grab pl-4 pr-2 py-4 text-muted-foreground hover:text-foreground touch-none">
+              <GripVertical className="h-5 w-5" />
+            </button>
+            <AccordionPrimitive.Trigger className="flex flex-1 items-center justify-between gap-4 py-4 pr-4 text-left hover:no-underline [&[data-state=open]>svg.accordion-chevron]:rotate-180">
+              <div className="min-w-0 flex-1">
+                <h3 className="truncate font-headline text-lg font-medium text-foreground">
+                  {chapter.name}
+                </h3>
+                <p className={cn("text-sm text-muted-foreground", isCompleted && "text-primary/80")}>
+                  {chapter.lectureCount} lectures
+                </p>
               </div>
               <div className="flex items-center gap-4 sm:w-2/5">
                  <div className="flex w-full items-center gap-2 text-sm text-muted-foreground">
