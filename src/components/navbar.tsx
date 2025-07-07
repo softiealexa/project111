@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -47,8 +48,16 @@ export default function Navbar() {
     router.push('/');
   }
 
+  const handleCustomizationStateChange = (open: boolean) => {
+    if (!open && document.activeElement instanceof HTMLElement) {
+      // When closing, blur any active element to ensure onBlur save handlers trigger.
+      document.activeElement.blur();
+    }
+    setIsCustomizationOpen(open);
+  };
+
   return (
-    <Sheet open={isCustomizationOpen} onOpenChange={setIsCustomizationOpen}>
+    <Sheet open={isCustomizationOpen} onOpenChange={handleCustomizationStateChange}>
       <header suppressHydrationWarning className="bg-background/80 border-b border-border/50 backdrop-blur-sm sticky top-0 z-50">
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
