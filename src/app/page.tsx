@@ -10,11 +10,27 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/loading-spinner';
+import { cn } from '@/lib/utils';
 
 export default function LandingPage() {
   const { user, loading } = useData();
   const router = useRouter();
   const [currentYear, setCurrentYear] = useState<number | null>(null);
+
+  const images = [
+    { src: 'https://placehold.co/600x400.png', alt: 'TrackAcademic Dashboard', hint: 'dashboard study' },
+    { src: 'https://placehold.co/600x400.png', alt: 'Study Planner View', hint: 'planner calendar' },
+    { src: 'https://placehold.co/600x400.png', alt: 'Progress Analytics Chart', hint: 'charts analytics' }
+  ];
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prevIndex) => (prevIndex + 1) % images.length);
+    }, 3000); // Change image every 3 seconds
+
+    return () => clearInterval(interval);
+  }, [images.length]);
 
   useEffect(() => {
     setCurrentYear(new Date().getFullYear());
@@ -77,15 +93,23 @@ export default function LandingPage() {
                     </div>
                 </div>
                 <div className="flex justify-center">
-                    <Image
-                        src="/og-image.png"
-                        alt="TrackAcademic Dashboard"
-                        width={600}
-                        height={400}
-                        className="rounded-xl shadow-2xl shadow-primary/10 border"
-                        data-ai-hint="dashboard study"
-                        priority
-                    />
+                    <div className="relative w-[600px] h-[400px]">
+                        {images.map((image, index) => (
+                            <Image
+                                key={image.src + index}
+                                src={image.src}
+                                alt={image.alt}
+                                width={600}
+                                height={400}
+                                className={cn(
+                                    "absolute inset-0 rounded-xl shadow-2xl shadow-primary/10 border transition-opacity duration-1000 ease-in-out",
+                                    index === currentImageIndex ? "opacity-100" : "opacity-0"
+                                )}
+                                data-ai-hint={image.hint}
+                                priority={index === 0}
+                            />
+                        ))}
+                    </div>
                 </div>
             </div>
         </section>
