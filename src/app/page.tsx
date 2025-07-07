@@ -20,7 +20,9 @@ export default function LandingPage() {
   const images = [
     { src: '/og-image.png', alt: 'TrackAcademic Dashboard', hint: 'dashboard study' },
     { src: '/planner-view.png', alt: 'Study Planner View', hint: 'planner calendar' },
-    { src: '/progress-chart.png', alt: 'Progress Analytics Chart', hint: 'charts analytics' }
+    { src: '/progress-chart.png', alt: 'Progress Analytics Chart', hint: 'charts analytics' },
+    { src: '/question.png', alt: 'Question Timer in Action', hint: 'timer quiz' },
+    { src: '/todo-list.png', alt: 'To-Do List with tasks', hint: 'checklist tasks' }
   ];
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
