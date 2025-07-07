@@ -111,7 +111,7 @@ function SortableSubjectItem({ id, subject, onRemove }: { id: string, subject: S
                 </TooltipTrigger>
                 <TooltipContent><p>Rename feature coming soon</p></TooltipContent>
             </Tooltip>
-            <RemoveSubjectDialog onConfirm={onRemove}>
+            <RemoveSubjectDialog subject={subject} onConfirm={onRemove}>
                 <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" aria-label={`Remove subject: ${subject.name}`}>
                     <Trash2 className="h-4 w-4" />
                 </Button>
