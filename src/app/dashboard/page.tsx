@@ -55,7 +55,7 @@ export default function DashboardPage() {
       <div className="w-full max-w-5xl flex-1 px-4 pt-8">
         {activeProfile.subjects.length > 0 ? (
           <Tabs defaultValue="subjects" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsList data-tour="main-tabs-list" className="grid w-full grid-cols-3 mb-6">
               <TabsTrigger value="subjects">My Subjects</TabsTrigger>
               <TabsTrigger value="progress">Progress Overview</TabsTrigger>
               <TabsTrigger value="tools">Tools</TabsTrigger>
@@ -65,7 +65,7 @@ export default function DashboardPage() {
               <Tabs value={activeSubjectName ?? ''} onValueChange={setActiveSubjectName} className="w-full">
                 <div className="flex items-center justify-between gap-4">
                   <ScrollArea className="flex-1 whitespace-nowrap rounded-md pb-2.5">
-                    <TabsList className={cn(
+                    <TabsList data-tour="subject-tabs-list" className={cn(
                       "bg-muted h-auto transition-all duration-300",
                       hasMoreThanFourSubjects ? 'justify-start' : 'grid w-full grid-cols-4 sm:justify-center'
                     )}>

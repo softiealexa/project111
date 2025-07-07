@@ -49,4 +49,5 @@ export interface Profile {
   importantLinks?: ImportantLink[];
   todos?: Todo[];
   progressHistory?: ProgressPoint[];
+  hasCompletedOnboarding?: boolean;
 }
