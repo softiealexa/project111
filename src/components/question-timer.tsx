@@ -236,11 +236,11 @@ export default function QuestionTimer() {
                       <p className="text-6xl font-bold font-mono tracking-tighter">{currentQuestion}/{numQuestions}</p>
                   </div>
                 )}
-                <div className="text-center font-mono text-7xl font-bold tracking-tighter w-full bg-muted rounded-lg py-4">
+                <div className="text-center font-mono text-7xl font-bold tracking-tighter w-full rounded-lg py-4">
                   {formatTime(time)}
                 </div>
                 <div className="text-center space-y-2">
-                   <p className="text-xl font-medium">{getStatusText()}</p>
+                   <p className={cn("text-xl font-medium", isTiming && "text-primary")}>{getStatusText()}</p>
                    <p className="text-sm text-muted-foreground">[ <span className="font-semibold">Space Bar</span> ]</p>
                 </div>
                 <Separator />
