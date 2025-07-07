@@ -80,6 +80,7 @@ export default function NotesWriter() {
   const [activeNote, setActiveNote] = useState<Note | null>(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [cardOrder, setCardOrder] = useState(['create', 'saved']);
   
   const savedNotes = activeProfile?.notes || [];
 
@@ -159,7 +160,7 @@ export default function NotesWriter() {
       setActiveNote(note);
   };
 
-  const sensors = useSensors(
+  const noteSensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 5,
@@ -167,8 +168,17 @@ export default function NotesWriter() {
     }),
     useSensor(KeyboardSensor)
   );
+  
+  const cardSensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor)
+  );
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleNoteDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
       const oldIndex = savedNotes.findIndex((note) => note.id === active.id);
@@ -178,13 +188,29 @@ export default function NotesWriter() {
       }
     }
   };
-
-  return (
-    <div className="grid gap-6">
+  
+  const handleCardDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+        setCardOrder((items) => {
+            const oldIndex = items.indexOf(active.id as string);
+            const newIndex = items.indexOf(over.id as string);
+            return arrayMove(items, oldIndex, newIndex);
+        });
+    }
+  };
+  
+  const sections: Record<string, (listeners: any) => JSX.Element> = {
+    create: (dragListeners) => (
       <Card>
         <CardHeader>
              <div className="flex justify-between items-center">
-                <CardTitle>{activeNote ? 'Edit Note' : 'Create Note'}</CardTitle>
+                <div className="flex items-center gap-2">
+                    <button {...dragListeners} aria-label="Drag to reorder section" className="cursor-grab touch-none p-1 -ml-2 text-muted-foreground hover:text-foreground">
+                        <GripVertical className="h-5 w-5" />
+                    </button>
+                    <CardTitle>{activeNote ? 'Edit Note' : 'Create Note'}</CardTitle>
+                </div>
                 <Button variant="outline" size="sm" onClick={handleNewNote}>
                     <Plus className="mr-2 h-4 w-4" /> New Note
                 </Button>
@@ -224,16 +250,24 @@ export default function NotesWriter() {
             </div>
         </CardContent>
       </Card>
-      
+    ),
+    saved: (dragListeners) => (
       <Card>
         <CardHeader>
-            <CardTitle>Saved Notes</CardTitle>
-            <CardDescription>Your previously saved notes. Click to edit, or drag to reorder.</CardDescription>
+            <div className="flex items-center gap-2">
+                 <button {...dragListeners} aria-label="Drag to reorder section" className="cursor-grab touch-none p-1 -ml-2 text-muted-foreground hover:text-foreground">
+                    <GripVertical className="h-5 w-5" />
+                </button>
+                <div>
+                    <CardTitle>Saved Notes</CardTitle>
+                    <CardDescription>Your previously saved notes. Click to edit, or drag to reorder.</CardDescription>
+                </div>
+            </div>
         </CardHeader>
         <CardContent>
             <ScrollArea className="h-[400px] pr-4">
                 {savedNotes.length > 0 ? (
-                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                    <DndContext sensors={noteSensors} collisionDetection={closestCenter} onDragEnd={handleNoteDragEnd}>
                       <SortableContext items={savedNotes.map(n => n.id)} strategy={verticalListSortingStrategy}>
                         <div className="space-y-3">
                             {savedNotes.map(note => (
@@ -255,6 +289,37 @@ export default function NotesWriter() {
             </ScrollArea>
         </CardContent>
       </Card>
-    </div>
+    ),
+  };
+
+  return (
+     <DndContext sensors={cardSensors} collisionDetection={closestCenter} onDragEnd={handleCardDragEnd}>
+      <SortableContext items={cardOrder} strategy={verticalListSortingStrategy}>
+        <div className="grid gap-6">
+          {cardOrder.map(id => {
+            const {
+              attributes,
+              listeners,
+              setNodeRef,
+              transform,
+              transition,
+              isDragging,
+            } = useSortable({ id });
+
+            const style = {
+              transform: CSS.Transform.toString(transform),
+              transition,
+              zIndex: isDragging ? 20 : 'auto',
+            };
+
+            return (
+              <div key={id} ref={setNodeRef} style={style} {...attributes}>
+                {sections[id](listeners)}
+              </div>
+            );
+          })}
+        </div>
+      </SortableContext>
+    </DndContext>
   );
 }
