@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -7,16 +8,23 @@ import { useData } from "@/contexts/data-context";
 export default function OnboardingTour() {
   const { activeProfile, completeOnboarding, mode } = useData();
   const [run, setRun] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    if (activeProfile && !activeProfile.hasCompletedOnboarding && activeProfile.subjects.length > 0) {
-      setTimeout(() => {
-        if (typeof window !== 'undefined') { // Ensure we're in the browser
-            setRun(true);
-        }
+    // This effect runs only on the client, after the component has mounted.
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    // Now, we only attempt to run the tour if we are on the client
+    // and the other conditions are met.
+    if (isClient && activeProfile && !activeProfile.hasCompletedOnboarding && activeProfile.subjects.length > 0) {
+      const timer = setTimeout(() => {
+        setRun(true);
       }, 1500); 
+      return () => clearTimeout(timer); // Cleanup timeout
     }
-  }, [activeProfile]);
+  }, [isClient, activeProfile]);
 
   const steps: Step[] = [
     {
@@ -57,7 +65,9 @@ export default function OnboardingTour() {
     }
   };
   
-  if (typeof window === 'undefined') {
+  // If we're not on the client yet, render nothing.
+  // This ensures the server and initial client render match.
+  if (!isClient) {
     return null;
   }
 
