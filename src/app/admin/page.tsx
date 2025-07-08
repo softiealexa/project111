@@ -8,7 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ShieldAlert, Users, LoaderCircle } from 'lucide-react';
-import { getAllUsers } from '@/lib/admin';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import type { AppUser } from '@/lib/types';
 import Navbar from '@/components/navbar';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -43,11 +44,29 @@ export default function AdminPage() {
         }
 
         const fetchUsers = async () => {
+            if (!db) {
+                setError("Database connection is not available.");
+                setLoading(false);
+                return;
+            }
             try {
-                const fetchedUsers = await getAllUsers();
+                const usersCol = collection(db, 'users');
+                const userSnapshot = await getDocs(usersCol);
+                const fetchedUsers = userSnapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return {
+                        uid: data.uid,
+                        username: data.displayName,
+                        email: data.email,
+                    };
+                });
                 setUsers(fetchedUsers);
             } catch (err: any) {
-                setError(err.message || "An unexpected error occurred.");
+                 if (err.code === 'permission-denied' || err.code === 'PERMISION-DENIED') {
+                    setError("Missing or insufficient permissions. Please check your Firestore security rules to allow admins to read the 'users' collection.");
+                } else {
+                    setError(err.message || "An unexpected error occurred.");
+                }
             } finally {
                 setLoading(false);
             }
