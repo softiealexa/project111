@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ShieldAlert, Users, LoaderCircle, MessageSquare, ChevronDown, Archive, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ShieldAlert, Users, LoaderCircle, MessageSquare, ChevronDown, Archive, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
 import { collection, query, orderBy, Timestamp, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppUser, Feedback, FeedbackStatus } from '@/lib/types';
@@ -23,6 +23,7 @@ import { format } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { EditUserDialog } from '@/components/edit-user-dialog';
 
 
 interface DisplayFeedback extends Feedback {
@@ -97,6 +98,8 @@ export default function AdminPage() {
     const [feedbackFilter, setFeedbackFilter] = useState('All');
     const [currentPage, setCurrentPage] = useState(1);
     const [usersPerPage, setUsersPerPage] = useState(8);
+    const [editingUser, setEditingUser] = useState<AppUser | null>(null);
+    const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
 
     const isUserAdmin = useMemo(() => {
         return userDoc?.role === 'admin';
@@ -129,8 +132,9 @@ export default function AdminPage() {
                     uid: doc.id,
                     username: data.displayName || data.username,
                     email: data.email,
+                    googleEmail: data.googleEmail,
                     role: data.role,
-                };
+                } as AppUser;
             });
 
             // Sort users to show admins at the top
@@ -192,6 +196,24 @@ export default function AdminPage() {
         }
     };
     
+    const handleEditUser = (userToEdit: AppUser) => {
+        setEditingUser(userToEdit);
+        setIsEditUserDialogOpen(true);
+    };
+
+    const handleSaveUser = async (userId: string, newGoogleEmail: string) => {
+        if (!db) {
+            setError("Database is not connected.");
+            return;
+        }
+        const userRef = doc(db, 'users', userId);
+        try {
+            await updateDoc(userRef, { googleEmail: newGoogleEmail });
+        } catch (err: any) {
+            throw new Error(`Failed to update user. Check Firestore rules. Error: ${err.message}`);
+        }
+    };
+
     const { newMessages, resolvedMessages } = useMemo(() => {
         const filtered = feedbackFilter === 'All'
             ? feedback
@@ -325,22 +347,29 @@ export default function AdminPage() {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Username</TableHead>
-                                            <TableHead>Email</TableHead>
+                                            <TableHead>Login Email</TableHead>
+                                            <TableHead>Google Email</TableHead>
                                             <TableHead>Role</TableHead>
-                                            <TableHead>User ID</TableHead>
+                                            <TableHead>Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {paginatedUsers.length > 0 ? paginatedUsers.map((appUser) => (
                                             <TableRow key={appUser.uid}>
                                                 <TableCell className="font-medium">{appUser.username}</TableCell>
-                                                <TableCell>{appUser.email}</TableCell>
+                                                <TableCell className="text-muted-foreground">{appUser.email}</TableCell>
+                                                <TableCell>{appUser.googleEmail || 'Not Set'}</TableCell>
                                                 <TableCell>{appUser.role === 'admin' ? 'Admin' : 'User'}</TableCell>
-                                                <TableCell className="text-muted-foreground">{appUser.uid}</TableCell>
+                                                <TableCell>
+                                                    <Button variant="ghost" size="icon" onClick={() => handleEditUser(appUser)}>
+                                                        <Pencil className="h-4 w-4" />
+                                                        <span className="sr-only">Edit User</span>
+                                                    </Button>
+                                                </TableCell>
                                             </TableRow>
                                         )) : (
                                             <TableRow>
-                                                <TableCell colSpan={4} className="h-24 text-center">
+                                                <TableCell colSpan={5} className="h-24 text-center">
                                                     No users found.
                                                 </TableCell>
                                             </TableRow>
@@ -392,6 +421,12 @@ export default function AdminPage() {
                     </Accordion>
                 )}
             </main>
+            <EditUserDialog 
+                user={editingUser}
+                open={isEditUserDialogOpen}
+                onOpenChange={setIsEditUserDialogOpen}
+                onSave={handleSaveUser}
+            />
         </TooltipProvider>
     );
 }
