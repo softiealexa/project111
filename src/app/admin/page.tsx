@@ -251,18 +251,16 @@ export default function AdminPage() {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead className="w-[150px]">Date</TableHead>
-                                            <TableHead className="w-[150px]">Type</TableHead>
                                             <TableHead className="w-[150px]">Status</TableHead>
-                                            <TableHead>Message</TableHead>
+                                            <TableHead className="w-[150px]">Date</TableHead>
                                             <TableHead className="w-[200px]">From</TableHead>
+                                            <TableHead className="w-[150px]">Type</TableHead>
+                                            <TableHead>Message</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {filteredFeedback.length > 0 ? filteredFeedback.map((item) => (
                                             <TableRow key={item.id}>
-                                                <TableCell className="font-medium">{format(item.createdAt, 'PP p')}</TableCell>
-                                                <TableCell>{item.type}</TableCell>
                                                 <TableCell>
                                                     <Select value={item.status} onValueChange={(newStatus: FeedbackStatus) => handleStatusChange(item.id, newStatus)}>
                                                         <SelectTrigger className={cn("text-xs h-8", statusColors[item.status])}>
@@ -276,8 +274,10 @@ export default function AdminPage() {
                                                         </SelectContent>
                                                     </Select>
                                                 </TableCell>
-                                                <TableCell className="whitespace-pre-wrap">{item.message}</TableCell>
+                                                <TableCell className="font-medium">{format(item.createdAt, 'PP')}</TableCell>
                                                 <TableCell>{item.userEmail}</TableCell>
+                                                <TableCell>{item.type}</TableCell>
+                                                <TableCell className="whitespace-pre-wrap">{item.message}</TableCell>
                                             </TableRow>
                                         )) : (
                                             <TableRow>
@@ -296,3 +296,5 @@ export default function AdminPage() {
         </TooltipProvider>
     );
 }
+
+    
