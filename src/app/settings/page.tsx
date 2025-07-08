@@ -50,24 +50,26 @@ const ProfileTab = ({ onContactClick }: { onContactClick: () => void }) => {
                 <CardTitle>Public Profile</CardTitle>
                 <CardDescription>Manage your public information and account settings.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-                <div className="space-y-2">
-                    <Label>Username</Label>
-                    <p className="font-medium">{userDoc.username}</p>
+            <CardContent className="space-y-4">
+                <div className="space-y-1 rounded-lg border p-4">
+                    <div className="flex items-center justify-between">
+                        <Label className="font-semibold">Username</Label>
+                        <p className="text-muted-foreground">{userDoc.username}</p>
+                    </div>
                     <p className="text-xs text-muted-foreground">Usernames cannot be changed after registration.</p>
                 </div>
 
-                <Separator />
-                
-                <div className="space-y-2">
-                    <h3 className="text-base font-medium">Google Account</h3>
-                    {userDoc.googleEmail ? (
-                        <div>
-                            <p className="text-sm text-muted-foreground">Your account is linked to:</p>
-                            <p className="font-medium">{userDoc.googleEmail}</p>
-                        </div>
-                    ) : (
-                        <>
+                <div className="space-y-3 rounded-lg border p-4">
+                     <div className="flex items-center justify-between">
+                        <Label className="font-semibold">Google Account</Label>
+                         {userDoc.googleEmail ? (
+                            <p className="text-muted-foreground">{userDoc.googleEmail}</p>
+                         ) : (
+                            <p className="text-sm text-muted-foreground">Not linked</p>
+                         )}
+                    </div>
+                    {!userDoc.googleEmail && (
+                        <div className="pt-2 space-y-2">
                             <p className="text-sm text-muted-foreground">Link your Google account to prepare for future sign-in options. Must be a @gmail.com address.</p>
                              <div className="flex gap-2">
                                 <Input 
@@ -77,22 +79,20 @@ const ProfileTab = ({ onContactClick }: { onContactClick: () => void }) => {
                                     onChange={(e) => setGoogleEmail(e.target.value)} 
                                     disabled={isLinkingEmail}
                                 />
-                                <Button onClick={handleLinkGoogleEmail} disabled={isLinkingEmail}>
+                                <Button onClick={handleLinkGoogleEmail} disabled={isLinkingEmail} size="sm">
                                     {isLinkingEmail && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
-                                    Link Account
+                                    Link
                                 </Button>
                             </div>
-                        </>
+                        </div>
                     )}
                 </div>
-
-                <Separator />
-
-                <div className="space-y-2">
-                    <h3 className="text-base font-medium">Password</h3>
+                
+                <div className="space-y-2 rounded-lg border p-4">
+                    <Label className="font-semibold">Password</Label>
                      <p className="text-sm text-muted-foreground">
                         To change your password, please{' '}
-                        <Button variant="link" className="p-0 h-auto" onClick={onContactClick}>
+                        <Button variant="link" className="p-0 h-auto text-sm" onClick={onContactClick}>
                             contact the developer
                         </Button>
                         {' '}for a manual reset.
