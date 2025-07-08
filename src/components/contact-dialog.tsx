@@ -16,7 +16,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { submitFeedback } from "@/lib/feedback";
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { LoaderCircle } from "lucide-react";
 import { useData } from "@/contexts/data-context";
 
@@ -54,7 +55,7 @@ export function ContactDialog({ open, onOpenChange }: ContactDialogProps) {
         return;
     }
 
-    if (!user) {
+    if (!user || !db) {
         toast({
             title: "Authentication Error",
             description: "You must be logged in to submit feedback.",
@@ -67,11 +68,12 @@ export function ContactDialog({ open, onOpenChange }: ContactDialogProps) {
     setIsLoading(true);
 
     try {
-        await submitFeedback({
-            type,
-            message,
+        await addDoc(collection(db, "feedback"), {
             userId: user.uid,
             userEmail: user.email || 'N/A',
+            type: type,
+            message: message,
+            createdAt: serverTimestamp()
         });
 
         toast({
@@ -82,7 +84,7 @@ export function ContactDialog({ open, onOpenChange }: ContactDialogProps) {
     } catch (err: any) {
          toast({
             title: "Submission Failed",
-            description: err.message || "Could not send your feedback. Please try again.",
+            description: err.message || "Could not save your feedback. Please check your Firestore security rules.",
             variant: "destructive",
         });
     } finally {
