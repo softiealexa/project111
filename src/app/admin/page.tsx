@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ShieldAlert, Users, LoaderCircle, MessageSquare, ChevronDown, Archive } from 'lucide-react';
+import { ShieldAlert, Users, LoaderCircle, MessageSquare, ChevronDown, Archive, ChevronLeft, ChevronRight } from 'lucide-react';
 import { collection, query, orderBy, Timestamp, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppUser, Feedback, FeedbackStatus } from '@/lib/types';
@@ -22,6 +22,7 @@ import {
 import { format } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 
 interface DisplayFeedback extends Feedback {
@@ -94,6 +95,8 @@ export default function AdminPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [feedbackFilter, setFeedbackFilter] = useState('All');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [usersPerPage, setUsersPerPage] = useState(8);
 
     const isUserAdmin = useMemo(() => {
         return userDoc?.role === 'admin';
@@ -192,6 +195,21 @@ export default function AdminPage() {
         return { newMessages, resolvedMessages };
     }, [feedback, feedbackFilter]);
 
+    const { paginatedUsers, totalPages } = useMemo(() => {
+        const startIndex = (currentPage - 1) * usersPerPage;
+        const endIndex = startIndex + usersPerPage;
+        return {
+            paginatedUsers: users.slice(startIndex, endIndex),
+            totalPages: Math.ceil(users.length / usersPerPage) || 1,
+        };
+    }, [users, currentPage, usersPerPage]);
+
+    const handleUsersPerPageChange = (value: string) => {
+        setUsersPerPage(Number(value));
+        setCurrentPage(1); // Reset to first page
+    };
+
+
     if (authLoading || (isUserAdmin && loading)) {
         return (
             <div className="flex h-screen w-full items-center justify-center">
@@ -245,49 +263,6 @@ export default function AdminPage() {
                     </Alert>
                 ) : (
                     <Accordion type="multiple" defaultValue={["item-2", "item-3"]} className="w-full space-y-4">
-                        <AccordionItem value="item-1" className="rounded-lg border bg-card text-card-foreground shadow-sm">
-                             <AccordionTrigger className="p-6 text-left hover:no-underline [&[data-state=open]>svg]:rotate-180">
-                                <div className="flex-1">
-                                    <CardTitle className="flex items-center gap-2">
-                                        <Users />
-                                        Registered Users
-                                    </CardTitle>
-                                    <CardDescription className="pt-1.5">
-                                        A list of all users who have registered in the application.
-                                    </CardDescription>
-                                </div>
-                                 <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
-                            </AccordionTrigger>
-                            <AccordionContent className="px-6 pb-6 pt-0">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Username</TableHead>
-                                            <TableHead>Email</TableHead>
-                                            <TableHead>Role</TableHead>
-                                            <TableHead>User ID</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {users.length > 0 ? users.map((appUser) => (
-                                            <TableRow key={appUser.uid}>
-                                                <TableCell className="font-medium">{appUser.username}</TableCell>
-                                                <TableCell>{appUser.email}</TableCell>
-                                                <TableCell>{appUser.role === 'admin' ? 'Admin' : 'User'}</TableCell>
-                                                <TableCell className="text-muted-foreground">{appUser.uid}</TableCell>
-                                            </TableRow>
-                                        )) : (
-                                            <TableRow>
-                                                <TableCell colSpan={4} className="h-24 text-center">
-                                                    No users found.
-                                                </TableCell>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </AccordionContent>
-                        </AccordionItem>
-
                         <AccordionItem value="item-2" className="rounded-lg border bg-card text-card-foreground shadow-sm">
                              <AccordionTrigger className="p-6 text-left hover:no-underline [&[data-state=open]>svg]:rotate-180">
                                 <div className="flex-1">
@@ -321,6 +296,89 @@ export default function AdminPage() {
                             </AccordionTrigger>
                             <AccordionContent className="px-6 pb-6 pt-0">
                                 <FeedbackTable feedbackItems={resolvedMessages} onStatusChange={handleStatusChange} />
+                            </AccordionContent>
+                        </AccordionItem>
+
+                        <AccordionItem value="item-1" className="rounded-lg border bg-card text-card-foreground shadow-sm">
+                             <AccordionTrigger className="p-6 text-left hover:no-underline [&[data-state=open]>svg]:rotate-180">
+                                <div className="flex-1">
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Users />
+                                        Registered Users
+                                    </CardTitle>
+                                    <CardDescription className="pt-1.5">
+                                        A list of all users who have registered in the application.
+                                    </CardDescription>
+                                </div>
+                                 <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+                            </AccordionTrigger>
+                            <AccordionContent className="px-6 pb-6 pt-0">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Username</TableHead>
+                                            <TableHead>Email</TableHead>
+                                            <TableHead>Role</TableHead>
+                                            <TableHead>User ID</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {paginatedUsers.length > 0 ? paginatedUsers.map((appUser) => (
+                                            <TableRow key={appUser.uid}>
+                                                <TableCell className="font-medium">{appUser.username}</TableCell>
+                                                <TableCell>{appUser.email}</TableCell>
+                                                <TableCell>{appUser.role === 'admin' ? 'Admin' : 'User'}</TableCell>
+                                                <TableCell className="text-muted-foreground">{appUser.uid}</TableCell>
+                                            </TableRow>
+                                        )) : (
+                                            <TableRow>
+                                                <TableCell colSpan={4} className="h-24 text-center">
+                                                    No users found.
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                                 <div className="flex items-center justify-between pt-4">
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <span>Rows per page:</span>
+                                        <Select value={String(usersPerPage)} onValueChange={handleUsersPerPageChange}>
+                                            <SelectTrigger className="h-8 w-[70px]">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="8">8</SelectItem>
+                                                <SelectItem value="16">16</SelectItem>
+                                                <SelectItem value="24">24</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="flex items-center gap-4 text-sm font-medium">
+                                        <span>Page {currentPage} of {totalPages}</span>
+                                        <div className="flex items-center gap-2">
+                                            <Button
+                                                variant="outline"
+                                                size="icon"
+                                                className="h-8 w-8"
+                                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                                disabled={currentPage === 1}
+                                            >
+                                                <ChevronLeft className="h-4 w-4" />
+                                                <span className="sr-only">Previous page</span>
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="icon"
+                                                className="h-8 w-8"
+                                                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                                disabled={currentPage >= totalPages}
+                                            >
+                                                <ChevronRight className="h-4 w-4" />
+                                                <span className="sr-only">Next page</span>
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
                             </AccordionContent>
                         </AccordionItem>
                     </Accordion>
