@@ -13,6 +13,10 @@ interface FeedbackInput {
 }
 
 export async function submitFeedback(input: FeedbackInput) {
+    if (!db) {
+        throw new Error("Firebase is not configured. Could not submit feedback.");
+    }
+
     const { type, message, userId, userEmail } = input;
 
     if (!userId) {
@@ -32,7 +36,8 @@ export async function submitFeedback(input: FeedbackInput) {
         userEmail: userEmail,
         type: type,
         message: message,
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
+        status: 'Pending'
     };
     
     try {
