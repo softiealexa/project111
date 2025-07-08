@@ -10,17 +10,23 @@ export async function getAllUsers(): Promise<AppUser[]> {
     // In a production environment, this action should verify the caller's identity
     // and permissions, for example by verifying a Firebase ID token passed from the client.
     // The permission check is currently handled on the client-side in AdminPage.
+    if (!db) {
+        console.error("Firebase is not configured. Unable to fetch users.");
+        return [];
+    }
 
     const usersCol = collection(db, 'users');
     const userSnapshot = await getDocs(usersCol);
-    const userList = userSnapshot.docs.map(doc => {
+    const userList = userSnapshot.docs.map((doc): AppUser => {
         const data = doc.data();
         return {
-            uid: data.uid,
-            username: data.displayName,
-            email: data.email,
+            uid: doc.id,
+            username: data.displayName || data.username || 'Unknown',
+            email: data.email || 'No email provided',
+            role: data.role === 'admin' ? 'admin' : 'user',
         };
     });
 
     return userList;
 }
+
