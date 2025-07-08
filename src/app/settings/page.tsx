@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle, User, Palette, Shield, Download, Upload, MessageSquarePlus, Moon, Sun, Check, LogOut } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ContactDialog } from '@/components/contact-dialog';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { updateUsername, sendPasswordReset } from '@/lib/auth';
@@ -272,7 +272,7 @@ export default function SettingsPage() {
   }
   
   return (
-    <>
+    <TooltipProvider>
       <Navbar />
       <main className="max-w-4xl mx-auto py-8 px-4">
         <div className="space-y-2 mb-8">
@@ -297,6 +297,6 @@ export default function SettingsPage() {
           </TabsContent>
         </Tabs>
       </main>
-    </>
+    </TooltipProvider>
   );
 }
