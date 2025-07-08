@@ -50,8 +50,8 @@ export default function AdminPage() {
                 const fetchedUsers = userSnapshot.docs.map(doc => {
                     const data = doc.data();
                     return {
-                        uid: data.uid,
-                        username: data.displayName,
+                        uid: doc.id,
+                        username: data.displayName || data.username,
                         email: data.email,
                         role: data.role,
                     };
