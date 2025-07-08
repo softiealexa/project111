@@ -1,9 +1,10 @@
+
 'use client';
 
 import Link from 'next/link';
 import { useData } from '@/contexts/data-context';
 import { Button } from '@/components/ui/button';
-import { Book, Download, Upload, ChevronsUpDown, Check, LogOut, UserPlus, LogIn, SlidersHorizontal, Sun, Moon } from 'lucide-react';
+import { Book, Download, Upload, ChevronsUpDown, Check, LogOut, UserPlus, LogIn, SlidersHorizontal, Sun, Moon, MessageSquarePlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 import {
@@ -20,12 +21,14 @@ import { CustomizationSheet } from './customization-sheet';
 import Image from 'next/image';
 import { Sheet } from './ui/sheet';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import { ContactDialog } from './contact-dialog';
 
 export default function Navbar() {
   const { profiles, activeProfile, switchProfile, exportData, importData, user, signOutUser, mode, setMode } = useData();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const [isCustomizationOpen, setIsCustomizationOpen] = useState(false);
+  const [isContactOpen, setIsContactOpen] = useState(false);
 
 
   const handleImportClick = () => {
@@ -56,6 +59,7 @@ export default function Navbar() {
   };
 
   return (
+    <>
     <Sheet open={isCustomizationOpen} onOpenChange={handleCustomizationStateChange}>
       <header suppressHydrationWarning className="bg-background/80 border-b border-border/50 backdrop-blur-sm sticky top-0 z-50">
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -136,6 +140,10 @@ export default function Navbar() {
                         <SlidersHorizontal className="mr-2 h-4 w-4" />
                         <span>Customization</span>
                       </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setIsContactOpen(true)}>
+                        <MessageSquarePlus className="mr-2 h-4 w-4" />
+                        <span>Contact Developer</span>
+                      </DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => setMode(mode === 'light' ? 'dark' : 'light')}>
                         {mode === 'dark' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
                         <span>{mode === 'dark' ? 'Light' : 'Dark'} Mode</span>
@@ -173,5 +181,7 @@ export default function Navbar() {
       </header>
       <CustomizationSheet />
     </Sheet>
+    <ContactDialog open={isContactOpen} onOpenChange={setIsContactOpen} />
+    </>
   );
 }

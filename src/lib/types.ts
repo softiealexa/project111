@@ -1,5 +1,6 @@
 
 
+
 export interface Note {
   id: string;
   title: string;
@@ -51,7 +52,7 @@ export interface QuestionSession {
 }
 
 export interface Profile {
-  name: string;
+  name:string;
   subjects: Subject[];
   plannerNotes?: Record<string, string>;
   notes?: Note[];
@@ -59,4 +60,19 @@ export interface Profile {
   todos?: Todo[];
   progressHistory?: ProgressPoint[];
   questionSessions?: QuestionSession[];
+}
+
+export interface AppUser {
+    uid: string;
+    username: string;
+    email: string;
+}
+
+export interface Feedback {
+    id?: string;
+    userId: string;
+    userEmail: string;
+    type: 'Bug Report' | 'Feature Request' | 'Other';
+    message: string;
+    createdAt: any; // Firestore ServerTimestamp
 }
