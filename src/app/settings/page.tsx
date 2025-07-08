@@ -15,27 +15,15 @@ import { ContactDialog } from '@/components/contact-dialog';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
-import { sendPasswordReset, linkGoogleEmail } from '@/lib/auth';
+import { linkGoogleEmail } from '@/lib/auth';
 import Navbar from '@/components/navbar';
 
 // Profile Tab Component
-const ProfileTab = () => {
+const ProfileTab = ({ onContactClick }: { onContactClick: () => void }) => {
     const { user, userDoc, refreshUserDoc } = useData();
     const { toast } = useToast();
     const [googleEmail, setGoogleEmail] = useState('');
-    const [isSendingReset, setIsSendingReset] = useState(false);
     const [isLinkingEmail, setIsLinkingEmail] = useState(false);
-
-    const handlePasswordReset = async () => {
-        setIsSendingReset(true);
-        const { error } = await sendPasswordReset();
-        if (error) {
-            toast({ title: 'Error', description: error, variant: 'destructive' });
-        } else {
-            toast({ title: 'Email Sent', description: 'A password reset link has been sent to your registered email.' });
-        }
-        setIsSendingReset(false);
-    };
 
     const handleLinkGoogleEmail = async () => {
         if (!googleEmail.trim()) {
@@ -102,11 +90,13 @@ const ProfileTab = () => {
 
                 <div className="space-y-2">
                     <h3 className="text-base font-medium">Password</h3>
-                    <p className="text-sm text-muted-foreground">To change your password, we'll send a secure link to your internal account email.</p>
-                    <Button variant="outline" onClick={handlePasswordReset} disabled={isSendingReset}>
-                        {isSendingReset && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
-                        Send Password Reset Email
-                    </Button>
+                     <p className="text-sm text-muted-foreground">
+                        To change your password, please{' '}
+                        <Button variant="link" className="p-0 h-auto" onClick={onContactClick}>
+                            contact the developer
+                        </Button>
+                        {' '}for a manual reset.
+                    </p>
                 </div>
             </CardContent>
         </Card>
@@ -182,11 +172,10 @@ const AppearanceTab = () => {
 
 
 // Account and Data Tabs
-const AccountAndDataTab = () => {
+const AccountAndDataTab = ({ onContactOpenChange }: { onContactOpenChange: (open: boolean) => void }) => {
     const { signOutUser, exportData, importData } = useData();
     const router = useRouter();
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const [isContactOpen, setIsContactOpen] = useState(false);
 
     const handleSignOut = async () => {
         await signOutUser();
@@ -208,71 +197,68 @@ const AccountAndDataTab = () => {
     };
     
     return (
-        <>
-            <div className="space-y-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Account Management</CardTitle>
-                        <CardDescription>Manage your account settings and data.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="flex items-center justify-between rounded-lg border p-4">
-                           <div>
-                                <h4 className="font-medium">Contact Developer</h4>
-                                <p className="text-sm text-muted-foreground">Report a bug or request a new feature.</p>
-                           </div>
-                           <Button onClick={() => setIsContactOpen(true)}>
-                               <MessageSquarePlus className="mr-2" /> Open Form
-                           </Button>
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Account Management</CardTitle>
+                    <CardDescription>Manage your account settings and data.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between rounded-lg border p-4">
+                        <div>
+                            <h4 className="font-medium">Contact Developer</h4>
+                            <p className="text-sm text-muted-foreground">Report a bug or request a new feature.</p>
                         </div>
-                        <div className="flex items-center justify-between rounded-lg border p-4">
-                           <div>
-                                <h4 className="font-medium">Logout</h4>
-                                <p className="text-sm text-muted-foreground">Sign out of your account on this device.</p>
-                           </div>
-                           <Button variant="outline" onClick={handleSignOut}>
-                               <LogOut className="mr-2" /> Logout
-                           </Button>
+                        <Button onClick={() => onContactOpenChange(true)}>
+                            <MessageSquarePlus className="mr-2" /> Open Form
+                        </Button>
+                    </div>
+                    <div className="flex items-center justify-between rounded-lg border p-4">
+                        <div>
+                            <h4 className="font-medium">Logout</h4>
+                            <p className="text-sm text-muted-foreground">Sign out of your account on this device.</p>
                         </div>
-                    </CardContent>
-                </Card>
+                        <Button variant="outline" onClick={handleSignOut}>
+                            <LogOut className="mr-2" /> Logout
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Data Management</CardTitle>
-                        <CardDescription>Export your data or import it to another account.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                         <input
-                            type="file"
-                            ref={fileInputRef}
-                            onChange={handleFileChange}
-                            className="hidden"
-                            accept=".json"
-                        />
-                        <div className="flex items-center justify-between rounded-lg border p-4">
-                           <div>
-                                <h4 className="font-medium">Import Data</h4>
-                                <p className="text-sm text-muted-foreground">Load data from a previously exported file.</p>
-                           </div>
-                           <Button variant="outline" onClick={handleImportClick}>
-                                <Upload className="mr-2" /> Import
-                           </Button>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Data Management</CardTitle>
+                    <CardDescription>Export your data or import it to another account.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                        <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        className="hidden"
+                        accept=".json"
+                    />
+                    <div className="flex items-center justify-between rounded-lg border p-4">
+                        <div>
+                            <h4 className="font-medium">Import Data</h4>
+                            <p className="text-sm text-muted-foreground">Load data from a previously exported file.</p>
                         </div>
-                        <div className="flex items-center justify-between rounded-lg border p-4">
-                           <div>
-                                <h4 className="font-medium">Export Data</h4>
-                                <p className="text-sm text-muted-foreground">Save all your profile data to a JSON file.</p>
-                           </div>
-                           <Button variant="outline" onClick={exportData}>
-                                <Download className="mr-2" /> Export
-                           </Button>
+                        <Button variant="outline" onClick={handleImportClick}>
+                            <Upload className="mr-2" /> Import
+                        </Button>
+                    </div>
+                    <div className="flex items-center justify-between rounded-lg border p-4">
+                        <div>
+                            <h4 className="font-medium">Export Data</h4>
+                            <p className="text-sm text-muted-foreground">Save all your profile data to a JSON file.</p>
                         </div>
-                    </CardContent>
-                </Card>
-            </div>
-            <ContactDialog open={isContactOpen} onOpenChange={setIsContactOpen} />
-        </>
+                        <Button variant="outline" onClick={exportData}>
+                            <Download className="mr-2" /> Export
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
     );
 };
 
@@ -280,6 +266,7 @@ const AccountAndDataTab = () => {
 export default function SettingsPage() {
   const { user, loading } = useData();
   const router = useRouter();
+  const [isContactOpen, setIsContactOpen] = useState(false);
 
   if (loading) {
     return (
@@ -310,16 +297,17 @@ export default function SettingsPage() {
           </TabsList>
           
           <TabsContent value="profile">
-            <ProfileTab />
+            <ProfileTab onContactClick={() => setIsContactOpen(true)} />
           </TabsContent>
           <TabsContent value="appearance">
             <AppearanceTab />
           </TabsContent>
           <TabsContent value="account">
-            <AccountAndDataTab />
+            <AccountAndDataTab onContactOpenChange={setIsContactOpen} />
           </TabsContent>
         </Tabs>
       </main>
+      <ContactDialog open={isContactOpen} onOpenChange={setIsContactOpen} />
     </TooltipProvider>
   );
 }
