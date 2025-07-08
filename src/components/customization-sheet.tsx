@@ -385,13 +385,13 @@ export function CustomizationSheet() {
                                 onRename={(newName) => renameProfile(activeProfile.name, newName)}
                                 existingNames={profiles.map(p => p.name)}
                             >
-                                <Button variant="outline" className="w-full">Rename Active</Button>
+                                <Button variant="outline" className="w-full">Rename Profile</Button>
                             </RenameDialog>
                             <RemoveProfileDialog 
                                 profileName={activeProfile.name} 
                                 onConfirm={() => removeProfile(activeProfile.name)}
                             >
-                                <Button variant="outline" className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive">Remove Active</Button>
+                                <Button variant="outline" className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive">Remove Profile</Button>
                             </RemoveProfileDialog>
                         </div>
                     </div>
