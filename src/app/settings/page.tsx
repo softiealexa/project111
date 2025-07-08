@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { linkGoogleEmail } from '@/lib/auth';
 import Navbar from '@/components/navbar';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // Profile Tab Component
 const ProfileTab = ({ onContactClick }: { onContactClick: () => void }) => {
@@ -91,7 +92,7 @@ const ProfileTab = ({ onContactClick }: { onContactClick: () => void }) => {
                 <div className="space-y-2 rounded-lg border p-4">
                     <Label className="font-semibold">Password</Label>
                      <p className="text-sm text-muted-foreground">
-                        To change your password, please{' '}
+                        To change your email / password, please{' '}
                         <Button variant="link" className="p-0 h-auto text-sm" onClick={onContactClick}>
                             contact the developer
                         </Button>
@@ -115,7 +116,7 @@ const themes = [
 ];
 
 const AppearanceTab = () => {
-    const { theme, setTheme, mode, setMode } = useData();
+    const { theme, setTheme, mode, setMode, isThemeHydrated } = useData();
 
     return (
         <Card>
@@ -124,47 +125,72 @@ const AppearanceTab = () => {
                 <CardDescription>Customize the look and feel of the app.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-                <div className="space-y-2">
-                    <Label>Theme</Label>
-                    <p className="text-sm text-muted-foreground">Select a color theme for the application.</p>
-                    <div className="grid grid-cols-5 sm:grid-cols-7 gap-3 pt-2">
-                        {themes.map((t) => (
-                           <Tooltip key={t.name}>
-                                <TooltipTrigger asChild>
-                                    <button
-                                        onClick={() => setTheme(t.name)}
-                                        className={cn(
-                                            "relative h-10 w-10 rounded-full border-2 flex items-center justify-center transition-all",
-                                            theme === t.name ? "border-primary ring-2 ring-primary ring-offset-2 ring-offset-background" : "border-muted"
-                                        )}
-                                        aria-label={`Select ${t.label} theme`}
-                                    >
-                                        <span className="h-6 w-6 rounded-full border" style={{ backgroundColor: t.color }} />
-                                        {theme === t.name && (
-                                            <Check className="h-4 w-4 absolute text-primary-foreground mix-blend-difference" />
-                                        )}
-                                    </button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{t.label}</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        ))}
+                 {!isThemeHydrated ? (
+                  <>
+                    <div className="space-y-2">
+                        <Skeleton className="h-5 w-20" />
+                        <Skeleton className="h-4 w-full max-w-sm" />
+                        <div className="grid grid-cols-5 sm:grid-cols-7 gap-3 pt-2">
+                          {Array.from({ length: 7 }).map((_, i) => (
+                            <Skeleton key={i} className="h-10 w-10 rounded-full" />
+                          ))}
+                        </div>
                     </div>
-                </div>
-                <Separator />
-                <div className="space-y-2">
-                    <Label>Mode</Label>
-                    <p className="text-sm text-muted-foreground">Choose between light and dark mode.</p>
-                    <div className="flex gap-4 pt-2">
-                        <Button variant={mode === 'light' ? 'default' : 'outline'} onClick={() => setMode('light')} className="flex-1">
-                            <Sun className="mr-2 h-5 w-5" /> Light
-                        </Button>
-                        <Button variant={mode === 'dark' ? 'default' : 'outline'} onClick={() => setMode('dark')} className="flex-1">
-                            <Moon className="mr-2 h-5 w-5" /> Dark
-                        </Button>
+                    <Separator />
+                    <div className="space-y-2">
+                         <Skeleton className="h-5 w-20" />
+                         <Skeleton className="h-4 w-full max-w-xs" />
+                         <div className="flex gap-4 pt-2">
+                            <Skeleton className="h-10 flex-1" />
+                            <Skeleton className="h-10 flex-1" />
+                         </div>
                     </div>
-                </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                        <Label>Theme</Label>
+                        <p className="text-sm text-muted-foreground">Select a color theme for the application.</p>
+                        <div className="grid grid-cols-5 sm:grid-cols-7 gap-3 pt-2">
+                            {themes.map((t) => (
+                               <Tooltip key={t.name}>
+                                    <TooltipTrigger asChild>
+                                        <button
+                                            onClick={() => setTheme(t.name)}
+                                            className={cn(
+                                                "relative h-10 w-10 rounded-full border-2 flex items-center justify-center transition-all",
+                                                theme === t.name ? "border-primary ring-2 ring-primary ring-offset-2 ring-offset-background" : "border-muted"
+                                            )}
+                                            aria-label={`Select ${t.label} theme`}
+                                        >
+                                            <span className="h-6 w-6 rounded-full border" style={{ backgroundColor: t.color }} />
+                                            {theme === t.name && (
+                                                <Check className="h-4 w-4 absolute text-primary-foreground mix-blend-difference" />
+                                            )}
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>{t.label}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            ))}
+                        </div>
+                    </div>
+                    <Separator />
+                    <div className="space-y-2">
+                        <Label>Mode</Label>
+                        <p className="text-sm text-muted-foreground">Choose between light and dark mode.</p>
+                        <div className="flex gap-4 pt-2">
+                            <Button variant={mode === 'light' ? 'default' : 'outline'} onClick={() => setMode('light')} className="flex-1">
+                                <Sun className="mr-2 h-5 w-5" /> Light
+                            </Button>
+                            <Button variant={mode === 'dark' ? 'default' : 'outline'} onClick={() => setMode('dark')} className="flex-1">
+                                <Moon className="mr-2 h-5 w-5" /> Dark
+                            </Button>
+                        </div>
+                    </div>
+                  </>
+                )}
             </CardContent>
         </Card>
     );

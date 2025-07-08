@@ -62,6 +62,7 @@ interface DataContextType {
   setTheme: (theme: string) => void;
   mode: 'light' | 'dark';
   setMode: (mode: 'light' | 'dark') => void;
+  isThemeHydrated: boolean;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -150,43 +151,38 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const [theme, setThemeState] = useState<string>('default');
   const [mode, setModeState] = useState<'light' | 'dark'>('dark');
+  const [isThemeHydrated, setIsThemeHydrated] = useState(false);
 
-  const setMode = useCallback((mode: 'light' | 'dark') => {
-    setModeState(mode);
-    localStorage.setItem(MODE_KEY, mode);
-    document.documentElement.classList.toggle('dark', mode === 'dark');
+  const setMode = useCallback((newMode: 'light' | 'dark') => {
+    setModeState(newMode);
+    localStorage.setItem(MODE_KEY, newMode);
+    document.documentElement.classList.toggle('dark', newMode === 'dark');
   }, []);
 
-  const setTheme = useCallback((theme: string) => {
-    setThemeState(theme);
-    localStorage.setItem(THEME_KEY, theme);
+  const setTheme = useCallback((newTheme: string) => {
+    setThemeState(newTheme);
+    localStorage.setItem(THEME_KEY, newTheme);
      const root = window.document.documentElement;
      root.className.split(' ').forEach(c => {
         if (c.startsWith('theme-')) {
             root.classList.remove(c);
         }
     });
-    if (theme !== 'default') {
-        root.classList.add(`theme-${theme}`);
+    if (newTheme !== 'default') {
+        root.classList.add(`theme-${newTheme}`);
     }
   }, []);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem(THEME_KEY) || 'default';
     const savedMode = (localStorage.getItem(MODE_KEY) || 'dark') as 'light' | 'dark';
-    setThemeState(savedTheme);
-    setModeState(savedMode);
-    document.documentElement.classList.toggle('dark', savedMode === 'dark');
-     const root = window.document.documentElement;
-     root.className.split(' ').forEach(c => {
-        if (c.startsWith('theme-')) {
-            root.classList.remove(c);
-        }
-    });
-    if (savedTheme !== 'default') {
-        root.classList.add(`theme-${savedTheme}`);
-    }
-  }, []);
+    
+    // Use the callbacks to ensure state and DOM are in sync
+    setTheme(savedTheme);
+    setMode(savedMode);
+
+    setIsThemeHydrated(true);
+  }, [setTheme, setMode]);
 
   const saveData = useCallback(async (profilesToSave: Profile[], activeNameToSave: string | null) => {
     if (typeof window === 'undefined') return;
@@ -788,7 +784,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addTodo, updateTodo, deleteTodo, setTodos,
     addQuestionSession,
     exportData, importData, signOutUser, refreshUserDoc,
-    theme, setTheme, mode, setMode,
+    theme, setTheme, mode, setMode, isThemeHydrated,
   }), [
     user, userDoc, loading, profiles, activeProfile, activeSubjectName,
     addProfile, switchProfile, updateSubjects, addSubject, removeSubject, renameSubject,
@@ -797,7 +793,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addTodo, updateTodo, deleteTodo, setTodos,
     addQuestionSession,
     exportData, importData, signOutUser, refreshUserDoc,
-    theme, setTheme, mode, setMode, setActiveSubjectName
+    theme, setTheme, mode, setMode, isThemeHydrated, setActiveSubjectName
   ]);
   
   if (!loading && pathname.startsWith('/dashboard') && profiles.length === 0) {
