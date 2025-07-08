@@ -73,7 +73,8 @@ export function ContactDialog({ open, onOpenChange }: ContactDialogProps) {
             userEmail: user.email || 'N/A',
             type: type,
             message: message,
-            createdAt: serverTimestamp()
+            createdAt: serverTimestamp(),
+            status: 'Pending'
         });
 
         toast({

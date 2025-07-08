@@ -7,10 +7,10 @@ import { useRouter } from 'next/navigation';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ShieldAlert, Users, LoaderCircle, MessageSquare } from 'lucide-react';
-import { collection, getDocs, query, orderBy, Timestamp, onSnapshot } from 'firebase/firestore';
+import { ShieldAlert, Users, LoaderCircle, MessageSquare, ChevronDown } from 'lucide-react';
+import { collection, getDocs, query, orderBy, Timestamp, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { AppUser, Feedback } from '@/lib/types';
+import type { AppUser, Feedback, FeedbackStatus } from '@/lib/types';
 import Navbar from '@/components/navbar';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import {
@@ -20,12 +20,22 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { format } from 'date-fns';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 
 
 interface DisplayFeedback extends Feedback {
     id: string;
     createdAt: Date;
+    status: FeedbackStatus;
 }
+
+const statusColors: Record<FeedbackStatus, string> = {
+    Pending: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
+    'In Progress': 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+    Done: 'bg-green-500/10 text-green-500 border-green-500/20',
+    Fixed: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
+};
 
 export default function AdminPage() {
     const { user, userDoc, loading: authLoading } = useData();
@@ -34,6 +44,7 @@ export default function AdminPage() {
     const [feedback, setFeedback] = useState<DisplayFeedback[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [feedbackFilter, setFeedbackFilter] = useState('All');
 
     const isUserAdmin = useMemo(() => {
         return userDoc?.role === 'admin';
@@ -85,6 +96,7 @@ export default function AdminPage() {
                     id: doc.id,
                     ...data,
                     createdAt: createdAt ? createdAt.toDate() : new Date(),
+                    status: data.status || 'Pending',
                 };
             });
             setFeedback(fetchedFeedback);
@@ -100,13 +112,32 @@ export default function AdminPage() {
             setLoading(false);
         });
 
-        // Cleanup listeners on component unmount
         return () => {
             usersUnsubscribe();
             feedbackUnsubscribe();
         };
 
     }, [user, authLoading, router, isUserAdmin]);
+    
+    const handleStatusChange = async (id: string, newStatus: FeedbackStatus) => {
+        if (!db) {
+            setError("Database is not connected.");
+            return;
+        };
+        const feedbackRef = doc(db, 'feedback', id);
+        try {
+            await updateDoc(feedbackRef, { status: newStatus });
+        } catch (err: any) {
+            setError(`Failed to update status: ${err.message}`);
+        }
+    };
+    
+    const filteredFeedback = useMemo(() => {
+        if (feedbackFilter === 'All') {
+            return feedback;
+        }
+        return feedback.filter(item => item.type === feedbackFilter);
+    }, [feedback, feedbackFilter]);
 
     if (authLoading || (isUserAdmin && loading)) {
         return (
@@ -148,7 +179,7 @@ export default function AdminPage() {
                 ) : (
                     <Accordion type="multiple" defaultValue={["item-1", "item-2"]} className="w-full space-y-4">
                         <AccordionItem value="item-1" className="rounded-lg border bg-card text-card-foreground shadow-sm">
-                            <AccordionTrigger className="p-6 text-left hover:no-underline">
+                             <AccordionTrigger className="p-6 text-left hover:no-underline [&[data-state=open]>svg]:rotate-180">
                                 <div className="flex-1">
                                     <CardTitle className="flex items-center gap-2">
                                         <Users />
@@ -158,6 +189,7 @@ export default function AdminPage() {
                                         A list of all users who have registered in the application.
                                     </CardDescription>
                                 </div>
+                                 <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
                             </AccordionTrigger>
                             <AccordionContent className="px-6 pb-6 pt-0">
                                 <Table>
@@ -190,7 +222,7 @@ export default function AdminPage() {
                         </AccordionItem>
 
                         <AccordionItem value="item-2" className="rounded-lg border bg-card text-card-foreground shadow-sm">
-                            <AccordionTrigger className="p-6 text-left hover:no-underline">
+                             <AccordionTrigger className="p-6 text-left hover:no-underline [&[data-state=open]>svg]:rotate-180">
                                 <div className="flex-1">
                                     <CardTitle className="flex items-center gap-2">
                                         <MessageSquare />
@@ -200,29 +232,57 @@ export default function AdminPage() {
                                         Messages submitted by users via the contact form.
                                     </CardDescription>
                                 </div>
+                                <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
                             </AccordionTrigger>
                             <AccordionContent className="px-6 pb-6 pt-0">
+                                <div className="flex justify-end mb-4">
+                                    <Select value={feedbackFilter} onValueChange={setFeedbackFilter}>
+                                        <SelectTrigger className="w-[180px]">
+                                            <SelectValue placeholder="Filter by type" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="All">All Types</SelectItem>
+                                            <SelectItem value="Bug Report">Bug Report</SelectItem>
+                                            <SelectItem value="Feature Request">Feature Request</SelectItem>
+                                            <SelectItem value="Other">Other</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead className="w-[150px]">Date</TableHead>
                                             <TableHead className="w-[150px]">Type</TableHead>
+                                            <TableHead className="w-[150px]">Status</TableHead>
                                             <TableHead>Message</TableHead>
                                             <TableHead className="w-[200px]">From</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {feedback.length > 0 ? feedback.map((item) => (
+                                        {filteredFeedback.length > 0 ? filteredFeedback.map((item) => (
                                             <TableRow key={item.id}>
                                                 <TableCell className="font-medium">{format(item.createdAt, 'PP p')}</TableCell>
                                                 <TableCell>{item.type}</TableCell>
+                                                <TableCell>
+                                                    <Select value={item.status} onValueChange={(newStatus: FeedbackStatus) => handleStatusChange(item.id, newStatus)}>
+                                                        <SelectTrigger className={cn("text-xs h-8", statusColors[item.status])}>
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="Pending">Pending</SelectItem>
+                                                            <SelectItem value="In Progress">In Progress</SelectItem>
+                                                            <SelectItem value="Done">Done</SelectItem>
+                                                            <SelectItem value="Fixed">Fixed</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </TableCell>
                                                 <TableCell className="whitespace-pre-wrap">{item.message}</TableCell>
                                                 <TableCell>{item.userEmail}</TableCell>
                                             </TableRow>
                                         )) : (
                                             <TableRow>
-                                                <TableCell colSpan={4} className="h-24 text-center">
-                                                    No feedback messages found.
+                                                <TableCell colSpan={5} className="h-24 text-center">
+                                                    No feedback messages found for this filter.
                                                 </TableCell>
                                             </TableRow>
                                         )}

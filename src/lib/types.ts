@@ -2,6 +2,7 @@
 
 
 
+
 export interface Note {
   id: string;
   title: string;
@@ -70,6 +71,8 @@ export interface AppUser {
     role?: 'admin' | 'user';
 }
 
+export type FeedbackStatus = 'Pending' | 'In Progress' | 'Done' | 'Fixed';
+
 export interface Feedback {
     id?: string;
     userId: string;
@@ -77,4 +80,5 @@ export interface Feedback {
     type: 'Bug Report' | 'Feature Request' | 'Other';
     message: string;
     createdAt: any; // Firestore ServerTimestamp
+    status?: FeedbackStatus;
 }
