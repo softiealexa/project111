@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useRef } from 'react';
@@ -53,7 +54,7 @@ const ProfileTab = ({ onContactClick }: { onContactClick: () => void }) => {
                 <div className="space-y-1 rounded-lg border p-4">
                     <div className="flex items-center justify-between">
                         <Label className="font-semibold">Username</Label>
-                        <p className="text-muted-foreground">{userDoc.username}</p>
+                        <p className="font-semibold text-foreground">{userDoc.username}</p>
                     </div>
                     <p className="text-xs text-muted-foreground">Usernames cannot be changed after registration.</p>
                 </div>
@@ -62,7 +63,7 @@ const ProfileTab = ({ onContactClick }: { onContactClick: () => void }) => {
                      <div className="flex items-center justify-between">
                         <Label className="font-semibold">Google Account</Label>
                          {userDoc.googleEmail ? (
-                            <p className="text-muted-foreground">{userDoc.googleEmail}</p>
+                            <p className="font-semibold text-foreground">{userDoc.googleEmail}</p>
                          ) : (
                             <p className="text-sm text-muted-foreground">Not linked</p>
                          )}
