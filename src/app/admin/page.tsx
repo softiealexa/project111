@@ -11,6 +11,7 @@ import { ShieldAlert, Users, LoaderCircle } from 'lucide-react';
 import { getAllUsers } from '@/lib/admin';
 import type { AppUser } from '@/lib/types';
 import Navbar from '@/components/navbar';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 export default function AdminPage() {
     const { user, loading: authLoading } = useData();
@@ -82,56 +83,56 @@ export default function AdminPage() {
     }
 
     return (
-        <>
-        <Navbar/>
-        <main className="max-w-7xl mx-auto py-8 px-4">
-            <h1 className="text-3xl font-bold mb-6">Admin Panel</h1>
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Users />
-                        Registered Users
-                    </CardTitle>
-                    <CardDescription>
-                        A list of all users who have registered in the application.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {error ? (
-                         <Alert variant="destructive">
-                            <ShieldAlert className="h-4 w-4" />
-                            <AlertTitle>Error</AlertTitle>
-                            <AlertDescription>{error}</AlertDescription>
-                        </Alert>
-                    ) : (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Username</TableHead>
-                                    <TableHead>Email</TableHead>
-                                    <TableHead>User ID</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {users.length > 0 ? users.map((appUser) => (
-                                    <TableRow key={appUser.uid}>
-                                        <TableCell className="font-medium">{appUser.username}</TableCell>
-                                        <TableCell>{appUser.email}</TableCell>
-                                        <TableCell className="text-muted-foreground">{appUser.uid}</TableCell>
-                                    </TableRow>
-                                )) : (
+        <TooltipProvider>
+            <Navbar/>
+            <main className="max-w-7xl mx-auto py-8 px-4">
+                <h1 className="text-3xl font-bold mb-6">Admin Panel</h1>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Users />
+                            Registered Users
+                        </CardTitle>
+                        <CardDescription>
+                            A list of all users who have registered in the application.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {error ? (
+                             <Alert variant="destructive">
+                                <ShieldAlert className="h-4 w-4" />
+                                <AlertTitle>Error</AlertTitle>
+                                <AlertDescription>{error}</AlertDescription>
+                            </Alert>
+                        ) : (
+                            <Table>
+                                <TableHeader>
                                     <TableRow>
-                                        <TableCell colSpan={3} className="h-24 text-center">
-                                            No users found.
-                                        </TableCell>
+                                        <TableHead>Username</TableHead>
+                                        <TableHead>Email</TableHead>
+                                        <TableHead>User ID</TableHead>
                                     </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    )}
-                </CardContent>
-            </Card>
-        </main>
-        </>
+                                </TableHeader>
+                                <TableBody>
+                                    {users.length > 0 ? users.map((appUser) => (
+                                        <TableRow key={appUser.uid}>
+                                            <TableCell className="font-medium">{appUser.username}</TableCell>
+                                            <TableCell>{appUser.email}</TableCell>
+                                            <TableCell className="text-muted-foreground">{appUser.uid}</TableCell>
+                                        </TableRow>
+                                    )) : (
+                                        <TableRow>
+                                            <TableCell colSpan={3} className="h-24 text-center">
+                                                No users found.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        )}
+                    </CardContent>
+                </Card>
+            </main>
+        </TooltipProvider>
     );
 }
