@@ -132,6 +132,14 @@ export default function AdminPage() {
                     role: data.role,
                 };
             });
+
+            // Sort users to show admins at the top
+            fetchedUsers.sort((a, b) => {
+                if (a.role === 'admin' && b.role !== 'admin') return -1;
+                if (b.role === 'admin' && a.role !== 'admin') return 1;
+                return (a.username || '').localeCompare(b.username || '');
+            });
+            
             setUsers(fetchedUsers);
         }, (err) => {
              setError(`An unexpected error occurred fetching users: ${err.message}`);
