@@ -1,5 +1,5 @@
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged as onFirebaseAuthStateChanged, signOut as firebaseSignOut, updateProfile, User as FirebaseUser, sendPasswordResetEmail } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { db, auth, isFirebaseConfigured } from './firebase';
 import type { Profile, AppUser } from './types';
 
@@ -85,10 +85,30 @@ export const updateUsername = async (newUsername: string): Promise<{ error?: str
     try {
         await updateProfile(user, { displayName: newUsername });
         const userDocRef = doc(db, 'users', user.uid);
-        await setDoc(userDocRef, { 
+        await updateDoc(userDocRef, { 
             displayName: newUsername,
             username: newUsername.toLowerCase() 
-        }, { merge: true });
+        });
+        return {};
+    } catch (error: any) {
+        return { error: error.message || "An unexpected error occurred." };
+    }
+};
+
+export const linkGoogleEmail = async (email: string): Promise<{ error?: string }> => {
+    if (!isFirebaseConfigured || !auth || !db) {
+        return { error: FIREBASE_NOT_CONFIGURED_ERROR };
+    }
+    const user = auth.currentUser;
+    if (!user) {
+        return { error: "You must be logged in to link an email." };
+    }
+    if (!email.toLowerCase().endsWith('@gmail.com')) {
+        return { error: "Please enter a valid Gmail address." };
+    }
+    try {
+        const userDocRef = doc(db, 'users', user.uid);
+        await updateDoc(userDocRef, { googleEmail: email });
         return {};
     } catch (error: any) {
         return { error: error.message || "An unexpected error occurred." };
@@ -142,14 +162,15 @@ export const getUserData = async (uid: string): Promise<UserData | null> => {
         throw new Error(FIREBASE_NOT_CONFIGURED_ERROR);
     }
     const userDocRef = doc(db, 'users', uid);
-    const userDoc = await getDoc(userDocRef);
+    const userDocSnap = await getDoc(userDocRef);
 
-    if (userDoc.exists()) {
-        const data = userDoc.data();
-        const userDocument = {
+    if (userDocSnap.exists()) {
+        const data = userDocSnap.data();
+        const userDocument: AppUser = {
             uid: data.uid,
             username: data.displayName,
             email: data.email,
+            googleEmail: data.googleEmail,
             role: data.role
         };
         return {

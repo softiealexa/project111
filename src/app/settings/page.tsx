@@ -15,7 +15,7 @@ import { ContactDialog } from '@/components/contact-dialog';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
-import { updateUsername, sendPasswordReset } from '@/lib/auth';
+import { updateUsername, sendPasswordReset, linkGoogleEmail } from '@/lib/auth';
 import Navbar from '@/components/navbar';
 
 // Profile Tab Component
@@ -23,8 +23,10 @@ const ProfileTab = () => {
     const { user, userDoc, refreshUserDoc } = useData();
     const { toast } = useToast();
     const [newUsername, setNewUsername] = useState(user?.displayName || '');
+    const [googleEmail, setGoogleEmail] = useState('');
     const [isUpdatingUsername, setIsUpdatingUsername] = useState(false);
     const [isSendingReset, setIsSendingReset] = useState(false);
+    const [isLinkingEmail, setIsLinkingEmail] = useState(false);
 
     const handleUpdateUsername = async () => {
         if (!newUsername.trim() || newUsername.trim() === user?.displayName) return;
@@ -50,13 +52,30 @@ const ProfileTab = () => {
         setIsSendingReset(false);
     };
 
+    const handleLinkGoogleEmail = async () => {
+        if (!googleEmail.trim()) {
+            toast({ title: 'Error', description: 'Email address cannot be empty.', variant: 'destructive' });
+            return;
+        }
+        setIsLinkingEmail(true);
+        const { error } = await linkGoogleEmail(googleEmail.trim());
+        if (error) {
+            toast({ title: 'Error', description: error, variant: 'destructive' });
+        } else {
+            toast({ title: 'Success', description: 'Google email linked successfully.' });
+            await refreshUserDoc();
+            setGoogleEmail('');
+        }
+        setIsLinkingEmail(false);
+    };
+
     if (!user || !userDoc) return <LoaderCircle className="h-8 w-8 animate-spin text-primary" />;
 
     return (
         <Card>
             <CardHeader>
                 <CardTitle>Public Profile</CardTitle>
-                <CardDescription>This is how others will see you on the site.</CardDescription>
+                <CardDescription>Manage your public information and account settings.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="space-y-2">
@@ -69,17 +88,41 @@ const ProfileTab = () => {
                         </Button>
                     </div>
                 </div>
+
+                <Separator />
+                
                 <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" value={userDoc.email} disabled />
-                    <p className="text-xs text-muted-foreground">Your email is used for login and password resets only.</p>
+                    <h3 className="text-base font-medium">Google Account</h3>
+                    {userDoc.googleEmail ? (
+                        <div>
+                            <p className="text-sm text-muted-foreground">Your account is linked to:</p>
+                            <p className="font-medium">{userDoc.googleEmail}</p>
+                        </div>
+                    ) : (
+                        <>
+                            <p className="text-sm text-muted-foreground">Link your Google account to prepare for future sign-in options. Must be a @gmail.com address.</p>
+                             <div className="flex gap-2">
+                                <Input 
+                                    id="google-email" 
+                                    placeholder="your-email@gmail.com" 
+                                    value={googleEmail} 
+                                    onChange={(e) => setGoogleEmail(e.target.value)} 
+                                    disabled={isLinkingEmail}
+                                />
+                                <Button onClick={handleLinkGoogleEmail} disabled={isLinkingEmail}>
+                                    {isLinkingEmail && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
+                                    Link Account
+                                </Button>
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 <Separator />
 
                 <div className="space-y-2">
                     <h3 className="text-base font-medium">Password</h3>
-                    <p className="text-sm text-muted-foreground">To change your password, we'll send a secure link to your email address.</p>
+                    <p className="text-sm text-muted-foreground">To change your password, we'll send a secure link to your internal account email.</p>
                     <Button variant="outline" onClick={handlePasswordReset} disabled={isSendingReset}>
                         {isSendingReset && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
                         Send Password Reset Email

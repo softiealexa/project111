@@ -3,6 +3,7 @@
 
 
 
+
 export interface Note {
   id: string;
   title: string;
@@ -68,6 +69,7 @@ export interface AppUser {
     uid: string;
     username: string;
     email: string;
+    googleEmail?: string;
     role?: 'admin' | 'user';
 }
 
