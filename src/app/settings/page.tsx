@@ -15,31 +15,16 @@ import { ContactDialog } from '@/components/contact-dialog';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
-import { updateUsername, sendPasswordReset, linkGoogleEmail } from '@/lib/auth';
+import { sendPasswordReset, linkGoogleEmail } from '@/lib/auth';
 import Navbar from '@/components/navbar';
 
 // Profile Tab Component
 const ProfileTab = () => {
     const { user, userDoc, refreshUserDoc } = useData();
     const { toast } = useToast();
-    const [newUsername, setNewUsername] = useState(user?.displayName || '');
     const [googleEmail, setGoogleEmail] = useState('');
-    const [isUpdatingUsername, setIsUpdatingUsername] = useState(false);
     const [isSendingReset, setIsSendingReset] = useState(false);
     const [isLinkingEmail, setIsLinkingEmail] = useState(false);
-
-    const handleUpdateUsername = async () => {
-        if (!newUsername.trim() || newUsername.trim() === user?.displayName) return;
-        setIsUpdatingUsername(true);
-        const { error } = await updateUsername(newUsername.trim());
-        if (error) {
-            toast({ title: 'Error', description: error, variant: 'destructive' });
-        } else {
-            toast({ title: 'Success', description: 'Username updated successfully.' });
-            await refreshUserDoc();
-        }
-        setIsUpdatingUsername(false);
-    };
 
     const handlePasswordReset = async () => {
         setIsSendingReset(true);
@@ -79,14 +64,9 @@ const ProfileTab = () => {
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="space-y-2">
-                    <Label htmlFor="username">Username</Label>
-                    <div className="flex gap-2">
-                        <Input id="username" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} />
-                        <Button onClick={handleUpdateUsername} disabled={isUpdatingUsername || !newUsername.trim() || newUsername.trim() === user.displayName}>
-                            {isUpdatingUsername && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
-                            Update
-                        </Button>
-                    </div>
+                    <Label>Username</Label>
+                    <p className="font-medium">{userDoc.username}</p>
+                    <p className="text-xs text-muted-foreground">Usernames cannot be changed after registration.</p>
                 </div>
 
                 <Separator />

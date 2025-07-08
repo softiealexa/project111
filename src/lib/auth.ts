@@ -74,27 +74,6 @@ export const register = async (username: string, password: string): Promise<Auth
     }
 };
 
-export const updateUsername = async (newUsername: string): Promise<{ error?: string }> => {
-    if (!isFirebaseConfigured || !auth || !db) {
-        return { error: FIREBASE_NOT_CONFIGURED_ERROR };
-    }
-    const user = auth.currentUser;
-    if (!user) {
-        return { error: "You must be logged in to update your username." };
-    }
-    try {
-        await updateProfile(user, { displayName: newUsername });
-        const userDocRef = doc(db, 'users', user.uid);
-        await updateDoc(userDocRef, { 
-            displayName: newUsername,
-            username: newUsername.toLowerCase() 
-        });
-        return {};
-    } catch (error: any) {
-        return { error: error.message || "An unexpected error occurred." };
-    }
-};
-
 export const linkGoogleEmail = async (email: string): Promise<{ error?: string }> => {
     if (!isFirebaseConfigured || !auth || !db) {
         return { error: FIREBASE_NOT_CONFIGURED_ERROR };
