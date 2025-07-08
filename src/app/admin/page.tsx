@@ -20,14 +20,14 @@ export default function AdminPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const adminEmails = useMemo(() => {
-        const emails = process.env.NEXT_PUBLIC_ADMIN_EMAILS || '';
-        return emails.split(',').map(email => email.trim().toLowerCase());
+    const adminUsernames = useMemo(() => {
+        const usernames = process.env.NEXT_PUBLIC_ADMIN_USERNAMES || '';
+        return usernames.split(',').map(username => username.trim().toLowerCase());
     }, []);
 
     const isUserAdmin = useMemo(() => {
-        return user?.email ? adminEmails.includes(user.email.toLowerCase()) : false;
-    }, [user, adminEmails]);
+        return user?.displayName ? adminUsernames.includes(user.displayName.toLowerCase()) : false;
+    }, [user, adminUsernames]);
 
     useEffect(() => {
         if (authLoading) return;
