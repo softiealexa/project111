@@ -1,7 +1,7 @@
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged as onFirebaseAuthStateChanged, signOut as firebaseSignOut, updateProfile, User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db, auth, isFirebaseConfigured } from './firebase';
-import type { Profile } from './types';
+import type { Profile, AppUser } from './types';
 
 const FIREBASE_NOT_CONFIGURED_ERROR = "Firebase is not configured. Please add your credentials to a .env.local file for local development, and to your Vercel project's Environment Variables for deployment.";
 
@@ -50,6 +50,7 @@ export const register = async (username: string, password: string): Promise<Auth
             displayName: username,
             profiles: [],
             activeProfileName: null,
+            role: 'user', // Default role
         });
 
         return { user };
@@ -95,6 +96,7 @@ export const onAuthChanged = (callback: (user: FirebaseUser | null) => void) => 
 interface UserData {
     profiles: Profile[];
     activeProfileName: string | null;
+    userDocument: AppUser;
 }
 
 export const getUserData = async (uid: string): Promise<UserData | null> => {
@@ -106,9 +108,16 @@ export const getUserData = async (uid: string): Promise<UserData | null> => {
 
     if (userDoc.exists()) {
         const data = userDoc.data();
+        const userDocument = {
+            uid: data.uid,
+            username: data.displayName,
+            email: data.email,
+            role: data.role
+        };
         return {
             profiles: data.profiles || [],
             activeProfileName: data.activeProfileName || null,
+            userDocument: userDocument
         }
     }
     return null;

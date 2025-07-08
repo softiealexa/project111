@@ -8,27 +8,22 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ShieldAlert, Users, LoaderCircle } from 'lucide-react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppUser } from '@/lib/types';
 import Navbar from '@/components/navbar';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
 export default function AdminPage() {
-    const { user, loading: authLoading } = useData();
+    const { user, userDoc, loading: authLoading } = useData();
     const router = useRouter();
     const [users, setUsers] = useState<AppUser[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const adminUsernames = useMemo(() => {
-        const usernames = process.env.NEXT_PUBLIC_ADMIN_USERNAMES || '';
-        return usernames.split(',').map(username => username.trim().toLowerCase());
-    }, []);
-
     const isUserAdmin = useMemo(() => {
-        return user?.displayName ? adminUsernames.includes(user.displayName.toLowerCase()) : false;
-    }, [user, adminUsernames]);
+        return userDoc?.role === 'admin';
+    }, [userDoc]);
 
     useEffect(() => {
         if (authLoading) return;
@@ -58,11 +53,12 @@ export default function AdminPage() {
                         uid: data.uid,
                         username: data.displayName,
                         email: data.email,
+                        role: data.role,
                     };
                 });
                 setUsers(fetchedUsers);
             } catch (err: any) {
-                 if (err.code === 'permission-denied') {
+                 if (err.code === 'permission-denied' || err.code === 'PERMISSION_DENIED') {
                     setError("Permission Denied: Your Firestore security rules are correctly blocking this request. To grant access, you must update your rules in the Firebase Console to allow admins to read the 'users' collection.");
                 } else {
                     setError(`An unexpected error occurred: ${err.message}`);
@@ -75,7 +71,7 @@ export default function AdminPage() {
         fetchUsers();
     }, [user, authLoading, router, isUserAdmin]);
 
-    if (authLoading || loading) {
+    if (authLoading || (isUserAdmin && loading)) {
         return (
             <div className="flex h-screen w-full items-center justify-center">
                 <LoaderCircle className="h-12 w-12 animate-spin text-primary" />
@@ -129,6 +125,7 @@ export default function AdminPage() {
                                     <TableRow>
                                         <TableHead>Username</TableHead>
                                         <TableHead>Email</TableHead>
+                                        <TableHead>Role</TableHead>
                                         <TableHead>User ID</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -137,11 +134,12 @@ export default function AdminPage() {
                                         <TableRow key={appUser.uid}>
                                             <TableCell className="font-medium">{appUser.username}</TableCell>
                                             <TableCell>{appUser.email}</TableCell>
+                                            <TableCell>{appUser.role === 'admin' ? 'Admin' : 'User'}</TableCell>
                                             <TableCell className="text-muted-foreground">{appUser.uid}</TableCell>
                                         </TableRow>
                                     )) : (
                                         <TableRow>
-                                            <TableCell colSpan={3} className="h-24 text-center">
+                                            <TableCell colSpan={4} className="h-24 text-center">
                                                 No users found.
                                             </TableCell>
                                         </TableRow>

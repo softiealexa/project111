@@ -5,9 +5,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
-import type { Subject, Profile, Chapter, Note, ImportantLink, Todo, Priority, ProgressPoint, QuestionSession } from '@/lib/types';
+import { doc, getDoc } from 'firebase/firestore';
+import type { Subject, Profile, Chapter, Note, ImportantLink, Todo, Priority, ProgressPoint, QuestionSession, AppUser } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
+import { db } from '@/lib/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -21,6 +23,7 @@ const MODE_KEY = 'trackacademic_mode';
 
 interface DataContextType {
   user: FirebaseUser | null;
+  userDoc: AppUser | null;
   loading: boolean;
   profiles: Profile[];
   activeProfile: Profile | undefined;
@@ -137,6 +140,7 @@ function CreateProfileScreen({ onProfileCreate }: { onProfileCreate: (name: stri
 // --- Data Provider ---
 export function DataProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [userDoc, setUserDoc] = useState<AppUser | null>(null);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [activeProfileName, setActiveProfileName] = useState<string | null>(null);
   const [activeSubjectName, setActiveSubjectName] = useState<string | null>(null);
@@ -277,6 +281,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthChanged(async (firebaseUser) => {
       setLoading(true);
       setUser(firebaseUser);
+      setUserDoc(null);
       setActiveSubjectName(null); 
 
       if (firebaseUser) {
@@ -286,14 +291,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
                   const processed = migrateAndHydrateProfiles(firestoreData.profiles);
                   setProfiles(processed);
                   setActiveProfileName(firestoreData.activeProfileName);
+                  setUserDoc(firestoreData.userDocument);
               } else {
                   setProfiles([]);
                   setActiveProfileName(null);
+                  setUserDoc(null);
               }
           } catch (error) {
               console.error("Failed to fetch user data:", error);
               setProfiles([]);
               setActiveProfileName(null);
+              setUserDoc(null);
               toast({ title: "Error", description: "Could not fetch your data from the cloud.", variant: "destructive" });
           }
       } else {
@@ -765,7 +773,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(() => ({
-    user, loading, profiles, activeProfile, activeSubjectName, setActiveSubjectName,
+    user, userDoc, loading, profiles, activeProfile, activeSubjectName, setActiveSubjectName,
     addProfile, switchProfile, updateSubjects, addSubject, removeSubject, renameSubject,
     addChapter, removeChapter, updateChapter, renameChapter, updateTasks, renameTask,
     updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
@@ -774,7 +782,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     exportData, importData, signOutUser,
     theme, setTheme, mode, setMode,
   }), [
-    user, loading, profiles, activeProfile, activeSubjectName,
+    user, userDoc, loading, profiles, activeProfile, activeSubjectName,
     addProfile, switchProfile, updateSubjects, addSubject, removeSubject, renameSubject,
     addChapter, removeChapter, updateChapter, renameChapter, updateTasks, renameTask,
     updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
