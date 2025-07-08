@@ -29,6 +29,8 @@ interface DataContextType {
   activeSubjectName: string | null;
   setActiveSubjectName: (name: string | null) => void;
   addProfile: (name: string) => void;
+  removeProfile: (name: string) => void;
+  renameProfile: (oldName: string, newName: string) => void;
   switchProfile: (name: string) => void;
   updateSubjects: (newSubjects: Subject[]) => void;
   addSubject: (subjectName: string, iconName: string) => void;
@@ -340,6 +342,37 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateProfiles(newProfiles, name);
     window.location.reload();
   }, [profiles, updateProfiles]);
+  
+  const removeProfile = useCallback((name: string) => {
+    if (profiles.length <= 1) {
+        toast({ title: "Cannot Remove", description: "You must have at least one profile.", variant: "destructive" });
+        return;
+    }
+    const newProfiles = profiles.filter(p => p.name !== name);
+    let newActiveProfileName = activeProfileName;
+    if (activeProfileName === name) {
+        newActiveProfileName = newProfiles[0].name;
+    }
+    setActiveProfileName(newActiveProfileName);
+    updateProfiles(newProfiles, newActiveProfileName);
+    toast({ title: "Profile Removed", description: `Profile "${name}" has been removed.`});
+  }, [profiles, activeProfileName, updateProfiles, toast]);
+
+  const renameProfile = useCallback((oldName: string, newName: string) => {
+    const trimmedNewName = newName.trim();
+    if (profiles.some(p => p.name.toLowerCase() === trimmedNewName.toLowerCase())) {
+        toast({ title: "Error", description: "A profile with this name already exists.", variant: "destructive" });
+        return;
+    }
+    const newProfiles = profiles.map(p => p.name === oldName ? { ...p, name: trimmedNewName } : p);
+    let newActiveProfileName = activeProfileName;
+    if (activeProfileName === oldName) {
+        newActiveProfileName = trimmedNewName;
+    }
+    setActiveProfileName(newActiveProfileName);
+    updateProfiles(newProfiles, newActiveProfileName);
+    toast({ title: "Profile Renamed", description: `"${oldName}" is now "${trimmedNewName}".`});
+  }, [profiles, activeProfileName, updateProfiles, toast]);
 
   const switchProfile = useCallback((name: string) => {
     setActiveProfileName(name);
@@ -778,7 +811,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(() => ({
     user, userDoc, loading, profiles, activeProfile, activeSubjectName, setActiveSubjectName,
-    addProfile, switchProfile, updateSubjects, addSubject, removeSubject, renameSubject,
+    addProfile, removeProfile, renameProfile, switchProfile, updateSubjects, addSubject, removeSubject, renameSubject,
     addChapter, removeChapter, updateChapter, renameChapter, updateTasks, renameTask,
     updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
     addTodo, updateTodo, deleteTodo, setTodos,
@@ -787,7 +820,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     theme, setTheme, mode, setMode, isThemeHydrated,
   }), [
     user, userDoc, loading, profiles, activeProfile, activeSubjectName,
-    addProfile, switchProfile, updateSubjects, addSubject, removeSubject, renameSubject,
+    addProfile, removeProfile, renameProfile, switchProfile, updateSubjects, addSubject, removeSubject, renameSubject,
     addChapter, removeChapter, updateChapter, renameChapter, updateTasks, renameTask,
     updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
     addTodo, updateTodo, deleteTodo, setTodos,

@@ -10,13 +10,23 @@ import {
   SheetDescription,
   SheetFooter
 } from '@/components/ui/sheet';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Trash2, Plus, GripVertical, Pencil } from 'lucide-react';
+import { Trash2, Plus, GripVertical, Pencil, ChevronsUpDown, Check } from 'lucide-react';
 import { AddSubjectDialog } from './add-subject-dialog';
 import { RemoveSubjectDialog } from './remove-subject-dialog';
 import { AddChapterDialog } from './add-chapter-dialog';
 import { RemoveChapterDialog } from './remove-chapter-dialog';
 import { RenameDialog } from './rename-dialog';
+import { RemoveProfileDialog } from './remove-profile-dialog';
+import { AddProfileDialog } from './add-profile-dialog';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Separator } from './ui/separator';
@@ -176,7 +186,24 @@ function SortableChapterItem({ id, chapter, lectureCount, onLectureCountChange, 
 }
 
 export function CustomizationSheet() {
-    const { activeProfile, activeSubjectName, updateSubjects, addSubject, removeSubject, renameSubject, addChapter, removeChapter, updateChapter, renameChapter, updateTasks, renameTask } = useData();
+    const { 
+      activeProfile, 
+      profiles,
+      activeSubjectName,
+      switchProfile,
+      removeProfile,
+      renameProfile,
+      updateSubjects, 
+      addSubject, 
+      removeSubject, 
+      renameSubject, 
+      addChapter, 
+      removeChapter, 
+      updateChapter, 
+      renameChapter, 
+      updateTasks, 
+      renameTask 
+    } = useData();
     const { toast } = useToast();
     
     const [selectedSubjectName, setSelectedSubjectName] = useState<string | null>(null);
@@ -320,14 +347,60 @@ export function CustomizationSheet() {
         <SheetContent className="w-full sm:max-w-md flex flex-col">
             <SheetHeader className="pr-6">
                 <SheetTitle>Customization</SheetTitle>
-                <SheetDescription>Manage subjects, chapters, and tasks for the '{activeProfile.name}' profile.</SheetDescription>
+                <SheetDescription>Manage profiles, subjects, chapters, and tasks.</SheetDescription>
             </SheetHeader>
             <ScrollArea className="flex-1 -mx-6 px-6">
                 <div className="py-4 space-y-8">
+
+                    {/* Section: Profiles */}
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-medium text-muted-foreground px-2">Profile Management</h3>
+                         <div className="space-y-2">
+                            <Label htmlFor="profile-switcher">Active Profile</Label>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" className="w-full justify-between" id="profile-switcher">
+                                        <span className="truncate">{activeProfile.name}</span>
+                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
+                                    <DropdownMenuLabel>Switch Profile</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {profiles.map((profile) => (
+                                    <DropdownMenuItem key={profile.name} onSelect={() => switchProfile(profile.name)}>
+                                        <Check className={`mr-2 h-4 w-4 ${activeProfile.name === profile.name ? 'opacity-100' : 'opacity-0'}`} />
+                                        {profile.name}
+                                    </DropdownMenuItem>
+                                    ))}
+                                    <DropdownMenuSeparator />
+                                    <AddProfileDialog />
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                         <div className="grid grid-cols-2 gap-2">
+                            <RenameDialog
+                                itemType="Profile"
+                                currentName={activeProfile.name}
+                                onRename={(newName) => renameProfile(activeProfile.name, newName)}
+                                existingNames={profiles.map(p => p.name)}
+                            >
+                                <Button variant="outline" className="w-full">Rename Active</Button>
+                            </RenameDialog>
+                            <RemoveProfileDialog 
+                                profileName={activeProfile.name} 
+                                onConfirm={() => removeProfile(activeProfile.name)}
+                            >
+                                <Button variant="outline" className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive">Remove Active</Button>
+                            </RemoveProfileDialog>
+                        </div>
+                    </div>
+
+                    <Separator />
                     
                     {/* Section: Subjects */}
                     <div className="space-y-4">
-                        <h3 className="text-sm font-medium text-muted-foreground px-2">Manage Profile</h3>
+                        <h3 className="text-sm font-medium text-muted-foreground px-2">Subject Management</h3>
                         <div className="space-y-2">
                             <AddSubjectDialog 
                                 onAddSubject={addSubject}
@@ -362,7 +435,7 @@ export function CustomizationSheet() {
                     
                     {/* Section: Edit Subject Details */}
                     <div className="space-y-4">
-                        <h3 className="text-sm font-medium text-muted-foreground px-2">Edit Subject Details</h3>
+                        <h3 className="text-sm font-medium text-muted-foreground px-2">Chapter & Task Management</h3>
                          <div className="space-y-2">
                             <Label htmlFor="subject-select">Select Subject</Label>
                             <Select 

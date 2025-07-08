@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { useData } from '@/contexts/data-context';
 import { Button } from '@/components/ui/button';
-import { Book, ChevronsUpDown, Check, LogOut, UserPlus, LogIn, SlidersHorizontal, Settings } from 'lucide-react';
+import { Book, LogOut, UserPlus, LogIn, SlidersHorizontal, Settings } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import {
@@ -16,14 +16,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { AddProfileDialog } from './add-profile-dialog';
 import { CustomizationSheet } from './customization-sheet';
 import Image from 'next/image';
 import { Sheet } from './ui/sheet';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
 export default function Navbar() {
-  const { profiles, activeProfile, switchProfile, user, signOutUser } = useData();
+  const { activeProfile, user, signOutUser } = useData();
   const router = useRouter();
   const [isCustomizationOpen, setIsCustomizationOpen] = useState(false);
 
@@ -56,29 +55,6 @@ export default function Navbar() {
             <div className="flex items-center gap-1 sm:gap-2">
               {user ? (
                 <>
-                  {activeProfile && (
-                      <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                          <Button variant="outline" className="w-auto sm:w-[180px] justify-between">
-                          <span className="truncate">{activeProfile.name}</span>
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-[180px]">
-                          <DropdownMenuLabel>Switch Profile</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          {profiles.map((profile) => (
-                          <DropdownMenuItem key={profile.name} onSelect={() => switchProfile(profile.name)}>
-                              <Check className={`mr-2 h-4 w-4 ${activeProfile.name === profile.name ? 'opacity-100' : 'opacity-0'}`} />
-                              {profile.name}
-                          </DropdownMenuItem>
-                          ))}
-                          <DropdownMenuSeparator />
-                          <AddProfileDialog />
-                      </DropdownMenuContent>
-                      </DropdownMenu>
-                  )}
-
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button variant="ghost" size="icon" onClick={() => setIsCustomizationOpen(true)} disabled={!activeProfile}>
