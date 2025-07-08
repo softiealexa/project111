@@ -62,10 +62,10 @@ export default function AdminPage() {
                 });
                 setUsers(fetchedUsers);
             } catch (err: any) {
-                 if (err.code === 'permission-denied' || err.code === 'PERMISION-DENIED') {
-                    setError("Missing or insufficient permissions. Please check your Firestore security rules to allow admins to read the 'users' collection.");
+                 if (err.code === 'permission-denied') {
+                    setError("Permission Denied: Your Firestore security rules are correctly blocking this request. To grant access, you must update your rules in the Firebase Console to allow admins to read the 'users' collection.");
                 } else {
-                    setError(err.message || "An unexpected error occurred.");
+                    setError(`An unexpected error occurred: ${err.message}`);
                 }
             } finally {
                 setLoading(false);
