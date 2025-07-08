@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { useToast } from "@/hooks/use-toast";
 import { submitFeedback } from "@/lib/feedback";
 import { LoaderCircle } from "lucide-react";
+import { useData } from "@/contexts/data-context";
 
 interface ContactDialogProps {
   open: boolean;
@@ -28,6 +29,7 @@ type FeedbackType = 'Bug Report' | 'Feature Request' | 'Other';
 
 export function ContactDialog({ open, onOpenChange }: ContactDialogProps) {
   const { toast } = useToast();
+  const { user } = useData();
   const [type, setType] = useState<FeedbackType>("Bug Report");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -51,14 +53,26 @@ export function ContactDialog({ open, onOpenChange }: ContactDialogProps) {
         setError("Message cannot be empty.");
         return;
     }
+
+    if (!user) {
+        toast({
+            title: "Authentication Error",
+            description: "You must be logged in to submit feedback.",
+            variant: "destructive",
+        });
+        return;
+    }
+
     setError("");
     setIsLoading(true);
 
     try {
-        const formData = new FormData();
-        formData.append('type', type);
-        formData.append('message', message);
-        await submitFeedback(formData);
+        await submitFeedback({
+            type,
+            message,
+            userId: user.uid,
+            userEmail: user.email || 'N/A',
+        });
 
         toast({
             title: "Feedback Sent!",

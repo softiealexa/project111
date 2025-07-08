@@ -2,17 +2,22 @@
 'use server';
 
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db, auth } from './firebase';
+import { db } from './firebase';
 import type { Feedback } from './types';
 
-export async function submitFeedback(formData: FormData) {
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
+interface FeedbackInput {
+    userId: string;
+    userEmail: string;
+    type: 'Bug Report' | 'Feature Request' | 'Other';
+    message: string;
+}
+
+export async function submitFeedback(input: FeedbackInput) {
+    const { type, message, userId, userEmail } = input;
+
+    if (!userId) {
         throw new Error("You must be logged in to submit feedback.");
     }
-
-    const type = formData.get('type') as Feedback['type'];
-    const message = formData.get('message') as string;
 
     if (!type || !message) {
         throw new Error("Both type and message are required fields.");
@@ -22,9 +27,9 @@ export async function submitFeedback(formData: FormData) {
         throw new Error("Message must be at least 10 characters long.");
     }
 
-    const feedbackData: Feedback = {
-        userId: currentUser.uid,
-        userEmail: currentUser.email || 'N/A',
+    const feedbackData: Omit<Feedback, 'id'> = {
+        userId: userId,
+        userEmail: userEmail,
         type: type,
         message: message,
         createdAt: serverTimestamp()
