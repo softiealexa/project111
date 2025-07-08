@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ShieldAlert, Users, LoaderCircle, MessageSquare } from 'lucide-react';
-import { collection, getDocs, query, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, Timestamp, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppUser, Feedback } from '@/lib/types';
 import Navbar from '@/components/navbar';
@@ -52,56 +52,60 @@ export default function AdminPage() {
             return;
         }
 
-        const fetchData = async () => {
-            if (!db) {
-                setError("Database connection is not available.");
-                setLoading(false);
-                return;
-            }
-            try {
-                // Fetch users
-                const usersCol = collection(db, 'users');
-                const userSnapshot = await getDocs(usersCol);
-                const fetchedUsers = userSnapshot.docs.map(doc => {
-                    const data = doc.data();
-                    return {
-                        uid: doc.id,
-                        username: data.displayName || data.username,
-                        email: data.email,
-                        role: data.role,
-                    };
-                });
-                setUsers(fetchedUsers);
+        if (!db) {
+            setError("Database connection is not available.");
+            setLoading(false);
+            return;
+        }
 
-                // Fetch feedback
-                const feedbackCol = collection(db, 'feedback');
-                const feedbackQuery = query(feedbackCol, orderBy('createdAt', 'desc'));
-                const feedbackSnapshot = await getDocs(feedbackQuery);
-                const fetchedFeedback = feedbackSnapshot.docs.map(doc => {
-                    const data = doc.data() as Feedback;
-                    const createdAt = data.createdAt as Timestamp;
-                    return {
-                        id: doc.id,
-                        ...data,
-                        createdAt: createdAt.toDate(),
-                    };
-                });
-                setFeedback(fetchedFeedback);
+        const usersCol = collection(db, 'users');
+        const usersUnsubscribe = onSnapshot(usersCol, (snapshot) => {
+            const fetchedUsers = snapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    uid: doc.id,
+                    username: data.displayName || data.username,
+                    email: data.email,
+                    role: data.role,
+                };
+            });
+            setUsers(fetchedUsers);
+        }, (err) => {
+             setError(`An unexpected error occurred fetching users: ${err.message}`);
+             setLoading(false);
+        });
 
-            } catch (err: any) {
-                 if (err.code === 'permission-denied' || err.code === 'PERMISSION_DENIED') {
-                    setError("Permission Denied: Your Firestore security rules are correctly blocking this request. To grant access, you must update your rules in the Firebase Console to allow admins to read the 'users' and 'feedback' collections.");
-                } else if (err.code === 'failed-precondition') {
-                    setError(`Query requires an index. Please check the browser console for a link to create it in Firebase.`);
-                } else {
-                    setError(`An unexpected error occurred: ${err.message}`);
-                }
-            } finally {
-                setLoading(false);
+        const feedbackCol = collection(db, 'feedback');
+        const feedbackQuery = query(feedbackCol, orderBy('createdAt', 'desc'));
+        const feedbackUnsubscribe = onSnapshot(feedbackQuery, (snapshot) => {
+            const fetchedFeedback = snapshot.docs.map(doc => {
+                const data = doc.data() as Feedback;
+                const createdAt = data.createdAt as Timestamp;
+                return {
+                    id: doc.id,
+                    ...data,
+                    createdAt: createdAt ? createdAt.toDate() : new Date(),
+                };
+            });
+            setFeedback(fetchedFeedback);
+            setLoading(false);
+        }, (err: any) => {
+             if (err.code === 'permission-denied' || err.code === 'PERMISSION_DENIED') {
+                setError("Permission Denied: Your Firestore security rules are correctly blocking this request. To grant access, you must update your rules in the Firebase Console to allow admins to read the 'users' and 'feedback' collections.");
+            } else if (err.code === 'failed-precondition') {
+                setError(`Query requires an index. Please check the browser console for a link to create it in Firebase.`);
+            } else {
+                setError(`An unexpected error occurred: ${err.message}`);
             }
+            setLoading(false);
+        });
+
+        // Cleanup listeners on component unmount
+        return () => {
+            usersUnsubscribe();
+            feedbackUnsubscribe();
         };
 
-        fetchData();
     }, [user, authLoading, router, isUserAdmin]);
 
     if (authLoading || (isUserAdmin && loading)) {
@@ -142,7 +146,7 @@ export default function AdminPage() {
                         <AlertDescription>{error}</AlertDescription>
                     </Alert>
                 ) : (
-                    <Accordion type="single" collapsible defaultValue="item-1" className="w-full space-y-4">
+                    <Accordion type="multiple" defaultValue={["item-1", "item-2"]} className="w-full space-y-4">
                         <AccordionItem value="item-1" className="rounded-lg border bg-card text-card-foreground shadow-sm">
                             <AccordionTrigger className="p-6 text-left hover:no-underline">
                                 <div className="flex-1">
