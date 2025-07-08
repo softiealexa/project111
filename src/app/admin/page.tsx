@@ -244,7 +244,7 @@ export default function AdminPage() {
                         <AlertDescription>{error}</AlertDescription>
                     </Alert>
                 ) : (
-                    <Accordion type="multiple" defaultValue={["item-1", "item-2"]} className="w-full space-y-4">
+                    <Accordion type="multiple" defaultValue={["item-2", "item-3"]} className="w-full space-y-4">
                         <AccordionItem value="item-1" className="rounded-lg border bg-card text-card-foreground shadow-sm">
                              <AccordionTrigger className="p-6 text-left hover:no-underline [&[data-state=open]>svg]:rotate-180">
                                 <div className="flex-1">
