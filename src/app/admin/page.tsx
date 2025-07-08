@@ -8,11 +8,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ShieldAlert, Users, LoaderCircle } from 'lucide-react';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppUser } from '@/lib/types';
 import Navbar from '@/components/navbar';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 export default function AdminPage() {
     const { user, userDoc, loading: authLoading } = useData();
@@ -102,53 +108,57 @@ export default function AdminPage() {
             <Navbar/>
             <main className="max-w-7xl mx-auto py-8 px-4">
                 <h1 className="text-3xl font-bold mb-6">Admin Panel</h1>
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Users />
-                            Registered Users
-                        </CardTitle>
-                        <CardDescription>
-                            A list of all users who have registered in the application.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {error ? (
-                             <Alert variant="destructive">
-                                <ShieldAlert className="h-4 w-4" />
-                                <AlertTitle>Error</AlertTitle>
-                                <AlertDescription>{error}</AlertDescription>
-                            </Alert>
-                        ) : (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Username</TableHead>
-                                        <TableHead>Email</TableHead>
-                                        <TableHead>Role</TableHead>
-                                        <TableHead>User ID</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {users.length > 0 ? users.map((appUser) => (
-                                        <TableRow key={appUser.uid}>
-                                            <TableCell className="font-medium">{appUser.username}</TableCell>
-                                            <TableCell>{appUser.email}</TableCell>
-                                            <TableCell>{appUser.role === 'admin' ? 'Admin' : 'User'}</TableCell>
-                                            <TableCell className="text-muted-foreground">{appUser.uid}</TableCell>
-                                        </TableRow>
-                                    )) : (
+                <Accordion type="single" collapsible defaultValue="item-1" className="w-full">
+                    <AccordionItem value="item-1" className="rounded-lg border bg-card text-card-foreground shadow-sm">
+                        <AccordionTrigger className="p-6 text-left hover:no-underline">
+                            <div className="flex-1">
+                                <CardTitle className="flex items-center gap-2">
+                                    <Users />
+                                    Registered Users
+                                </CardTitle>
+                                <CardDescription className="pt-1.5">
+                                    A list of all users who have registered in the application.
+                                </CardDescription>
+                            </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="px-6 pb-6 pt-0">
+                            {error ? (
+                                 <Alert variant="destructive">
+                                    <ShieldAlert className="h-4 w-4" />
+                                    <AlertTitle>Error</AlertTitle>
+                                    <AlertDescription>{error}</AlertDescription>
+                                </Alert>
+                            ) : (
+                                <Table>
+                                    <TableHeader>
                                         <TableRow>
-                                            <TableCell colSpan={4} className="h-24 text-center">
-                                                No users found.
-                                            </TableCell>
+                                            <TableHead>Username</TableHead>
+                                            <TableHead>Email</TableHead>
+                                            <TableHead>Role</TableHead>
+                                            <TableHead>User ID</TableHead>
                                         </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        )}
-                    </CardContent>
-                </Card>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {users.length > 0 ? users.map((appUser) => (
+                                            <TableRow key={appUser.uid}>
+                                                <TableCell className="font-medium">{appUser.username}</TableCell>
+                                                <TableCell>{appUser.email}</TableCell>
+                                                <TableCell>{appUser.role === 'admin' ? 'Admin' : 'User'}</TableCell>
+                                                <TableCell className="text-muted-foreground">{appUser.uid}</TableCell>
+                                            </TableRow>
+                                        )) : (
+                                            <TableRow>
+                                                <TableCell colSpan={4} className="h-24 text-center">
+                                                    No users found.
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            )}
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
             </main>
         </TooltipProvider>
     );
