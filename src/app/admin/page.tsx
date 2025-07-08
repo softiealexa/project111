@@ -7,8 +7,8 @@ import { useRouter } from 'next/navigation';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ShieldAlert, Users, LoaderCircle, MessageSquare, ChevronDown } from 'lucide-react';
-import { collection, getDocs, query, orderBy, Timestamp, onSnapshot, doc, updateDoc } from 'firebase/firestore';
+import { ShieldAlert, Users, LoaderCircle, MessageSquare, ChevronDown, Archive } from 'lucide-react';
+import { collection, query, orderBy, Timestamp, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppUser, Feedback, FeedbackStatus } from '@/lib/types';
 import Navbar from '@/components/navbar';
@@ -36,6 +36,55 @@ const statusColors: Record<FeedbackStatus, string> = {
     Done: 'bg-green-500/10 text-green-500 border-green-500/20',
     Fixed: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
 };
+
+// Reusable component for the feedback table to avoid repetition
+const FeedbackTable = ({ feedbackItems, onStatusChange }: { feedbackItems: DisplayFeedback[], onStatusChange: (id: string, newStatus: FeedbackStatus) => void }) => {
+    if (feedbackItems.length === 0) {
+        return (
+            <div className="h-24 flex items-center justify-center text-center text-sm text-muted-foreground">
+                No messages in this category.
+            </div>
+        );
+    }
+    
+    return (
+        <Table>
+            <TableHeader>
+                <TableRow>
+                    <TableHead className="w-[150px]">Status</TableHead>
+                    <TableHead className="w-[150px]">Date</TableHead>
+                    <TableHead className="w-[200px]">From</TableHead>
+                    <TableHead className="w-[150px]">Type</TableHead>
+                    <TableHead>Message</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {feedbackItems.map((item) => (
+                    <TableRow key={item.id}>
+                        <TableCell>
+                            <Select value={item.status} onValueChange={(newStatus: FeedbackStatus) => onStatusChange(item.id, newStatus)}>
+                                <SelectTrigger className={cn("text-xs h-8", statusColors[item.status])}>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Pending">Pending</SelectItem>
+                                    <SelectItem value="In Progress">In Progress</SelectItem>
+                                    <SelectItem value="Done">Done</SelectItem>
+                                    <SelectItem value="Fixed">Fixed</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </TableCell>
+                        <TableCell className="font-medium">{format(item.createdAt, 'PP')}</TableCell>
+                        <TableCell>{item.userEmail}</TableCell>
+                        <TableCell>{item.type}</TableCell>
+                        <TableCell className="whitespace-pre-wrap">{item.message}</TableCell>
+                    </TableRow>
+                ))}
+            </TableBody>
+        </Table>
+    );
+};
+
 
 export default function AdminPage() {
     const { user, userDoc, loading: authLoading } = useData();
@@ -128,15 +177,19 @@ export default function AdminPage() {
         try {
             await updateDoc(feedbackRef, { status: newStatus });
         } catch (err: any) {
-            setError(`Failed to update status: ${err.message}`);
+            setError(`Failed to update status. Check Firestore rules for update permissions. Error: ${err.message}`);
         }
     };
     
-    const filteredFeedback = useMemo(() => {
-        if (feedbackFilter === 'All') {
-            return feedback;
-        }
-        return feedback.filter(item => item.type === feedbackFilter);
+    const { newMessages, resolvedMessages } = useMemo(() => {
+        const filtered = feedbackFilter === 'All'
+            ? feedback
+            : feedback.filter(item => item.type === feedbackFilter);
+        
+        const newMessages = filtered.filter(item => item.status === 'Pending' || item.status === 'In Progress');
+        const resolvedMessages = filtered.filter(item => item.status === 'Done' || item.status === 'Fixed');
+
+        return { newMessages, resolvedMessages };
     }, [feedback, feedbackFilter]);
 
     if (authLoading || (isUserAdmin && loading)) {
@@ -169,7 +222,21 @@ export default function AdminPage() {
         <TooltipProvider>
             <Navbar/>
             <main className="max-w-7xl mx-auto py-8 px-4">
-                <h1 className="text-3xl font-bold mb-6">Admin Panel</h1>
+                <div className="flex justify-between items-center mb-6">
+                    <h1 className="text-3xl font-bold">Admin Panel</h1>
+                    <Select value={feedbackFilter} onValueChange={setFeedbackFilter}>
+                        <SelectTrigger className="w-[200px]">
+                            <SelectValue placeholder="Filter by type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="All">All Feedback Types</SelectItem>
+                            <SelectItem value="Bug Report">Bug Report</SelectItem>
+                            <SelectItem value="Feature Request">Feature Request</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                
                 {error ? (
                     <Alert variant="destructive">
                         <ShieldAlert className="h-4 w-4" />
@@ -226,68 +293,34 @@ export default function AdminPage() {
                                 <div className="flex-1">
                                     <CardTitle className="flex items-center gap-2">
                                         <MessageSquare />
-                                        User Feedback
+                                        New User Feedback
                                     </CardTitle>
                                     <CardDescription className="pt-1.5">
-                                        Messages submitted by users via the contact form.
+                                        Active messages from users that are pending or in progress.
                                     </CardDescription>
                                 </div>
                                 <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
                             </AccordionTrigger>
                             <AccordionContent className="px-6 pb-6 pt-0">
-                                <div className="flex justify-end mb-4">
-                                    <Select value={feedbackFilter} onValueChange={setFeedbackFilter}>
-                                        <SelectTrigger className="w-[180px]">
-                                            <SelectValue placeholder="Filter by type" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="All">All Types</SelectItem>
-                                            <SelectItem value="Bug Report">Bug Report</SelectItem>
-                                            <SelectItem value="Feature Request">Feature Request</SelectItem>
-                                            <SelectItem value="Other">Other</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                                <FeedbackTable feedbackItems={newMessages} onStatusChange={handleStatusChange} />
+                            </AccordionContent>
+                        </AccordionItem>
+
+                        <AccordionItem value="item-3" className="rounded-lg border bg-card text-card-foreground shadow-sm">
+                             <AccordionTrigger className="p-6 text-left hover:no-underline [&[data-state=open]>svg]:rotate-180">
+                                <div className="flex-1">
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Archive />
+                                        Resolved Feedback
+                                    </CardTitle>
+                                    <CardDescription className="pt-1.5">
+                                        Messages that have been marked as done or fixed.
+                                    </CardDescription>
                                 </div>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead className="w-[150px]">Status</TableHead>
-                                            <TableHead className="w-[150px]">Date</TableHead>
-                                            <TableHead className="w-[200px]">From</TableHead>
-                                            <TableHead className="w-[150px]">Type</TableHead>
-                                            <TableHead>Message</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {filteredFeedback.length > 0 ? filteredFeedback.map((item) => (
-                                            <TableRow key={item.id}>
-                                                <TableCell>
-                                                    <Select value={item.status} onValueChange={(newStatus: FeedbackStatus) => handleStatusChange(item.id, newStatus)}>
-                                                        <SelectTrigger className={cn("text-xs h-8", statusColors[item.status])}>
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="Pending">Pending</SelectItem>
-                                                            <SelectItem value="In Progress">In Progress</SelectItem>
-                                                            <SelectItem value="Done">Done</SelectItem>
-                                                            <SelectItem value="Fixed">Fixed</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </TableCell>
-                                                <TableCell className="font-medium">{format(item.createdAt, 'PP')}</TableCell>
-                                                <TableCell>{item.userEmail}</TableCell>
-                                                <TableCell>{item.type}</TableCell>
-                                                <TableCell className="whitespace-pre-wrap">{item.message}</TableCell>
-                                            </TableRow>
-                                        )) : (
-                                            <TableRow>
-                                                <TableCell colSpan={5} className="h-24 text-center">
-                                                    No feedback messages found for this filter.
-                                                </TableCell>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
+                                <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+                            </AccordionTrigger>
+                            <AccordionContent className="px-6 pb-6 pt-0">
+                                <FeedbackTable feedbackItems={resolvedMessages} onStatusChange={handleStatusChange} />
                             </AccordionContent>
                         </AccordionItem>
                     </Accordion>
@@ -296,5 +329,3 @@ export default function AdminPage() {
         </TooltipProvider>
     );
 }
-
-    
