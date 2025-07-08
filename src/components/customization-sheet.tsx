@@ -11,7 +11,7 @@ import {
   SheetFooter
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Trash2, Plus, GripVertical, Check, Pencil } from 'lucide-react';
+import { Trash2, Plus, GripVertical, Pencil } from 'lucide-react';
 import { AddSubjectDialog } from './add-subject-dialog';
 import { RemoveSubjectDialog } from './remove-subject-dialog';
 import { AddChapterDialog } from './add-chapter-dialog';
@@ -41,7 +41,6 @@ import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { getIconComponent } from '@/lib/icons';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import type { Chapter, Subject } from '@/lib/types';
 
 function SortableTaskItem({ id, task, onRemove, onRename, existingTaskNames }: { id: string, task: string, onRemove: () => void, onRename: (newName: string) => void, existingTaskNames: string[] }) {
@@ -176,18 +175,8 @@ function SortableChapterItem({ id, chapter, lectureCount, onLectureCountChange, 
     );
 }
 
-const themes = [
-    { name: 'default', label: 'Teal', color: 'hsl(180 90% 45%)' },
-    { name: 'zinc', label: 'Zinc', color: 'hsl(240 5.2% 95.1%)' },
-    { name: 'rose', label: 'Rose', color: 'hsl(346.8 77.2% 49.8%)' },
-    { name: 'blue', label: 'Blue', color: 'hsl(221.2 83.2% 53.3%)' },
-    { name: 'green', label: 'Green', color: 'hsl(142.1 76.2% 36.3%)' },
-    { name: 'violet', label: 'Violet', color: 'hsl(255 92% 76%)' },
-    { name: 'lavender', label: 'Lavender', color: 'hsl(267 84% 92%)' },
-];
-
 export function CustomizationSheet() {
-    const { activeProfile, activeSubjectName, updateSubjects, addSubject, removeSubject, renameSubject, addChapter, removeChapter, updateChapter, renameChapter, updateTasks, renameTask, theme, setTheme } = useData();
+    const { activeProfile, activeSubjectName, updateSubjects, addSubject, removeSubject, renameSubject, addChapter, removeChapter, updateChapter, renameChapter, updateTasks, renameTask } = useData();
     const { toast } = useToast();
     
     const [selectedSubjectName, setSelectedSubjectName] = useState<string | null>(null);
@@ -331,44 +320,10 @@ export function CustomizationSheet() {
         <SheetContent className="w-full sm:max-w-md flex flex-col">
             <SheetHeader className="pr-6">
                 <SheetTitle>Customization</SheetTitle>
-                <SheetDescription>Manage subjects, themes, and more for the '{activeProfile.name}' profile.</SheetDescription>
+                <SheetDescription>Manage subjects, chapters, and tasks for the '{activeProfile.name}' profile.</SheetDescription>
             </SheetHeader>
             <ScrollArea className="flex-1 -mx-6 px-6">
                 <div className="py-4 space-y-8">
-
-                    {/* Section: General */}
-                    <div className="space-y-4">
-                        <h3 className="text-sm font-medium text-muted-foreground px-2">General</h3>
-                        <div className='px-2 space-y-4'>
-                            <div className="space-y-2">
-                                <Label>Theme</Label>
-                                <div className="grid grid-cols-5 gap-3">
-                                    {themes.map((t) => (
-                                       <Tooltip key={t.name}>
-                                            <TooltipTrigger asChild>
-                                                <button
-                                                    onClick={() => setTheme(t.name)}
-                                                    className={cn(
-                                                        "relative h-10 w-10 rounded-full border-2 flex items-center justify-center transition-all",
-                                                        theme === t.name ? "border-primary ring-2 ring-primary ring-offset-2 ring-offset-background" : "border-muted"
-                                                    )}
-                                                    aria-label={`Select ${t.label} theme`}
-                                                >
-                                                    <span className="h-6 w-6 rounded-full border" style={{ backgroundColor: t.color }} />
-                                                    {theme === t.name && (
-                                                        <Check className="h-4 w-4 absolute text-primary-foreground mix-blend-difference" />
-                                                    )}
-                                                </button>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p>{t.label}</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                     
                     {/* Section: Subjects */}
                     <div className="space-y-4">

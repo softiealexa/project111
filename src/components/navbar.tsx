@@ -4,9 +4,9 @@
 import Link from 'next/link';
 import { useData } from '@/contexts/data-context';
 import { Button } from '@/components/ui/button';
-import { Book, Download, Upload, ChevronsUpDown, Check, LogOut, UserPlus, LogIn, SlidersHorizontal, Sun, Moon, MessageSquarePlus } from 'lucide-react';
+import { Book, ChevronsUpDown, Check, LogOut, UserPlus, LogIn, SlidersHorizontal, Settings } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,30 +21,13 @@ import { CustomizationSheet } from './customization-sheet';
 import Image from 'next/image';
 import { Sheet } from './ui/sheet';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
-import { ContactDialog } from './contact-dialog';
 
 export default function Navbar() {
-  const { profiles, activeProfile, switchProfile, exportData, importData, user, signOutUser, mode, setMode } = useData();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { profiles, activeProfile, switchProfile, user, signOutUser } = useData();
   const router = useRouter();
   const [isCustomizationOpen, setIsCustomizationOpen] = useState(false);
-  const [isContactOpen, setIsContactOpen] = useState(false);
 
 
-  const handleImportClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      importData(file);
-    }
-    if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-    }
-  };
-  
   const handleSignOut = async () => {
     await signOutUser();
     router.push('/');
@@ -96,14 +79,6 @@ export default function Navbar() {
                       </DropdownMenu>
                   )}
 
-                  <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileChange}
-                      className="hidden"
-                      accept=".json"
-                  />
-                  
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button variant="ghost" size="icon" onClick={() => setIsCustomizationOpen(true)} disabled={!activeProfile}>
@@ -140,22 +115,9 @@ export default function Navbar() {
                         <SlidersHorizontal className="mr-2 h-4 w-4" />
                         <span>Customization</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => setIsContactOpen(true)}>
-                        <MessageSquarePlus className="mr-2 h-4 w-4" />
-                        <span>Contact Developer</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => setMode(mode === 'light' ? 'dark' : 'light')}>
-                        {mode === 'dark' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
-                        <span>{mode === 'dark' ? 'Light' : 'Dark'} Mode</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onSelect={handleImportClick}>
-                        <Upload className="mr-2 h-4 w-4" />
-                        <span>Import Data</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={exportData}>
-                        <Download className="mr-2 h-4 w-4" />
-                        <span>Export Data</span>
+                      <DropdownMenuItem onSelect={() => router.push('/settings')}>
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Settings</span>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onSelect={handleSignOut} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
@@ -181,7 +143,6 @@ export default function Navbar() {
       </header>
       <CustomizationSheet />
     </Sheet>
-    <ContactDialog open={isContactOpen} onOpenChange={setIsContactOpen} />
     </>
   );
 }

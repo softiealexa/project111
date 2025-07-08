@@ -1,4 +1,4 @@
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged as onFirebaseAuthStateChanged, signOut as firebaseSignOut, updateProfile, User as FirebaseUser } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged as onFirebaseAuthStateChanged, signOut as firebaseSignOut, updateProfile, User as FirebaseUser, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db, auth, isFirebaseConfigured } from './firebase';
 import type { Profile, AppUser } from './types';
@@ -70,6 +70,44 @@ export const register = async (username: string, password: string): Promise<Auth
         if (error.code === 'auth/weak-password') {
             return { error: 'Password should be at least 6 characters.' };
         }
+        return { error: error.message || "An unexpected error occurred." };
+    }
+};
+
+export const updateUsername = async (newUsername: string): Promise<{ error?: string }> => {
+    if (!isFirebaseConfigured || !auth || !db) {
+        return { error: FIREBASE_NOT_CONFIGURED_ERROR };
+    }
+    const user = auth.currentUser;
+    if (!user) {
+        return { error: "You must be logged in to update your username." };
+    }
+    try {
+        await updateProfile(user, { displayName: newUsername });
+        const userDocRef = doc(db, 'users', user.uid);
+        await setDoc(userDocRef, { 
+            displayName: newUsername,
+            username: newUsername.toLowerCase() 
+        }, { merge: true });
+        return {};
+    } catch (error: any) {
+        return { error: error.message || "An unexpected error occurred." };
+    }
+};
+
+
+export const sendPasswordReset = async (): Promise<{ error?: string }> => {
+    if (!isFirebaseConfigured || !auth) {
+        return { error: FIREBASE_NOT_CONFIGURED_ERROR };
+    }
+    const user = auth.currentUser;
+    if (!user || !user.email) {
+        return { error: "No user or email found to send reset link." };
+    }
+    try {
+        await sendPasswordResetEmail(auth, user.email);
+        return {};
+    } catch (error: any) {
         return { error: error.message || "An unexpected error occurred." };
     }
 };

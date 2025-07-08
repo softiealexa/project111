@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
@@ -58,6 +57,7 @@ interface DataContextType {
   exportData: () => void;
   importData: (file: File) => void;
   signOutUser: () => Promise<void>;
+  refreshUserDoc: () => Promise<void>;
   theme: string;
   setTheme: (theme: string) => void;
   mode: 'light' | 'dark';
@@ -329,6 +329,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, [toast]);
   
+  const refreshUserDoc = useCallback(async () => {
+    if (user) {
+        const data = await getUserData(user.uid);
+        if (data) {
+            setUserDoc(data.userDocument);
+        }
+    }
+  }, [user]);
 
   const addProfile = useCallback((name: string) => {
     const newProfile: Profile = { name, subjects: [], todos: [] };
@@ -779,7 +787,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
     addTodo, updateTodo, deleteTodo, setTodos,
     addQuestionSession,
-    exportData, importData, signOutUser,
+    exportData, importData, signOutUser, refreshUserDoc,
     theme, setTheme, mode, setMode,
   }), [
     user, userDoc, loading, profiles, activeProfile, activeSubjectName,
@@ -788,7 +796,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
     addTodo, updateTodo, deleteTodo, setTodos,
     addQuestionSession,
-    exportData, importData, signOutUser,
+    exportData, importData, signOutUser, refreshUserDoc,
     theme, setTheme, mode, setMode, setActiveSubjectName
   ]);
   
