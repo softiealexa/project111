@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -43,7 +44,7 @@ export default function RegisterPage() {
     const { error } = await register(username, password);
 
     if (error) {
-       console.error(error);
+       console.log('Registration failed:', error);
        const errorMessage = typeof error === 'string' ? error : 'An unexpected error occurred during registration.';
        toast({
         title: 'Registration Failed',

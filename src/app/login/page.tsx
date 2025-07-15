@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -34,7 +35,7 @@ export default function LoginPage() {
     const { error } = await signInWithUsername(username, password);
 
     if (error) {
-      console.error(error);
+      console.log('Login failed:', error);
       const errorMessage = typeof error === 'string' ? error : 'An unexpected error occurred during login.';
       toast({
         title: 'Login Failed',
