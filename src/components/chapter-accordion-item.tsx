@@ -261,14 +261,14 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Mark Tasks Complete</AlertDialogTitle>
+                      <AlertDialogTitle>Bulk Complete Chapter Tasks</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Select tasks to complete for all lectures in "{chapter.name}".
+                        Select which tasks to complete for all lectures in "{chapter.name}".
                       </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <div className="grid grid-cols-2 gap-4 py-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
                       {tasks.map(task => (
-                        <div key={task} className="flex items-center space-x-2">
+                        <div key={task} className="flex items-center space-x-2 rounded-md border p-3 hover:bg-accent/50 transition-colors">
                           <Checkbox
                             id={`complete-${task}`}
                             onCheckedChange={(checked) => {
@@ -277,7 +277,7 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
                               );
                             }}
                           />
-                          <Label htmlFor={`complete-${task}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                          <Label htmlFor={`complete-${task}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-1 cursor-pointer">
                             {task}
                           </Label>
                         </div>
