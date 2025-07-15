@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useMe
 import { usePathname } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import type { Subject, Profile, Chapter, Note, ImportantLink, Todo, Priority, ProgressPoint, QuestionSession, AppUser, TimeSheetData } from '@/lib/types';
+import type { Subject, Profile, Chapter, Note, ImportantLink, Todo, Priority, ProgressPoint, QuestionSession, AppUser } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
 import { db } from '@/lib/firebase';
@@ -56,9 +56,6 @@ interface DataContextType {
   deleteTodo: (todoId: string) => void;
   setTodos: (todos: Todo[]) => void;
   addQuestionSession: (session: QuestionSession) => void;
-  updateTimesheet: (subjectName: string, dateKey: string, time: string) => void;
-  addTimesheetSubject: (subjectName: string) => void;
-  removeTimesheetSubject: (subjectName: string) => void;
   exportData: () => void;
   importData: (file: File) => void;
   signOutUser: () => Promise<void>;
@@ -764,61 +761,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateProfiles(newProfiles, activeProfileName);
   }, [activeProfileName, profiles, updateProfiles]);
 
-  const updateTimesheet = useCallback((subjectName: string, dateKey: string, time: string) => {
-      if (!activeProfileName) return;
-      const newProfiles = profiles.map(p => {
-          if (p.name === activeProfileName) {
-              const timesheet = p.timesheet || { subjects: [], entries: [] };
-              const entryIndex = timesheet.entries.findIndex(e => e.subject === subjectName && e.date === dateKey);
-
-              let newEntries = [...timesheet.entries];
-              if (entryIndex > -1) {
-                  if (time) {
-                      newEntries[entryIndex] = { ...newEntries[entryIndex], time };
-                  } else {
-                      newEntries.splice(entryIndex, 1);
-                  }
-              } else if (time) {
-                  newEntries.push({ subject: subjectName, date: dateKey, time });
-              }
-              
-              return { ...p, timesheet: { ...timesheet, entries: newEntries } };
-          }
-          return p;
-      });
-      updateProfiles(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, updateProfiles]);
-
-  const addTimesheetSubject = useCallback((subjectName: string) => {
-    if (!activeProfileName) return;
-    const newProfiles = profiles.map(p => {
-        if (p.name === activeProfileName) {
-            const timesheet = p.timesheet || { subjects: [], entries: [] };
-            if (!timesheet.subjects.includes(subjectName)) {
-                const newSubjects = [...timesheet.subjects, subjectName];
-                return { ...p, timesheet: { ...timesheet, subjects: newSubjects } };
-            }
-        }
-        return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, updateProfiles]);
-
-  const removeTimesheetSubject = useCallback((subjectName: string) => {
-      if (!activeProfileName) return;
-      const newProfiles = profiles.map(p => {
-          if (p.name === activeProfileName) {
-              const timesheet = p.timesheet || { subjects: [], entries: [] };
-              const newSubjects = timesheet.subjects.filter(s => s !== subjectName);
-              const newEntries = timesheet.entries.filter(e => e.subject !== subjectName);
-              return { ...p, timesheet: { subjects: newSubjects, entries: newEntries } };
-          }
-          return p;
-      });
-      updateProfiles(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, updateProfiles]);
-
-
   const exportData = useCallback(() => {
     if (typeof window === 'undefined' || profiles.length === 0) {
         toast({ title: "Export Failed", description: "No data to export.", variant: "destructive" });
@@ -874,7 +816,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addChapter, removeChapter, updateChapter, renameChapter, updateTasks, renameTask,
     updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
     addTodo, updateTodo, deleteTodo, setTodos,
-    addQuestionSession, updateTimesheet, addTimesheetSubject, removeTimesheetSubject,
+    addQuestionSession,
     exportData, importData, signOutUser, refreshUserDoc,
     theme, setTheme, mode, setMode, isThemeHydrated,
   }), [
@@ -883,7 +825,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addChapter, removeChapter, updateChapter, renameChapter, updateTasks, renameTask,
     updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
     addTodo, updateTodo, deleteTodo, setTodos,
-    addQuestionSession, updateTimesheet, addTimesheetSubject, removeTimesheetSubject,
+    addQuestionSession,
     exportData, importData, signOutUser, refreshUserDoc,
     theme, setTheme, mode, setMode, isThemeHydrated, setActiveSubjectName
   ]);

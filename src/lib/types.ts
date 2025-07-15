@@ -1,18 +1,5 @@
 
 
-export interface TimeSheetEntry {
-    subject: string;
-    date: string; // YYYY-MM-DD
-    time: string; // HH:MM:SS
-}
-
-export interface TimeSheetData {
-    subjects: string[];
-    entries: TimeSheetEntry[];
-}
-
-
-
 export interface Note {
   id: string;
   title: string;
@@ -72,7 +59,6 @@ export interface Profile {
   todos?: Todo[];
   progressHistory?: ProgressPoint[];
   questionSessions?: QuestionSession[];
-  timesheet?: TimeSheetData;
 }
 
 export interface AppUser {
