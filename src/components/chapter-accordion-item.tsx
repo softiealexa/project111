@@ -263,7 +263,7 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
                     <AlertDialogHeader>
                       <AlertDialogTitle>Mark Tasks Complete</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Select which task types you want to mark as complete for all lectures in "{chapter.name}".
+                        Select tasks to complete for all lectures in "{chapter.name}".
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <div className="grid grid-cols-2 gap-4 py-4">
