@@ -40,6 +40,9 @@ const ImportantLinks = dynamic(() => import("@/components/important-links"), {
 const QuestionTimer = dynamic(() => import('@/components/question-timer'), {
     loading: () => <LoadingSpinner containerClassName="h-96" text="Loading Timer..." />
 });
+const TimeSheet = dynamic(() => import('@/components/timesheet'), {
+  loading: () => <LoadingSpinner containerClassName="h-96" text="Loading Timesheet..." />
+});
 
 export default function DashboardClient() {
   const { activeProfile, activeSubjectName, setActiveSubjectName } = useData();
@@ -49,7 +52,7 @@ export default function DashboardClient() {
   const [mainTab, setMainTab] = useState('subjects');
   
   useEffect(() => {
-    const validTabs = ['subjects', 'progress', 'tools'];
+    const validTabs = ['subjects', 'timesheet', 'progress', 'tools'];
     const tabParam = searchParams.get('tab');
     if (tabParam && validTabs.includes(tabParam)) {
       setMainTab(tabParam);
@@ -93,8 +96,9 @@ export default function DashboardClient() {
       <div className="w-full max-w-5xl flex-1 px-4 pt-8">
         {activeProfile.subjects.length > 0 ? (
           <Tabs value={mainTab} onValueChange={setMainTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsList className="grid w-full grid-cols-4 mb-6">
               <TabsTrigger value="subjects">My Subjects</TabsTrigger>
+              <TabsTrigger value="timesheet">Timesheet</TabsTrigger>
               <TabsTrigger value="progress">Progress Overview</TabsTrigger>
               <TabsTrigger value="tools">Tools</TabsTrigger>
             </TabsList>
@@ -128,6 +132,10 @@ export default function DashboardClient() {
                   </TabsContent>
                 ))}
               </Tabs>
+            </TabsContent>
+
+            <TabsContent value="timesheet">
+              <TimeSheet />
             </TabsContent>
 
             <TabsContent value="progress">

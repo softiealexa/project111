@@ -19,6 +19,7 @@ import {
   FileText,
   Lightbulb,
   Magnet,
+  Clock,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -41,6 +42,7 @@ export const iconMap: Record<string, LucideIcon> = {
   FileText,
   Lightbulb,
   Magnet,
+  Clock,
 };
 
 export const iconNames = Object.keys(iconMap);
