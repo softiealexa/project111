@@ -327,12 +327,9 @@ export function CustomizationSheet() {
             if (oldIndex !== -1 && newIndex !== -1) {
                 const reorderedChapters = arrayMove(selectedSubject.chapters, oldIndex, newIndex);
                 
-                const newSubjects = activeProfile.subjects.map(s => {
-                    if (s.name === selectedSubject.name) {
-                        return { ...s, chapters: reorderedChapters };
-                    }
-                    return s;
-                });
+                const newSubjects = activeProfile.subjects.map(s => 
+                    s.name === selectedSubjectName ? { ...s, chapters: reorderedChapters } : s
+                );
                 updateSubjects(newSubjects);
             }
         }

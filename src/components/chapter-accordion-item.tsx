@@ -8,16 +8,16 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { Chapter, Subject } from "@/lib/types";
 import { Progress } from "@/components/ui/progress";
-import { GripVertical, ChevronDown, CheckCircle } from 'lucide-react';
+import { GripVertical, ChevronDown, CheckCircle, Pencil } from 'lucide-react';
 import { useData } from '@/contexts/data-context';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
-import { Textarea } from './ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from './ui/button';
+import { LectureNotesDialog } from './lecture-notes-dialog';
 
 
 interface ChapterAccordionItemProps {
@@ -31,8 +31,6 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
   const { activeProfile, updateSubjects } = useData();
   const [checkedState, setCheckedState] = useState<Record<string, boolean>>(chapter.checkedState || {});
   
-  const [editingLecture, setEditingLecture] = useState<number | null>(null);
-  const [noteContent, setNoteContent] = useState('');
   const [tasksToComplete, setTasksToComplete] = useState<string[]>([]);
 
   const {
@@ -104,7 +102,7 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
     setTasksToComplete([]);
   };
   
-  const handleNoteChange = (lectureNum: number, newNote: string) => {
+  const handleNoteSave = (lectureNum: number, newNote: string) => {
     if (!activeProfile) return;
     
     const trimmedNote = newNote.trim();
@@ -139,25 +137,6 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
     updateSubjects(newSubjects);
   };
 
-  const saveCurrentNote = () => {
-      if (editingLecture !== null) {
-          handleNoteChange(editingLecture, noteContent);
-      }
-  }
-
-  const handleNoteBlur = () => {
-    saveCurrentNote();
-    setEditingLecture(null);
-  };
-
-  const handleNoteClick = (lectureNum: number) => {
-    // If we were already editing a different note, save it before switching
-    if (editingLecture !== null && editingLecture !== lectureNum) {
-       saveCurrentNote();
-    }
-    setEditingLecture(lectureNum);
-    setNoteContent(chapter.notes?.[`L${lectureNum}`] || '');
-  };
 
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
   const isCompleted = progress === 100;
@@ -208,12 +187,9 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg p-3 transition-colors hover:bg-muted/50">
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <button 
-                                    onClick={() => handleNoteClick(lectureNum)}
-                                    className="font-medium text-foreground mr-auto pr-4 text-left transition-colors hover:text-primary focus:outline-none focus:text-primary rounded-sm focus-visible:ring-2 focus-visible:ring-ring"
-                                >
+                                <div className="font-medium text-foreground mr-auto pr-4 text-left">
                                     Lecture {lectureNum}
-                                </button>
+                                </div>
                               </TooltipTrigger>
                               {chapter.notes?.[`L${lectureNum}`] && (
                                 <TooltipContent>
@@ -235,19 +211,17 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
                                 );
                                 })}
                             </div>
+
+                             <LectureNotesDialog
+                                lectureNum={lectureNum}
+                                currentNote={chapter.notes?.[`L${lectureNum}`] || ''}
+                                onSave={(newNote) => handleNoteSave(lectureNum, newNote)}
+                              >
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
+                                    <Pencil className="h-4 w-4" />
+                                </Button>
+                              </LectureNotesDialog>
                         </div>
-                        {editingLecture === lectureNum && (
-                           <div className="px-3 pb-3">
-                             <Textarea
-                               autoFocus
-                               value={noteContent}
-                               onChange={(e) => setNoteContent(e.target.value)}
-                               onBlur={handleNoteBlur}
-                               placeholder="Type your notes here... they save automatically when you click away."
-                               className="min-h-[72px] text-base focus-visible:ring-1 focus-visible:ring-primary"
-                             />
-                           </div>
-                        )}
                   </div>
                 ))}
               </div>
@@ -263,7 +237,7 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
                     <AlertDialogHeader>
                       <AlertDialogTitle>Set Status</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Select tasks to complete for all lectures in "{chapter.name}".
+                        Select which task types you want to mark as complete for all lectures in "{chapter.name}".
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
