@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -173,15 +174,7 @@ export default function DashboardClient() {
                               <NotesWriter />
                           </TabsContent>
                           <TabsContent value="timer" className="mt-0">
-                              <Card>
-                                  <CardHeader>
-                                      <CardTitle>Pomodoro Timer</CardTitle>
-                                      <CardDescription>Stay focused with the Pomodoro technique.</CardDescription>
-                                  </CardHeader>
-                                  <CardContent>
-                                      <PomodoroTimer />
-                                  </CardContent>
-                              </Card>
+                              <PomodoroTimer />
                           </TabsContent>
                           <TabsContent value="links" className="mt-0">
                               <ImportantLinks />
