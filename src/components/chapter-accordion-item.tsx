@@ -18,6 +18,7 @@ import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from './ui/button';
+import { DialogTrigger } from './ui/dialog';
 
 const LectureNotesDialog = dynamic(() => import('./lecture-notes-dialog').then(mod => mod.LectureNotesDialog), {
   loading: () => <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" disabled><Pencil className="h-4 w-4" /></Button>
@@ -188,18 +189,29 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
                 {Array.from({ length: chapter.lectureCount }, (_, i) => i + 1).map((lectureNum) => (
                    <div key={lectureNum}>
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg p-3 transition-colors hover:bg-muted/50">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div className="font-medium text-foreground mr-auto pr-4 text-left">
-                                    Lecture {lectureNum}
-                                </div>
-                              </TooltipTrigger>
-                              {chapter.notes?.[`L${lectureNum}`] && (
-                                <TooltipContent>
-                                  <p className="max-w-xs whitespace-pre-wrap break-words">{chapter.notes[`L${lectureNum}`]}</p>
-                                </TooltipContent>
-                              )}
-                            </Tooltip>
+                            <Suspense>
+                                <LectureNotesDialog
+                                    lectureNum={lectureNum}
+                                    currentNote={chapter.notes?.[`L${lectureNum}`] || ''}
+                                    onSave={(newNote) => handleNoteSave(lectureNum, newNote)}
+                                >
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <DialogTrigger asChild>
+                                                <button className="group/lecture-btn flex items-center gap-2 font-medium text-foreground mr-auto pr-4 text-left rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+                                                    <span>Lecture {lectureNum}</span>
+                                                    <Pencil className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover/lecture-btn:opacity-100 transition-opacity" />
+                                                </button>
+                                            </DialogTrigger>
+                                        </TooltipTrigger>
+                                        {chapter.notes?.[`L${lectureNum}`] && (
+                                            <TooltipContent>
+                                            <p className="max-w-xs whitespace-pre-wrap break-words">{chapter.notes[`L${lectureNum}`]}</p>
+                                            </TooltipContent>
+                                        )}
+                                    </Tooltip>
+                                </LectureNotesDialog>
+                            </Suspense>
                             
                             <div className="flex items-center gap-x-4">
                                 {tasks.map((task) => {
@@ -214,13 +226,6 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
                                 );
                                 })}
                             </div>
-                            <Suspense>
-                              <LectureNotesDialog
-                                lectureNum={lectureNum}
-                                currentNote={chapter.notes?.[`L${lectureNum}`] || ''}
-                                onSave={(newNote) => handleNoteSave(lectureNum, newNote)}
-                              />
-                            </Suspense>
                         </div>
                   </div>
                 ))}
