@@ -163,6 +163,18 @@ export default function ClockifyPage() {
     setTimeEntries(prev => prev.filter(entry => entry.id !== id));
   };
   
+  const handleResumeEntry = (entryToResume: TimeEntry) => {
+    if (timerRunning) {
+      stopTimer();
+    }
+    setTask(entryToResume.task);
+    // Use a timeout to ensure state updates from stopTimer are processed
+    // before starting the new timer.
+    setTimeout(() => {
+      startTimer();
+    }, 100);
+  };
+  
   const timeEntryGroups = timeEntries.reduce<TimeEntryGroup[]>((acc, entry) => {
     const day = entry.startTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     let group = acc.find(g => g.day === day);
@@ -249,7 +261,7 @@ export default function ClockifyPage() {
                                         </Button>
                                         <span className="hidden lg:inline-block text-sm text-muted-foreground w-40 text-center">{formatTimeRange(item.startTime, item.endTime)}</span>
                                         <span className="font-bold w-20 text-right">{formatDurationShort(item.duration)}</span>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleResumeEntry(item)}>
                                             <Play className="h-4 w-4" />
                                         </Button>
                                         <div className="relative group">
