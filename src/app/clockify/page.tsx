@@ -115,7 +115,7 @@ export default function ClockifyPage() {
         const newEntry: TimeEntry = {
             id: crypto.randomUUID(),
             task: task || 'Unspecified Task',
-            project: 'ACME',
+            project: 'Office',
             projectColor: 'text-blue-500',
             tags: [],
             billable: true,
@@ -125,15 +125,21 @@ export default function ClockifyPage() {
         };
         setTimeEntries(prev => [newEntry, ...prev]);
     }
+    // Reset for the next run
     setElapsedTime(0);
     setTask('');
+    setStartTime(null);
   }, [startTime, elapsedTime, task]);
 
   const startTimer = useCallback(() => {
-    setStartTime(new Date());
+    // Reset state for a new timer session
+    setElapsedTime(0); 
+    const now = new Date();
+    setStartTime(now);
     setTimerRunning(true);
+    
     timerRef.current = setInterval(() => {
-        setElapsedTime(prev => prev + 1);
+        setElapsedTime(Math.round((new Date().getTime() - now.getTime()) / 1000));
     }, 1000);
   }, []);
 
@@ -187,7 +193,7 @@ export default function ClockifyPage() {
                         onChange={(e) => setTask(e.target.value)}
                     />
                     <Button variant="outline" className="text-primary hover:text-primary hover:bg-primary/10">
-                        <Plus className="mr-2 h-4 w-4" />
+                        <Briefcase className="mr-2 h-4 w-4" />
                         Project
                     </Button>
                     <Separator orientation="vertical" className="h-6" />
@@ -228,7 +234,7 @@ export default function ClockifyPage() {
                             <span className="text-muted-foreground">Total: <span className="font-semibold text-foreground">{formatDurationShort(group.total)}</span></span>
                         </div>
                         <div className="space-y-px bg-card">
-                            {group.items.map((item, itemIndex) => (
+                            {group.items.map((item) => (
                                 <div key={item.id} className="p-3 border-b shadow-sm">
                                     <div className="flex items-center gap-3">
                                         <div className="flex-1">
