@@ -261,9 +261,9 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Bulk Complete Chapter Tasks</AlertDialogTitle>
+                      <AlertDialogTitle>Set Status</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Select which tasks to complete for all lectures in "{chapter.name}".
+                        Select tasks to complete for all lectures in "{chapter.name}".
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
