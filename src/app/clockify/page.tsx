@@ -301,7 +301,7 @@ export default function ClockifyPage() {
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                        <SidebarMenuButton onClick={() => setActiveMenu('Kiosk')} isDisabled tooltip="Kiosk">
+                        <SidebarMenuButton onClick={() => setActiveMenu('Kiosk')} disabled tooltip="Kiosk">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-layout-grid"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
                             <span>Kiosk</span>
                         </SidebarMenuButton>
@@ -325,7 +325,7 @@ export default function ClockifyPage() {
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                      <SidebarMenuItem>
-                        <SidebarMenuButton onClick={() => setActiveMenu('Invoices')} isDisabled tooltip="Invoices">
+                        <SidebarMenuButton onClick={() => setActiveMenu('Invoices')} disabled tooltip="Invoices">
                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file-text"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
                            <span>Invoices</span>
                         </SidebarMenuButton>

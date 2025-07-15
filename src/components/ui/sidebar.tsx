@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -549,6 +550,7 @@ const SidebarMenuButton = React.forwardRef<
       size = "default",
       tooltip,
       className,
+      disabled,
       ...props
     },
     ref
@@ -562,6 +564,8 @@ const SidebarMenuButton = React.forwardRef<
         data-sidebar="menu-button"
         data-size={size}
         data-active={isActive}
+        disabled={disabled}
+        aria-disabled={disabled}
         className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
         {...props}
       />
