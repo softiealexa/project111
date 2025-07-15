@@ -1,6 +1,7 @@
 
 'use client';
 
+import Link from 'next/link';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -300,6 +301,14 @@ export default function ClockifyPage() {
             </SidebarHeader>
             <SidebarContent>
                 <SidebarMenu>
+                    <SidebarMenuItem>
+                        <Link href="/dashboard" passHref>
+                            <SidebarMenuButton asChild tooltip="Dashboard">
+                                <LayoutGrid />
+                                <span>Dashboard</span>
+                            </SidebarMenuButton>
+                        </Link>
+                    </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton onClick={() => setActiveMenu('Time Tracker')} isActive={activeMenu === 'Time Tracker'} tooltip="Time Tracker">
                             <Clock />
