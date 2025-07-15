@@ -65,7 +65,7 @@ export default function Navbar() {
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Time Tracker</p>
+                      <p>Clockify</p>
                     </TooltipContent>
                   </Tooltip>
 
@@ -103,7 +103,7 @@ export default function Navbar() {
                       <DropdownMenuSeparator />
                        <DropdownMenuItem onSelect={() => router.push('/clockify')}>
                         <Clock className="mr-2 h-4 w-4" />
-                        <span>Time Tracker</span>
+                        <span>Clockify</span>
                       </DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => setIsCustomizationOpen(true)} disabled={!activeProfile}>
                         <SlidersHorizontal className="mr-2 h-4 w-4" />
