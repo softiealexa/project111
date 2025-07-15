@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import {
   Sidebar,
@@ -34,7 +34,7 @@ import {
   MoreVertical,
   Tag,
   Trash2,
-  Square,
+  Plus,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
@@ -46,7 +46,7 @@ interface TimeEntry {
     tags: string[];
     billable: boolean;
     startTime: Date;
-    endTime: Date;
+    endTime: Date | null;
     duration: number; // in seconds
 }
 
@@ -63,9 +63,22 @@ const formatDuration = (seconds: number) => {
     return `${h}:${m}:${s}`;
 };
 
-const formatTimeRange = (start: Date, end: Date) => {
+const formatDurationShort = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+
+    if (h > 0) {
+        return `${h.toString()}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+    return `${m.toString()}:${s.toString().padStart(2, '0')}`;
+};
+
+const formatTimeRange = (start: Date, end: Date | null) => {
     const formatOpts: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: 'numeric', hour12: true };
-    return `${start.toLocaleTimeString([], formatOpts)} - ${end.toLocaleTimeString([], formatOpts)}`;
+    const startTimeStr = start.toLocaleTimeString([], formatOpts).replace(' ', '');
+    const endTimeStr = end ? end.toLocaleTimeString([], formatOpts).replace(' ', '') : 'Now';
+    return `${startTimeStr} - ${endTimeStr}`;
 }
 
 const PlaceholderContent = ({ title }: { title: string }) => (
@@ -145,12 +158,12 @@ export default function ClockifyPage() {
   };
   
   const timeEntryGroups = timeEntries.reduce<TimeEntryGroup[]>((acc, entry) => {
-    const day = entry.startTime.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const day = entry.startTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     let group = acc.find(g => g.day === day);
     if (!group) {
         group = { day: 'Today', total: 0, items: [] };
-        if (entry.startTime.getDate() !== new Date().getDate()) {
-            group.day = day;
+        if (entry.startTime.toDateString() !== new Date().toDateString()) {
+             group.day = day;
         }
         acc.push(group);
     }
@@ -165,42 +178,40 @@ export default function ClockifyPage() {
     if (activeMenu === 'Time Tracker') {
       return (
         <div className="flex-1 p-4 sm:p-6 bg-muted/30">
-            <Card className="shadow-md">
-                <CardContent className="p-2">
-                    <div className="flex flex-wrap items-center gap-4 p-2">
-                        <Input 
-                            placeholder="What are you working on?" 
-                            className="flex-1 min-w-[200px] border-none focus-visible:ring-0 focus-visible:ring-offset-0" 
-                            value={task}
-                            onChange={(e) => setTask(e.target.value)}
-                        />
-                        <Button variant="ghost" className="text-primary hover:text-primary hover:bg-primary/10">
-                            <Briefcase className="mr-2 h-4 w-4" />
-                            Project
-                        </Button>
-                        <Button variant="ghost" size="icon">
-                            <Tag className="h-5 w-5 text-muted-foreground" />
-                        </Button>
-                        <Button variant="ghost" size="icon">
-                            <DollarSign className="h-5 w-5 text-muted-foreground" />
-                        </Button>
-                        <Separator orientation="vertical" className="h-6" />
-                        <span className="font-semibold text-lg font-mono">{formatDuration(elapsedTime)}</span>
-                        <Button 
-                            className={timerRunning ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}
-                            onClick={handleToggleTimer}
-                        >
-                            {timerRunning ? 'STOP' : 'START'}
-                        </Button>
-                         <Button variant="ghost" size="icon">
-                            <ListTodo className="h-5 w-5 text-muted-foreground" />
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
+            <div className="shadow-sm border bg-card">
+                <div className="flex flex-wrap items-center gap-4 p-2">
+                    <Input 
+                        placeholder="What are you working on?" 
+                        className="flex-1 min-w-[200px] border-none focus-visible:ring-0 focus-visible:ring-offset-0" 
+                        value={task}
+                        onChange={(e) => setTask(e.target.value)}
+                    />
+                    <Button variant="outline" className="text-primary hover:text-primary hover:bg-primary/10">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Project
+                    </Button>
+                    <Separator orientation="vertical" className="h-6" />
+                    <Button variant="ghost" size="icon">
+                        <Tag className="h-5 w-5 text-muted-foreground" />
+                    </Button>
+                    <Button variant="ghost" size="icon">
+                        <DollarSign className="h-5 w-5 text-muted-foreground" />
+                    </Button>
+                    <span className="font-semibold text-lg font-mono ml-auto">{formatDuration(elapsedTime)}</span>
+                    <Button 
+                        className="w-24"
+                        onClick={handleToggleTimer}
+                    >
+                        {timerRunning ? 'STOP' : 'START'}
+                    </Button>
+                     <Button variant="ghost" size="icon">
+                        <ListTodo className="h-5 w-5 text-muted-foreground" />
+                    </Button>
+                </div>
+            </div>
             <div className="mt-6 space-y-6">
-                <div className="flex justify-between items-center text-sm">
-                    <span className="font-semibold">This week</span>
+                <div className="flex justify-between items-center text-sm px-4">
+                    <span className="font-semibold">Jul 1 - Jul 7</span>
                     <span className="text-muted-foreground">Week total: <span className="font-semibold text-foreground">{formatDuration(weekTotal)}</span></span>
                 </div>
 
@@ -212,43 +223,41 @@ export default function ClockifyPage() {
 
                 {timeEntryGroups.map((group, groupIndex) => (
                     <div key={groupIndex}>
-                        <div className="flex justify-between items-center text-sm text-muted-foreground mb-2">
+                        <div className="flex justify-between items-center text-sm bg-muted/60 p-2 px-4 border-y">
                             <span className="font-semibold">{group.day}</span>
-                            <span>Total: <span className="font-semibold text-foreground">{formatDuration(group.total)}</span></span>
+                            <span className="text-muted-foreground">Total: <span className="font-semibold text-foreground">{formatDurationShort(group.total)}</span></span>
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-px bg-card">
                             {group.items.map((item, itemIndex) => (
-                                <Card key={item.id} className="shadow-sm">
-                                    <CardContent className="p-3">
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex-1">
-                                                <span>{item.task}</span>
-                                                {item.project && <span className={`ml-2 font-semibold ${item.projectColor}`}>• {item.project}</span>}
-                                            </div>
-                                            <div className="hidden sm:flex items-center gap-2">
-                                                {item.tags?.map(tag => <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>)}
-                                            </div>
+                                <div key={item.id} className="p-3 border-b shadow-sm">
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex-1">
+                                            <span>{item.task}</span>
+                                            {item.project && <span className={`ml-2 font-semibold ${item.projectColor}`}>• {item.project}</span>}
+                                        </div>
+                                        <div className="hidden sm:flex items-center gap-2">
+                                            {item.tags?.map(tag => <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>)}
+                                        </div>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                                            <DollarSign className={`h-4 w-4 ${item.billable ? 'text-primary' : 'text-muted-foreground/50'}`} />
+                                        </Button>
+                                        <span className="hidden lg:inline-block text-sm text-muted-foreground w-40 text-center">{formatTimeRange(item.startTime, item.endTime)}</span>
+                                        <span className="font-bold w-20 text-right">{formatDurationShort(item.duration)}</span>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                                            <Play className="h-4 w-4" />
+                                        </Button>
+                                        <div className="relative group">
                                             <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                <DollarSign className={`h-4 w-4 ${item.billable ? 'text-foreground' : 'text-muted-foreground/50'}`} />
+                                                <MoreVertical className="h-4 w-4" />
                                             </Button>
-                                            <span className="hidden lg:inline-block text-sm text-muted-foreground w-48 text-center">{formatTimeRange(item.startTime, item.endTime)}</span>
-                                            <span className="font-bold w-20 text-right">{formatDuration(item.duration)}</span>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                <Play className="h-4 w-4" />
-                                            </Button>
-                                            <div className="relative group">
-                                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                    <MoreVertical className="h-4 w-4" />
+                                            <div className="absolute right-0 top-full mt-1 w-32 bg-card border rounded-md shadow-lg z-10 hidden group-hover:block">
+                                                <Button variant="ghost" className="w-full justify-start text-sm text-red-500 hover:text-red-500" onClick={() => handleDeleteEntry(item.id)}>
+                                                    <Trash2 className="mr-2 h-4 w-4"/> Delete
                                                 </Button>
-                                                <div className="absolute right-0 top-full mt-1 w-32 bg-card border rounded-md shadow-lg z-10 hidden group-hover:block">
-                                                    <Button variant="ghost" className="w-full justify-start text-sm text-red-500 hover:text-red-500" onClick={() => handleDeleteEntry(item.id)}>
-                                                        <Trash2 className="mr-2 h-4 w-4"/> Delete
-                                                    </Button>
-                                                </div>
                                             </div>
                                         </div>
-                                    </CardContent>
-                                </Card>
+                                    </div>
+                                </div>
                             ))}
                         </div>
                     </div>
@@ -274,49 +283,27 @@ export default function ClockifyPage() {
             <SidebarContent>
                 <SidebarMenu>
                     <SidebarMenuItem>
+                        <SidebarMenuButton onClick={() => setActiveMenu('Time Tracker')} isActive={activeMenu === 'Time Tracker'} tooltip="Time Tracker">
+                            <Clock />
+                            <span>Time Tracker</span>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                     <SidebarMenuItem>
+                        <SidebarMenuButton onClick={() => setActiveMenu('Calendar')} isActive={activeMenu === 'Calendar'} tooltip="Calendar">
+                            <Calendar />
+                            <span>Calendar</span>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
                         <SidebarMenuButton onClick={() => setActiveMenu('Timesheet')} isActive={activeMenu === 'Timesheet'} tooltip="Timesheet">
                             <ListTodo />
                             <span>Timesheet</span>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                        <SidebarMenuButton onClick={() => setActiveMenu('Time Tracker')} isActive={activeMenu === 'Time Tracker'} tooltip="Time Tracker">
-                            <Clock />
-                            <span>Time Tracker</span>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton onClick={() => setActiveMenu('Calendar')} isActive={activeMenu === 'Calendar'} tooltip="Calendar">
-                            <Calendar />
-                            <span>Calendar</span>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                     <SidebarMenuItem>
-                        <SidebarMenuButton onClick={() => setActiveMenu('Schedule')} isActive={activeMenu === 'Schedule'} tooltip="Schedule">
-                            <BarChart3 />
-                            <span>Schedule</span>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                     <SidebarMenuItem>
-                        <SidebarMenuButton onClick={() => setActiveMenu('Expenses')} isActive={activeMenu === 'Expenses'} tooltip="Expenses">
-                            <FileText />
-                            <span>Expenses</span>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton onClick={() => setActiveMenu('Time Off')} isActive={activeMenu === 'Time Off'} tooltip="Time Off">
-                            <Coffee />
-                            <span>Time Off</span>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-
-                    <Separator className="my-2"/>
-                    <span className="px-4 text-xs font-semibold uppercase text-muted-foreground">Analyze</span>
-
-                    <SidebarMenuItem>
-                        <SidebarMenuButton onClick={() => setActiveMenu('Dashboard')} isActive={activeMenu === 'Dashboard'} tooltip="Dashboard">
-                            <LayoutGrid />
-                            <span>Dashboard</span>
+                        <SidebarMenuButton onClick={() => setActiveMenu('Kiosk')} isDisabled tooltip="Kiosk">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-layout-grid"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+                            <span>Kiosk</span>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
@@ -325,28 +312,43 @@ export default function ClockifyPage() {
                             <span>Reports</span>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton onClick={() => setActiveMenu('Activity')} isActive={activeMenu === 'Activity'} tooltip="Activity">
-                            <Activity />
-                            <span>Activity</span>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    
-                    <Separator className="my-2"/>
-                    <span className="px-4 text-xs font-semibold uppercase text-muted-foreground">Manage</span>
-                    
-                    <SidebarMenuItem>
+                     <SidebarMenuItem>
                         <SidebarMenuButton onClick={() => setActiveMenu('Projects')} isActive={activeMenu === 'Projects'} tooltip="Projects">
                             <Briefcase />
                             <span>Projects</span>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
-                    <SidebarMenuItem>
+                     <SidebarMenuItem>
+                        <SidebarMenuButton onClick={() => setActiveMenu('Expenses')} isActive={activeMenu === 'Expenses'} tooltip="Expenses">
+                            <FileText />
+                            <span>Expenses</span>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                     <SidebarMenuItem>
+                        <SidebarMenuButton onClick={() => setActiveMenu('Invoices')} isDisabled tooltip="Invoices">
+                           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file-text"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+                           <span>Invoices</span>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                     <SidebarMenuItem>
                         <SidebarMenuButton onClick={() => setActiveMenu('Team')} isActive={activeMenu === 'Team'} tooltip="Team">
                             <Users />
                             <span>Team</span>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton onClick={() => setActiveMenu('Time Off')} isActive={activeMenu === 'Time Off'} tooltip="Time Off">
+                            <Coffee />
+                            <span>Time Off</span>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                     <SidebarMenuItem>
+                        <SidebarMenuButton onClick={() => setActiveMenu('Schedule')} isActive={activeMenu === 'Schedule'} tooltip="Schedule">
+                            <BarChart3 />
+                            <span>Schedule</span>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+
                 </SidebarMenu>
             </SidebarContent>
         </Sidebar>
