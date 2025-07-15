@@ -1,7 +1,8 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { useData } from '@/contexts/data-context';
 import {
   SheetContent,
@@ -19,14 +20,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Trash2, Plus, GripVertical, Pencil, ChevronsUpDown, Check } from 'lucide-react';
-import { AddSubjectDialog } from './add-subject-dialog';
-import { RemoveSubjectDialog } from './remove-subject-dialog';
-import { AddChapterDialog } from './add-chapter-dialog';
-import { RemoveChapterDialog } from './remove-chapter-dialog';
-import { RenameDialog } from './rename-dialog';
-import { RemoveProfileDialog } from './remove-profile-dialog';
-import { AddProfileDialog } from './add-profile-dialog';
+import { Trash2, Plus, GripVertical, Pencil, ChevronsUpDown, Check, LoaderCircle } from 'lucide-react';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Separator } from './ui/separator';
@@ -52,6 +46,16 @@ import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { getIconComponent } from '@/lib/icons';
 import type { Chapter, Subject } from '@/lib/types';
+
+// Lazy load dialogs for better performance
+const AddSubjectDialog = dynamic(() => import('./add-subject-dialog').then(mod => mod.AddSubjectDialog));
+const RemoveSubjectDialog = dynamic(() => import('./remove-subject-dialog').then(mod => mod.RemoveSubjectDialog));
+const AddChapterDialog = dynamic(() => import('./add-chapter-dialog').then(mod => mod.AddChapterDialog));
+const RemoveChapterDialog = dynamic(() => import('./remove-chapter-dialog').then(mod => mod.RemoveChapterDialog));
+const RenameDialog = dynamic(() => import('./rename-dialog').then(mod => mod.RenameDialog));
+const RemoveProfileDialog = dynamic(() => import('./remove-profile-dialog').then(mod => mod.RemoveProfileDialog));
+const AddProfileDialog = dynamic(() => import('./add-profile-dialog').then(mod => mod.AddProfileDialog));
+
 
 function SortableTaskItem({ id, task, onRemove, onRename, existingTaskNames }: { id: string, task: string, onRemove: () => void, onRename: (newName: string) => void, existingTaskNames: string[] }) {
     const {
@@ -348,7 +352,7 @@ export function CustomizationSheet() {
             </SheetHeader>
             <ScrollArea className="flex-1 -mx-6 px-6">
                 <div className="py-4 space-y-8">
-
+                <Suspense fallback={<div className="space-y-4"><LoaderCircle className="animate-spin" /></div>}>
                     {/* Section: Profiles */}
                     <div className="space-y-4">
                         <h3 className="text-sm font-medium text-muted-foreground px-2">Profile Management</h3>
@@ -525,7 +529,7 @@ export function CustomizationSheet() {
                             </DndContext>
                         </div>
                     </div>
-
+                </Suspense>
                 </div>
             </ScrollArea>
              <SheetFooter className="mt-auto pt-4 border-t">

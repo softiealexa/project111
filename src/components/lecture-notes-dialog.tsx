@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -13,15 +14,15 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "./ui/label";
+import { Pencil } from "lucide-react";
 
 interface LectureNotesDialogProps {
   lectureNum: number;
   currentNote: string;
   onSave: (note: string) => void;
-  children: React.ReactNode;
 }
 
-export function LectureNotesDialog({ lectureNum, currentNote, onSave, children }: LectureNotesDialogProps) {
+export function LectureNotesDialog({ lectureNum, currentNote, onSave }: LectureNotesDialogProps) {
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState(currentNote);
 
@@ -39,7 +40,10 @@ export function LectureNotesDialog({ lectureNum, currentNote, onSave, children }
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        {children}
+        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
+            <Pencil className="h-4 w-4" />
+            <span className="sr-only">Edit note for Lecture {lectureNum}</span>
+        </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>

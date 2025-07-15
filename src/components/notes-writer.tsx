@@ -11,7 +11,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { ScrollArea } from './ui/scroll-area';
-import { Plus, Trash2, GripVertical } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Sparkles, LoaderCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   DndContext,
@@ -29,6 +29,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { summarizeNote } from '@/ai/flows/summarize-note-flow';
 
 
 function SortableNoteItem({ note, selectNote, handleDelete }: { note: Note, selectNote: (note: Note) => void, handleDelete: (id: string, title: string) => void }) {
@@ -80,6 +81,7 @@ export default function NotesWriter() {
   const [activeNote, setActiveNote] = useState<Note | null>(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [isSummarizing, setIsSummarizing] = useState(false);
   
   const savedNotes = useMemo(() => activeProfile?.notes || [], [activeProfile?.notes]);
 
@@ -180,6 +182,25 @@ export default function NotesWriter() {
     }
   };
 
+  const handleSummarize = async () => {
+    if (!content) {
+      toast({ title: "Nothing to summarize", description: "Please add some content to the note first.", variant: "destructive" });
+      return;
+    }
+    setIsSummarizing(true);
+    try {
+      const result = await summarizeNote({ title: title || 'Untitled', content });
+      const summary = `\n\n--- AI Summary ---\n${result.summary}`;
+      setContent(prev => prev + summary);
+      toast({ title: "Summary Appended", description: "An AI-generated summary has been added to your note." });
+    } catch (error) {
+      console.error("Summarization error:", error);
+      toast({ title: "Error", description: "Could not generate a summary.", variant: "destructive" });
+    } finally {
+      setIsSummarizing(false);
+    }
+  };
+
 
   return (
     <div className="grid gap-6">
@@ -216,6 +237,14 @@ export default function NotesWriter() {
                 <div className="flex gap-2">
                     <Button onClick={handleSave} disabled={!noteIsDirty}>
                         {activeNote ? 'Update Note' : 'Save New Note'}
+                    </Button>
+                    <Button variant="secondary" onClick={handleSummarize} disabled={isSummarizing || !content.trim()}>
+                        {isSummarizing ? (
+                            <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <Sparkles className="mr-2 h-4 w-4" />
+                        )}
+                        Summarize
                     </Button>
                     {activeNote && (
                          <Button variant="destructive" onClick={() => handleDelete(activeNote.id, activeNote.title || 'Untitled')}>

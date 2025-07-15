@@ -1,7 +1,8 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { AccordionContent, AccordionItem } from "@/components/ui/accordion";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -17,8 +18,10 @@ import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from './ui/button';
-import { LectureNotesDialog } from './lecture-notes-dialog';
 
+const LectureNotesDialog = dynamic(() => import('./lecture-notes-dialog').then(mod => mod.LectureNotesDialog), {
+  loading: () => <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" disabled><Pencil className="h-4 w-4" /></Button>
+});
 
 interface ChapterAccordionItemProps {
   chapter: Chapter;
@@ -211,16 +214,13 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
                                 );
                                 })}
                             </div>
-
-                             <LectureNotesDialog
+                            <Suspense>
+                              <LectureNotesDialog
                                 lectureNum={lectureNum}
                                 currentNote={chapter.notes?.[`L${lectureNum}`] || ''}
                                 onSave={(newNote) => handleNoteSave(lectureNum, newNote)}
-                              >
-                                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
-                                    <Pencil className="h-4 w-4" />
-                                </Button>
-                              </LectureNotesDialog>
+                              />
+                            </Suspense>
                         </div>
                   </div>
                 ))}
@@ -237,7 +237,7 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
                     <AlertDialogHeader>
                       <AlertDialogTitle>Set Status</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Select which task types you want to mark as complete for all lectures in "{chapter.name}".
+                        Select tasks to mark as complete for all lectures in this chapter.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">

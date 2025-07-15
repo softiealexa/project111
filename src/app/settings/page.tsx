@@ -1,7 +1,8 @@
 
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { useData } from '@/contexts/data-context';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -11,13 +12,15 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle, User, Palette, Shield, Download, Upload, MessageSquarePlus, Moon, Sun, Check, LogOut } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ContactDialog } from '@/components/contact-dialog';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { linkGoogleEmail } from '@/lib/auth';
 import Navbar from '@/components/navbar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { LoadingSpinner } from '@/components/loading-spinner';
+
+const ContactDialog = dynamic(() => import('@/components/contact-dialog').then(mod => mod.ContactDialog));
 
 // Profile Tab Component
 const ProfileTab = ({ onContactClick }: { onContactClick: () => void }) => {
@@ -43,7 +46,7 @@ const ProfileTab = ({ onContactClick }: { onContactClick: () => void }) => {
         setIsLinkingEmail(false);
     };
 
-    if (!user || !userDoc) return <LoaderCircle className="h-8 w-8 animate-spin text-primary" />;
+    if (!user || !userDoc) return <LoadingSpinner containerClassName="p-6" />;
 
     return (
         <Card>
@@ -333,7 +336,11 @@ export default function SettingsPage() {
           </TabsContent>
         </Tabs>
       </main>
-      <ContactDialog open={isContactOpen} onOpenChange={setIsContactOpen} />
+      <Suspense>
+        {isContactOpen && (
+          <ContactDialog open={isContactOpen} onOpenChange={setIsContactOpen} />
+        )}
+      </Suspense>
     </TooltipProvider>
   );
 }

@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { useData } from '@/contexts/data-context';
 import { useRouter } from 'next/navigation';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -23,7 +24,11 @@ import { format } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { EditUserDialog } from '@/components/edit-user-dialog';
+import { LoadingSpinner } from '@/components/loading-spinner';
+
+const EditUserDialog = dynamic(() => import('@/components/edit-user-dialog').then(mod => mod.EditUserDialog), {
+  loading: () => <Button variant="ghost" size="icon" disabled><Pencil className="h-4 w-4" /></Button>
+});
 
 
 interface DisplayFeedback extends Feedback {
@@ -361,10 +366,19 @@ export default function AdminPage() {
                                                 <TableCell>{appUser.googleEmail || 'Not Set'}</TableCell>
                                                 <TableCell>{appUser.role === 'admin' ? 'Admin' : 'User'}</TableCell>
                                                 <TableCell>
-                                                    <Button variant="ghost" size="icon" onClick={() => handleEditUser(appUser)}>
-                                                        <Pencil className="h-4 w-4" />
-                                                        <span className="sr-only">Edit User</span>
-                                                    </Button>
+                                                    <EditUserDialog 
+                                                        user={appUser}
+                                                        open={editingUser?.uid === appUser.uid && isEditUserDialogOpen}
+                                                        onOpenChange={(open) => {
+                                                          if (open) {
+                                                            handleEditUser(appUser);
+                                                          } else {
+                                                            setEditingUser(null);
+                                                            setIsEditUserDialogOpen(false);
+                                                          }
+                                                        }}
+                                                        onSave={handleSaveUser}
+                                                    />
                                                 </TableCell>
                                             </TableRow>
                                         )) : (
@@ -421,12 +435,6 @@ export default function AdminPage() {
                     </Accordion>
                 )}
             </main>
-            <EditUserDialog 
-                user={editingUser}
-                open={isEditUserDialogOpen}
-                onOpenChange={setIsEditUserDialogOpen}
-                onSave={handleSaveUser}
-            />
         </TooltipProvider>
     );
 }

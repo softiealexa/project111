@@ -10,15 +10,16 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import type { AppUser } from "@/lib/types";
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle, Pencil } from "lucide-react";
 
 interface EditUserDialogProps {
-  user: AppUser | null;
+  user: AppUser;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (userId: string, googleEmail: string) => Promise<void>;
@@ -31,10 +32,10 @@ export function EditUserDialog({ user, open, onOpenChange, onSave }: EditUserDia
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (user) {
+    if (user && open) {
       setGoogleEmail(user.googleEmail || "");
     }
-  }, [user]);
+  }, [user, open]);
 
   const handleOpenChange = (isOpen: boolean) => {
     onOpenChange(isOpen);
@@ -75,10 +76,14 @@ export function EditUserDialog({ user, open, onOpenChange, onSave }: EditUserDia
     }
   };
 
-  if (!user) return null;
-
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon">
+            <Pencil className="h-4 w-4" />
+            <span className="sr-only">Edit User</span>
+        </Button>
+      </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit User: {user.username}</DialogTitle>
