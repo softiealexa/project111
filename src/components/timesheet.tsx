@@ -9,8 +9,9 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { getIconComponent } from '@/lib/icons';
 import { format, startOfWeek, addDays, subDays, isSameDay } from 'date-fns';
-import { ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Trash2, Lightbulb } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 type TimeEntry = {
     subject: string;
@@ -100,6 +101,13 @@ export default function TimeSheet() {
                 </div>
             </CardHeader>
             <CardContent>
+                 <Alert className="mb-4">
+                    <Lightbulb className="h-4 w-4" />
+                    <AlertTitle>Under Development</AlertTitle>
+                    <AlertDescription>
+                        This timesheet feature is currently being built. Data saving is functional, but more features are coming soon!
+                    </AlertDescription>
+                </Alert>
                 <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>
