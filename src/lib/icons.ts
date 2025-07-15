@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -20,6 +21,11 @@ import {
   Lightbulb,
   Magnet,
   Clock,
+  LayoutGrid,
+  BarChart2,
+  Activity,
+  Briefcase,
+  Users,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -43,6 +49,11 @@ export const iconMap: Record<string, LucideIcon> = {
   Lightbulb,
   Magnet,
   Clock,
+  LayoutGrid,
+  BarChart2,
+  Activity,
+  Briefcase,
+  Users,
 };
 
 export const iconNames = Object.keys(iconMap);

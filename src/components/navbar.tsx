@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { useData } from '@/contexts/data-context';
 import { Button } from '@/components/ui/button';
-import { Book, LogOut, UserPlus, LogIn, SlidersHorizontal, Settings } from 'lucide-react';
+import { Book, LogOut, UserPlus, LogIn, SlidersHorizontal, Settings, Clock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import {
@@ -57,6 +57,20 @@ export default function Navbar() {
                 <>
                   <Tooltip>
                     <TooltipTrigger asChild>
+                       <Button asChild variant="ghost" size="icon">
+                        <Link href="/clockify">
+                          <Clock className="h-5 w-5" />
+                          <span className="sr-only">Clockify</span>
+                        </Link>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Time Tracker</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
                       <Button variant="ghost" size="icon" onClick={() => setIsCustomizationOpen(true)} disabled={!activeProfile}>
                         <SlidersHorizontal className="h-5 w-5" />
                         <span className="sr-only">Customization</span>
@@ -87,6 +101,10 @@ export default function Navbar() {
                         </div>
                       </DropdownMenuLabel>
                       <DropdownMenuSeparator />
+                       <DropdownMenuItem onSelect={() => router.push('/clockify')}>
+                        <Clock className="mr-2 h-4 w-4" />
+                        <span>Time Tracker</span>
+                      </DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => setIsCustomizationOpen(true)} disabled={!activeProfile}>
                         <SlidersHorizontal className="mr-2 h-4 w-4" />
                         <span>Customization</span>
