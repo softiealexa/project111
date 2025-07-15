@@ -78,7 +78,7 @@ export default function StudyPlanner() {
     <Card>
       <CardHeader>
         <CardTitle>Mini Study Planner</CardTitle>
-        <CardDescription>Plan your month, week by week. Notes are saved automatically.</CardDescription>
+        <CardDescription>Plan your month, week by week. Notes are saved when you click the button.</CardDescription>
       </CardHeader>
       <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="flex flex-col items-center">
@@ -131,6 +131,7 @@ export default function StudyPlanner() {
               onChange={(e) => setCurrentNote(e.target.value)}
               className="min-h-[190px] text-base"
               disabled={!selectedDay}
+              onBlur={handleSaveNote}
             />
           </div>
           <Button onClick={handleSaveNote} disabled={!selectedDay}>Save Note</Button>
