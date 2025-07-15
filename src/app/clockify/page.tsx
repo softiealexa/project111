@@ -36,8 +36,10 @@ import {
   Tag,
   Trash2,
   Plus,
+  AlertTriangle,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 interface TimeEntry {
     id: string;
@@ -197,6 +199,13 @@ export default function ClockifyPage() {
     if (activeMenu === 'Time Tracker') {
       return (
         <div className="flex-1 p-4 sm:p-6 bg-muted/30">
+            <Alert variant="destructive" className="mb-6">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Under Development</AlertTitle>
+                <AlertDescription>
+                    This page is currently under development. It contains more bugs than features.
+                </AlertDescription>
+            </Alert>
             <div className="shadow-sm border bg-card">
                 <div className="flex flex-wrap items-center gap-4 p-2">
                     <Input 
