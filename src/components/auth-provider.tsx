@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useData } from '@/contexts/data-context';
 import { LoadingSpinner } from './loading-spinner';
-import { UpdateAccountForm } from './auth/update-account-form';
+import { UpdateAccountForm } from '@/components/auth/update-account-form';
 
 /**
  * This provider is responsible for handling the initial auth state and routing.
