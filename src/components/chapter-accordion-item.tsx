@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { Chapter, Subject } from "@/lib/types";
 import { Progress } from "@/components/ui/progress";
-import { GripVertical, ChevronDown } from 'lucide-react';
+import { GripVertical, ChevronDown, CheckCircle } from 'lucide-react';
 import { useData } from '@/contexts/data-context';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -16,6 +16,8 @@ import { cn } from '@/lib/utils';
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import { Textarea } from './ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Button } from './ui/button';
 
 
 interface ChapterAccordionItemProps {
@@ -57,6 +59,32 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
     
     if (!activeProfile) return;
 
+    const newSubjects = activeProfile.subjects.map(s => {
+      if (s.name === subject.name) {
+        const newChapters = s.chapters.map((c, i) => {
+          if (i === index) {
+            return { ...c, checkedState: newCheckedState };
+          }
+          return c;
+        });
+        return { ...s, chapters: newChapters };
+      }
+      return s;
+    });
+    updateSubjects(newSubjects);
+  };
+
+  const handleMarkAllComplete = () => {
+    const newCheckedState: Record<string, boolean> = { ...checkedState };
+    for (let i = 1; i <= chapter.lectureCount; i++) {
+        tasks.forEach(task => {
+            const checkboxId = `${subject.name}-${chapter.name}-L${i}-${task}`;
+            newCheckedState[checkboxId] = true;
+        });
+    }
+    setCheckedState(newCheckedState);
+
+    if (!activeProfile) return;
     const newSubjects = activeProfile.subjects.map(s => {
       if (s.name === subject.name) {
         const newChapters = s.chapters.map((c, i) => {
@@ -169,7 +197,7 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
             </AccordionPrimitive.Trigger>
           </AccordionPrimitive.Header>
           <AccordionContent className="p-0">
-            <div className="border-t border-border bg-background/50 p-4">
+            <div className="border-t border-border bg-background/50 p-4 space-y-4">
               <div className="space-y-2">
                 {Array.from({ length: chapter.lectureCount }, (_, i) => i + 1).map((lectureNum) => (
                    <div key={lectureNum}>
@@ -219,6 +247,28 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
                   </div>
                 ))}
               </div>
+              
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="w-full" disabled={isCompleted}>
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Mark All as Complete
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will mark all {totalTasks} tasks for the chapter "{chapter.name}" as complete. This action can be undone manually by unchecking the boxes.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleMarkAllComplete}>Confirm</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
             </div>
           </AccordionContent>
         </AccordionItem>
