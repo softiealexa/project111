@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import {
   Sidebar,
@@ -67,6 +67,20 @@ const formatTimeRange = (start: Date, end: Date) => {
     const formatOpts: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: 'numeric', hour12: true };
     return `${start.toLocaleTimeString([], formatOpts)} - ${end.toLocaleTimeString([], formatOpts)}`;
 }
+
+const PlaceholderContent = ({ title }: { title: string }) => (
+    <Card className="m-4 sm:m-6">
+        <CardHeader>
+            <CardTitle>{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+            <div className="flex flex-col items-center justify-center h-64 text-center border-2 border-dashed rounded-lg">
+                <p className="text-lg font-medium text-muted-foreground">This feature is not yet implemented.</p>
+                <p className="text-sm text-muted-foreground">Check back for future updates!</p>
+            </div>
+        </CardContent>
+    </Card>
+);
 
 export default function ClockifyPage() {
   const [activeMenu, setActiveMenu] = useState('Time Tracker');
@@ -146,6 +160,105 @@ export default function ClockifyPage() {
   }, []);
 
   const weekTotal = timeEntries.reduce((acc, entry) => acc + entry.duration, 0);
+
+  const renderContent = () => {
+    if (activeMenu === 'Time Tracker') {
+      return (
+        <div className="flex-1 p-4 sm:p-6 bg-muted/30">
+            <Card className="shadow-md">
+                <CardContent className="p-2">
+                    <div className="flex flex-wrap items-center gap-4 p-2">
+                        <Input 
+                            placeholder="What are you working on?" 
+                            className="flex-1 min-w-[200px] border-none focus-visible:ring-0 focus-visible:ring-offset-0" 
+                            value={task}
+                            onChange={(e) => setTask(e.target.value)}
+                        />
+                        <Button variant="ghost" className="text-primary hover:text-primary hover:bg-primary/10">
+                            <Briefcase className="mr-2 h-4 w-4" />
+                            Project
+                        </Button>
+                        <Button variant="ghost" size="icon">
+                            <Tag className="h-5 w-5 text-muted-foreground" />
+                        </Button>
+                        <Button variant="ghost" size="icon">
+                            <DollarSign className="h-5 w-5 text-muted-foreground" />
+                        </Button>
+                        <Separator orientation="vertical" className="h-6" />
+                        <span className="font-semibold text-lg font-mono">{formatDuration(elapsedTime)}</span>
+                        <Button 
+                            className={timerRunning ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}
+                            onClick={handleToggleTimer}
+                        >
+                            {timerRunning ? 'STOP' : 'START'}
+                        </Button>
+                         <Button variant="ghost" size="icon">
+                            <ListTodo className="h-5 w-5 text-muted-foreground" />
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
+            <div className="mt-6 space-y-6">
+                <div className="flex justify-between items-center text-sm">
+                    <span className="font-semibold">This week</span>
+                    <span className="text-muted-foreground">Week total: <span className="font-semibold text-foreground">{formatDuration(weekTotal)}</span></span>
+                </div>
+
+                {timeEntryGroups.length === 0 && (
+                    <div className="text-center text-muted-foreground py-10">
+                        <p>No time entries yet. Start the timer to log your work.</p>
+                    </div>
+                )}
+
+                {timeEntryGroups.map((group, groupIndex) => (
+                    <div key={groupIndex}>
+                        <div className="flex justify-between items-center text-sm text-muted-foreground mb-2">
+                            <span className="font-semibold">{group.day}</span>
+                            <span>Total: <span className="font-semibold text-foreground">{formatDuration(group.total)}</span></span>
+                        </div>
+                        <div className="space-y-1">
+                            {group.items.map((item, itemIndex) => (
+                                <Card key={item.id} className="shadow-sm">
+                                    <CardContent className="p-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex-1">
+                                                <span>{item.task}</span>
+                                                {item.project && <span className={`ml-2 font-semibold ${item.projectColor}`}>• {item.project}</span>}
+                                            </div>
+                                            <div className="hidden sm:flex items-center gap-2">
+                                                {item.tags?.map(tag => <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>)}
+                                            </div>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                <DollarSign className={`h-4 w-4 ${item.billable ? 'text-foreground' : 'text-muted-foreground/50'}`} />
+                                            </Button>
+                                            <span className="hidden lg:inline-block text-sm text-muted-foreground w-48 text-center">{formatTimeRange(item.startTime, item.endTime)}</span>
+                                            <span className="font-bold w-20 text-right">{formatDuration(item.duration)}</span>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                <Play className="h-4 w-4" />
+                                            </Button>
+                                            <div className="relative group">
+                                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                    <MoreVertical className="h-4 w-4" />
+                                                </Button>
+                                                <div className="absolute right-0 top-full mt-1 w-32 bg-card border rounded-md shadow-lg z-10 hidden group-hover:block">
+                                                    <Button variant="ghost" className="w-full justify-start text-sm text-red-500 hover:text-red-500" onClick={() => handleDeleteEntry(item.id)}>
+                                                        <Trash2 className="mr-2 h-4 w-4"/> Delete
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+      );
+    }
+    return <PlaceholderContent title={activeMenu} />;
+  };
 
   return (
     <SidebarProvider>
@@ -244,96 +357,8 @@ export default function ClockifyPage() {
                     <h1 className="text-xl font-semibold">{activeMenu}</h1>
                 </div>
             </header>
-            <main className="flex-1 p-4 sm:p-6 bg-muted/30">
-                <Card className="shadow-md">
-                    <CardContent className="p-2">
-                        <div className="flex flex-wrap items-center gap-4 p-2">
-                            <Input 
-                                placeholder="What are you working on?" 
-                                className="flex-1 min-w-[200px] border-none focus-visible:ring-0 focus-visible:ring-offset-0" 
-                                value={task}
-                                onChange={(e) => setTask(e.target.value)}
-                            />
-                            <Button variant="ghost" className="text-primary hover:text-primary hover:bg-primary/10">
-                                <Briefcase className="mr-2 h-4 w-4" />
-                                Project
-                            </Button>
-                            <Button variant="ghost" size="icon">
-                                <Tag className="h-5 w-5 text-muted-foreground" />
-                            </Button>
-                            <Button variant="ghost" size="icon">
-                                <DollarSign className="h-5 w-5 text-muted-foreground" />
-                            </Button>
-                            <Separator orientation="vertical" className="h-6" />
-                            <span className="font-semibold text-lg font-mono">{formatDuration(elapsedTime)}</span>
-                            <Button 
-                                className={timerRunning ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}
-                                onClick={handleToggleTimer}
-                            >
-                                {timerRunning ? 'STOP' : 'START'}
-                            </Button>
-                             <Button variant="ghost" size="icon">
-                                <ListTodo className="h-5 w-5 text-muted-foreground" />
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
-                <div className="mt-6 space-y-6">
-                    <div className="flex justify-between items-center text-sm">
-                        <span className="font-semibold">This week</span>
-                        <span className="text-muted-foreground">Week total: <span className="font-semibold text-foreground">{formatDuration(weekTotal)}</span></span>
-                    </div>
-
-                    {timeEntryGroups.length === 0 && (
-                        <div className="text-center text-muted-foreground py-10">
-                            <p>No time entries yet. Start the timer to log your work.</p>
-                        </div>
-                    )}
-
-                    {timeEntryGroups.map((group, groupIndex) => (
-                        <div key={groupIndex}>
-                            <div className="flex justify-between items-center text-sm text-muted-foreground mb-2">
-                                <span className="font-semibold">{group.day}</span>
-                                <span>Total: <span className="font-semibold text-foreground">{formatDuration(group.total)}</span></span>
-                            </div>
-                            <div className="space-y-1">
-                                {group.items.map((item, itemIndex) => (
-                                    <Card key={item.id} className="shadow-sm">
-                                        <CardContent className="p-3">
-                                            <div className="flex items-center gap-3">
-                                                <div className="flex-1">
-                                                    <span>{item.task}</span>
-                                                    {item.project && <span className={`ml-2 font-semibold ${item.projectColor}`}>• {item.project}</span>}
-                                                </div>
-                                                <div className="hidden sm:flex items-center gap-2">
-                                                    {item.tags?.map(tag => <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>)}
-                                                </div>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                    <DollarSign className={`h-4 w-4 ${item.billable ? 'text-foreground' : 'text-muted-foreground/50'}`} />
-                                                </Button>
-                                                <span className="hidden lg:inline-block text-sm text-muted-foreground w-48 text-center">{formatTimeRange(item.startTime, item.endTime)}</span>
-                                                <span className="font-bold w-20 text-right">{formatDuration(item.duration)}</span>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                    <Play className="h-4 w-4" />
-                                                </Button>
-                                                <div className="relative group">
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                        <MoreVertical className="h-4 w-4" />
-                                                    </Button>
-                                                    <div className="absolute right-0 top-full mt-1 w-32 bg-card border rounded-md shadow-lg z-10 hidden group-hover:block">
-                                                        <Button variant="ghost" className="w-full justify-start text-sm text-red-500 hover:text-red-500" onClick={() => handleDeleteEntry(item.id)}>
-                                                            <Trash2 className="mr-2 h-4 w-4"/> Delete
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                ))}
-                            </div>
-                        </div>
-                    ))}
-                </div>
+            <main className="flex-1 bg-muted/30">
+                {renderContent()}
             </main>
         </SidebarInset>
     </SidebarProvider>
