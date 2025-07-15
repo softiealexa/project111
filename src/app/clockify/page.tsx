@@ -302,12 +302,12 @@ export default function ClockifyPage() {
             <SidebarContent>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <Link href="/dashboard" passHref>
-                            <SidebarMenuButton asChild tooltip="Dashboard">
-                                <LayoutGrid />
-                                <span>Dashboard</span>
-                            </SidebarMenuButton>
-                        </Link>
+                        <SidebarMenuButton asChild tooltip="Dashboard">
+                          <Link href="/dashboard">
+                            <LayoutGrid />
+                            <span>Dashboard</span>
+                          </Link>
+                        </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton onClick={() => setActiveMenu('Time Tracker')} isActive={activeMenu === 'Time Tracker'} tooltip="Time Tracker">
