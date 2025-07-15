@@ -829,7 +829,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     theme, setTheme, mode, setMode, isThemeHydrated, setActiveSubjectName
   ]);
   
-  if (!loading && pathname.startsWith('/dashboard') && profiles.length === 0) {
+  if (!loading && (pathname.startsWith('/dashboard') || pathname.startsWith('/settings')) && profiles.length === 0) {
       return (
         <DataContext.Provider value={value}>
             <CreateProfileScreen onProfileCreate={addProfile} />
