@@ -33,6 +33,7 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
   
   const [editingLecture, setEditingLecture] = useState<number | null>(null);
   const [noteContent, setNoteContent] = useState('');
+  const [tasksToComplete, setTasksToComplete] = useState<string[]>([]);
 
   const {
     attributes,
@@ -74,10 +75,12 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
     updateSubjects(newSubjects);
   };
 
-  const handleMarkAllComplete = () => {
+  const handleMarkSelectedComplete = () => {
+    if (tasksToComplete.length === 0) return;
+
     const newCheckedState: Record<string, boolean> = { ...checkedState };
     for (let i = 1; i <= chapter.lectureCount; i++) {
-        tasks.forEach(task => {
+        tasksToComplete.forEach(task => {
             const checkboxId = `${subject.name}-${chapter.name}-L${i}-${task}`;
             newCheckedState[checkboxId] = true;
         });
@@ -98,6 +101,7 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
       return s;
     });
     updateSubjects(newSubjects);
+    setTasksToComplete([]);
   };
   
   const handleNoteChange = (lectureNum: number, newNote: string) => {
@@ -248,7 +252,7 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
                 ))}
               </div>
               
-                <AlertDialog>
+                <AlertDialog onOpenChange={() => setTasksToComplete([])}>
                   <AlertDialogTrigger asChild>
                     <Button variant="outline" size="sm" className="w-full" disabled={isCompleted}>
                       <CheckCircle className="mr-2 h-4 w-4" />
@@ -257,14 +261,33 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                      <AlertDialogTitle>Mark Tasks Complete</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This will mark all {totalTasks} tasks for the chapter "{chapter.name}" as complete. This action can be undone manually by unchecking the boxes.
+                        Select which task types you want to mark as complete for all lectures in "{chapter.name}".
                       </AlertDialogDescription>
                     </AlertDialogHeader>
+                    <div className="grid grid-cols-2 gap-4 py-4">
+                      {tasks.map(task => (
+                        <div key={task} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`complete-${task}`}
+                            onCheckedChange={(checked) => {
+                              setTasksToComplete(prev =>
+                                checked ? [...prev, task] : prev.filter(t => t !== task)
+                              );
+                            }}
+                          />
+                          <Label htmlFor={`complete-${task}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                            {task}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleMarkAllComplete}>Confirm</AlertDialogAction>
+                      <AlertDialogAction onClick={handleMarkSelectedComplete} disabled={tasksToComplete.length === 0}>
+                        Confirm
+                      </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
