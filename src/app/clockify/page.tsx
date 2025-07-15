@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -16,8 +16,6 @@ import {
   SidebarProvider,
   SidebarInset,
   SidebarTrigger,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
 import {
   Clock,
@@ -35,27 +33,119 @@ import {
   Play,
   MoreVertical,
   Tag,
+  Trash2,
+  Square,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { getIconComponent } from '@/lib/icons';
 
-const timeEntries = [
-    { day: 'Today', total: '7:00', items: [
-        { task: 'Illustrations', project: 'ACME', projectColor: 'text-blue-500', tags: ['EUR', 'Invoiced'], billable: true, timeRange: '1:00 PM - 3:00 PM', duration: '2:00' },
-        { task: 'Fixing bug #212', project: 'Project X', projectColor: 'text-purple-500', billable: false, timeRange: '9:30 AM - 1:00 PM', duration: '3:30' },
-        { task: 'Filing tax return', project: 'Office', projectColor: 'text-orange-500', tags: ['Overtime'], billable: true, timeRange: '8:00 AM - 9:30 AM', duration: '1:30' },
-    ]},
-    { day: 'Yesterday', total: '7:30', items: [
-        { task: 'Developing new feature', project: 'Project X', projectColor: 'text-purple-500', tags: ['Overtime'], billable: true, timeRange: '3:00 PM - 6:00 PM', duration: '3:00' },
-        { task: 'Interface design', project: 'ACME', projectColor: 'text-blue-500', billable: true, timeRange: '1:30 PM - 3:00 PM', duration: '1:30' },
-        { task: 'Lunch', project: 'Break', projectColor: 'text-gray-500', billable: false, timeRange: '1:00 PM - 1:30 PM', duration: '0:30' },
-        { task: 'Company training', project: 'Office', projectColor: 'text-orange-500', billable: true, timeRange: '10:00 AM - 1:00 PM', duration: '3:00' },
-        { task: 'Add description', project: '', billable: true, timeRange: '9:00 AM - 10:00 AM', duration: '1:00' },
-    ]}
-];
+interface TimeEntry {
+    id: string;
+    task: string;
+    project: string;
+    projectColor: string;
+    tags: string[];
+    billable: boolean;
+    startTime: Date;
+    endTime: Date;
+    duration: number; // in seconds
+}
+
+interface TimeEntryGroup {
+    day: string;
+    total: number; // in seconds
+    items: TimeEntry[];
+}
+
+const formatDuration = (seconds: number) => {
+    const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+    const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+    const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+    return `${h}:${m}:${s}`;
+};
+
+const formatTimeRange = (start: Date, end: Date) => {
+    const formatOpts: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: 'numeric', hour12: true };
+    return `${start.toLocaleTimeString([], formatOpts)} - ${end.toLocaleTimeString([], formatOpts)}`;
+}
 
 export default function ClockifyPage() {
   const [activeMenu, setActiveMenu] = useState('Time Tracker');
+  const [task, setTask] = useState('');
+  const [timerRunning, setTimerRunning] = useState(false);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [startTime, setStartTime] = useState<Date | null>(null);
+  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
+  
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const stopTimer = useCallback(() => {
+    if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+    }
+    setTimerRunning(false);
+    if (startTime && elapsedTime > 0) {
+        const newEntry: TimeEntry = {
+            id: crypto.randomUUID(),
+            task: task || 'Unspecified Task',
+            project: 'ACME',
+            projectColor: 'text-blue-500',
+            tags: [],
+            billable: true,
+            startTime: startTime,
+            endTime: new Date(),
+            duration: Math.round(elapsedTime),
+        };
+        setTimeEntries(prev => [newEntry, ...prev]);
+    }
+    setElapsedTime(0);
+    setTask('');
+  }, [startTime, elapsedTime, task]);
+
+  const startTimer = useCallback(() => {
+    setStartTime(new Date());
+    setTimerRunning(true);
+    timerRef.current = setInterval(() => {
+        setElapsedTime(prev => prev + 1);
+    }, 1000);
+  }, []);
+
+  useEffect(() => {
+    return () => { // Cleanup on unmount
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+        }
+    };
+  }, []);
+  
+  const handleToggleTimer = () => {
+    if (timerRunning) {
+        stopTimer();
+    } else {
+        startTimer();
+    }
+  };
+  
+  const handleDeleteEntry = (id: string) => {
+    setTimeEntries(prev => prev.filter(entry => entry.id !== id));
+  };
+  
+  const timeEntryGroups = timeEntries.reduce<TimeEntryGroup[]>((acc, entry) => {
+    const day = entry.startTime.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    let group = acc.find(g => g.day === day);
+    if (!group) {
+        group = { day: 'Today', total: 0, items: [] };
+        if (entry.startTime.getDate() !== new Date().getDate()) {
+            group.day = day;
+        }
+        acc.push(group);
+    }
+    group.items.push(entry);
+    group.total += entry.duration;
+    return acc;
+  }, []);
+
+  const weekTotal = timeEntries.reduce((acc, entry) => acc + entry.duration, 0);
 
   return (
     <SidebarProvider>
@@ -158,7 +248,12 @@ export default function ClockifyPage() {
                 <Card className="shadow-md">
                     <CardContent className="p-2">
                         <div className="flex flex-wrap items-center gap-4 p-2">
-                            <Input placeholder="What are you working on?" className="flex-1 min-w-[200px] border-none focus-visible:ring-0 focus-visible:ring-offset-0" />
+                            <Input 
+                                placeholder="What are you working on?" 
+                                className="flex-1 min-w-[200px] border-none focus-visible:ring-0 focus-visible:ring-offset-0" 
+                                value={task}
+                                onChange={(e) => setTask(e.target.value)}
+                            />
                             <Button variant="ghost" className="text-primary hover:text-primary hover:bg-primary/10">
                                 <Briefcase className="mr-2 h-4 w-4" />
                                 Project
@@ -170,8 +265,13 @@ export default function ClockifyPage() {
                                 <DollarSign className="h-5 w-5 text-muted-foreground" />
                             </Button>
                             <Separator orientation="vertical" className="h-6" />
-                            <span className="font-semibold text-lg font-mono">00:00:00</span>
-                            <Button className="bg-blue-500 hover:bg-blue-600 text-white">START</Button>
+                            <span className="font-semibold text-lg font-mono">{formatDuration(elapsedTime)}</span>
+                            <Button 
+                                className={timerRunning ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}
+                                onClick={handleToggleTimer}
+                            >
+                                {timerRunning ? 'STOP' : 'START'}
+                            </Button>
                              <Button variant="ghost" size="icon">
                                 <ListTodo className="h-5 w-5 text-muted-foreground" />
                             </Button>
@@ -181,18 +281,24 @@ export default function ClockifyPage() {
                 <div className="mt-6 space-y-6">
                     <div className="flex justify-between items-center text-sm">
                         <span className="font-semibold">This week</span>
-                        <span className="text-muted-foreground">Week total: <span className="font-semibold text-foreground">34:30</span></span>
+                        <span className="text-muted-foreground">Week total: <span className="font-semibold text-foreground">{formatDuration(weekTotal)}</span></span>
                     </div>
 
-                    {timeEntries.map((group, groupIndex) => (
+                    {timeEntryGroups.length === 0 && (
+                        <div className="text-center text-muted-foreground py-10">
+                            <p>No time entries yet. Start the timer to log your work.</p>
+                        </div>
+                    )}
+
+                    {timeEntryGroups.map((group, groupIndex) => (
                         <div key={groupIndex}>
                             <div className="flex justify-between items-center text-sm text-muted-foreground mb-2">
                                 <span className="font-semibold">{group.day}</span>
-                                <span>Total: <span className="font-semibold text-foreground">{group.total}</span></span>
+                                <span>Total: <span className="font-semibold text-foreground">{formatDuration(group.total)}</span></span>
                             </div>
                             <div className="space-y-1">
                                 {group.items.map((item, itemIndex) => (
-                                    <Card key={itemIndex} className="shadow-sm">
+                                    <Card key={item.id} className="shadow-sm">
                                         <CardContent className="p-3">
                                             <div className="flex items-center gap-3">
                                                 <div className="flex-1">
@@ -205,17 +311,21 @@ export default function ClockifyPage() {
                                                 <Button variant="ghost" size="icon" className="h-8 w-8">
                                                     <DollarSign className={`h-4 w-4 ${item.billable ? 'text-foreground' : 'text-muted-foreground/50'}`} />
                                                 </Button>
-                                                <span className="hidden lg:inline-block text-sm text-muted-foreground w-36 text-center">{item.timeRange}</span>
-                                                <Button variant="ghost" size="icon" className="hidden lg:inline-flex h-8 w-8">
-                                                    <Calendar className="h-4 w-4" />
-                                                </Button>
-                                                <span className="font-bold w-16 text-right">{item.duration}</span>
+                                                <span className="hidden lg:inline-block text-sm text-muted-foreground w-48 text-center">{formatTimeRange(item.startTime, item.endTime)}</span>
+                                                <span className="font-bold w-20 text-right">{formatDuration(item.duration)}</span>
                                                 <Button variant="ghost" size="icon" className="h-8 w-8">
                                                     <Play className="h-4 w-4" />
                                                 </Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                    <MoreVertical className="h-4 w-4" />
-                                                </Button>
+                                                <div className="relative group">
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                        <MoreVertical className="h-4 w-4" />
+                                                    </Button>
+                                                    <div className="absolute right-0 top-full mt-1 w-32 bg-card border rounded-md shadow-lg z-10 hidden group-hover:block">
+                                                        <Button variant="ghost" className="w-full justify-start text-sm text-red-500 hover:text-red-500" onClick={() => handleDeleteEntry(item.id)}>
+                                                            <Trash2 className="mr-2 h-4 w-4"/> Delete
+                                                        </Button>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </CardContent>
                                     </Card>
