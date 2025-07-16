@@ -20,7 +20,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Trash2, Plus, GripVertical, Pencil, ChevronsUpDown, Check, LoaderCircle } from 'lucide-react';
+import { Trash2, Plus, GripVertical, Pencil, ChevronsUpDown, Check, LoaderCircle, Calendar as CalendarIcon, X } from 'lucide-react';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Separator } from './ui/separator';
@@ -46,6 +46,10 @@ import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { getIconComponent } from '@/lib/icons';
 import type { Chapter, Subject } from '@/lib/types';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { Calendar } from './ui/calendar';
+import { format } from 'date-fns';
+
 
 // Lazy load dialogs for better performance
 const AddSubjectDialog = dynamic(() => import('./add-subject-dialog').then(mod => mod.AddSubjectDialog));
@@ -139,7 +143,7 @@ function SortableSubjectItem({ id, subject, onRemove, onRename, existingSubjectN
 }
 
 
-function SortableChapterItem({ id, chapter, lectureCount, onLectureCountChange, onLectureCountBlur, onRemove, onRename, existingChapterNames }: { id: string; chapter: Chapter; lectureCount: string; onLectureCountChange: (value: string) => void; onLectureCountBlur: () => void; onRemove: () => void; onRename: (newName: string) => void; existingChapterNames: string[] }) {
+function SortableChapterItem({ id, chapter, lectureCount, onLectureCountChange, onLectureCountBlur, onRemove, onRename, existingChapterNames, onDeadlineChange }: { id: string; chapter: Chapter; lectureCount: string; onLectureCountChange: (value: string) => void; onLectureCountBlur: () => void; onRemove: () => void; onRename: (newName: string) => void; existingChapterNames: string[], onDeadlineChange: (date: Date | undefined) => void; }) {
     const {
         attributes,
         listeners,
@@ -154,12 +158,15 @@ function SortableChapterItem({ id, chapter, lectureCount, onLectureCountChange, 
         transition,
     };
 
+    const deadlineDate = chapter.deadline ? new Date(chapter.deadline) : undefined;
+
     return (
         <div ref={setNodeRef} style={style} className={cn("flex items-center gap-2 p-2 rounded-md bg-muted/50", isDragging && "shadow-lg z-10")}>
             <button {...listeners} {...attributes} aria-label="Drag to reorder chapter" className="cursor-grab touch-none p-1 text-muted-foreground hover:text-foreground">
                 <GripVertical className="h-5 w-5" />
             </button>
-            <span className="flex-1">{chapter.name}</span>
+            <span className="flex-1 min-w-0 truncate">{chapter.name}</span>
+            
             <Input
                 type="number"
                 min="1"
@@ -170,6 +177,23 @@ function SortableChapterItem({ id, chapter, lectureCount, onLectureCountChange, 
                 onBlur={onLectureCountBlur}
                 aria-label={`Lectures for ${chapter.name}`}
             />
+            
+            <Popover>
+                <PopoverTrigger asChild>
+                    <Button variant="ghost" size="icon" className={cn("h-7 w-7", deadlineDate && 'text-primary')}>
+                        <CalendarIcon className="h-4 w-4" />
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                    <Calendar
+                        mode="single"
+                        selected={deadlineDate}
+                        onSelect={onDeadlineChange}
+                        initialFocus
+                    />
+                </PopoverContent>
+            </Popover>
+
             <RenameDialog
                 itemType="Chapter"
                 currentName={chapter.name}
@@ -180,6 +204,7 @@ function SortableChapterItem({ id, chapter, lectureCount, onLectureCountChange, 
                     <Pencil className="h-4 w-4" />
                 </Button>
             </RenameDialog>
+
             <RemoveChapterDialog chapter={chapter} onConfirm={onRemove}>
                 <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" aria-label={`Remove chapter: ${chapter.name}`}>
                     <Trash2 className="h-4 w-4" />
@@ -204,7 +229,8 @@ export function CustomizationSheet() {
       addChapter, 
       removeChapter, 
       updateChapter, 
-      renameChapter, 
+      renameChapter,
+      updateChapterDeadline,
       updateTasks, 
       renameTask 
     } = useData();
@@ -486,6 +512,7 @@ export function CustomizationSheet() {
                                                 onRemove={() => removeChapter(selectedSubjectName!, chapter.name)}
                                                 onRename={(newName) => renameChapter(selectedSubjectName!, chapter.name, newName)}
                                                 existingChapterNames={selectedSubject.chapters.map(c => c.name)}
+                                                onDeadlineChange={(date) => updateChapterDeadline(selectedSubjectName!, chapter.name, date ? date.getTime() : null)}
                                             />
                                         )) : (
                                             <p className="text-sm text-muted-foreground text-center p-4">No chapters in this subject.</p>

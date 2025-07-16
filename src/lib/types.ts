@@ -15,7 +15,7 @@ export interface Project {
 }
 
 export interface TimeEntry {
-    id: string;
+    id:string;
     task: string;
     projectId: string | null;
     tags: string[];
@@ -54,6 +54,7 @@ export interface Chapter {
   checkedState?: Record<string, boolean>;
   notes?: Record<string, string>;
   lectureNames?: Record<string, string>;
+  deadline?: number;
 }
 
 export interface Subject {

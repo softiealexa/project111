@@ -40,6 +40,7 @@ interface DataContextType {
   removeChapter: (subjectName: string, chapterNameToRemove: string) => void;
   updateChapter: (subjectName: string, chapterName: string, newLectureCount: number) => void;
   renameChapter: (subjectName: string, oldName: string, newName: string) => void;
+  updateChapterDeadline: (subjectName: string, chapterName: string, deadline: number | null) => void;
   updateTasks: (subjectName: string, newTasks: string[]) => void;
   renameTask: (subjectName: string, oldName: string, newName: string) => void;
   updatePlannerNote: (dateKey: string, note: string) => void;
@@ -511,6 +512,35 @@ export function DataProvider({ children }: { children: ReactNode }) {
     toast({ title: "Chapter Renamed", description: `"${oldName}" is now "${newName}".` });
   }, [activeProfile, updateSubjects, toast]);
 
+  const updateChapterDeadline = useCallback((subjectName: string, chapterName: string, deadline: number | null) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+        if (p.name === activeProfileName) {
+            const newSubjects = p.subjects.map(s => {
+                if (s.name === subjectName) {
+                    const newChapters = s.chapters.map(c => {
+                        if (c.name === chapterName) {
+                            const newChapter = { ...c };
+                            if (deadline) {
+                                newChapter.deadline = deadline;
+                            } else {
+                                delete newChapter.deadline;
+                            }
+                            return newChapter;
+                        }
+                        return c;
+                    });
+                    return { ...s, chapters: newChapters };
+                }
+                return s;
+            });
+            return { ...p, subjects: newSubjects };
+        }
+        return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
   const updateTasks = useCallback((subjectName: string, newTasks: string[]) => {
     if (!activeProfile) return;
     const originalSubject = activeProfile.subjects.find(s => s.name === subjectName);
@@ -947,7 +977,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const value = useMemo(() => ({
     user, userDoc, loading, profiles, activeProfile, activeSubjectName, setActiveSubjectName,
     addProfile, removeProfile, renameProfile, switchProfile, updateSubjects, addSubject, removeSubject, renameSubject,
-    addChapter, removeChapter, updateChapter, renameChapter, updateTasks, renameTask,
+    addChapter, removeChapter, updateChapter, renameChapter, updateChapterDeadline, updateTasks, renameTask,
     updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
     addTodo, updateTodo, deleteTodo, setTodos,
     addQuestionSession, addTimeEntry, updateTimeEntry, deleteTimeEntry, setTimeEntries,
@@ -957,7 +987,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }), [
     user, userDoc, loading, profiles, activeProfile, activeSubjectName,
     addProfile, removeProfile, renameProfile, switchProfile, updateSubjects, addSubject, removeSubject, renameSubject,
-    addChapter, removeChapter, updateChapter, renameChapter, updateTasks, renameTask,
+    addChapter, removeChapter, updateChapter, renameChapter, updateChapterDeadline, updateTasks, renameTask,
     updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
     addTodo, updateTodo, deleteTodo, setTodos,
     addQuestionSession, addTimeEntry, updateTimeEntry, deleteTimeEntry, setTimeEntries,

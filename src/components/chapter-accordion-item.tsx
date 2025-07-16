@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import type { Chapter, Subject } from "@/lib/types";
 import { Progress } from "@/components/ui/progress";
-import { GripVertical, ChevronDown, CheckCircle, Pencil } from 'lucide-react';
+import { GripVertical, ChevronDown, CheckCircle, Pencil, CalendarClock } from 'lucide-react';
 import { useData } from '@/contexts/data-context';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -18,6 +18,7 @@ import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from './ui/button';
 import { LectureRow } from './lecture-row';
+import { format, isBefore, isWithinInterval, startOfToday, addDays, endOfDay } from 'date-fns';
 
 interface ChapterAccordionItemProps {
   chapter: Chapter;
@@ -110,6 +111,22 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
     return 'bg-progress-advanced'; // Green
   }, [progress]);
 
+  const deadlineStatus = useMemo(() => {
+    if (!chapter.deadline) return 'none';
+    const today = startOfToday();
+    const deadlineDate = new Date(chapter.deadline);
+    if (isBefore(endOfDay(deadlineDate), today)) return 'overdue';
+    if (isWithinInterval(deadlineDate, { start: today, end: addDays(today, 7) })) return 'approaching';
+    return 'normal';
+  }, [chapter.deadline]);
+
+  const deadlineColorClass = {
+    overdue: 'text-red-500 dark:text-red-400',
+    approaching: 'text-amber-600 dark:text-amber-400',
+    normal: 'text-muted-foreground',
+    none: 'text-muted-foreground'
+  }[deadlineStatus];
+
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} className={cn("relative", isDragging && "shadow-2xl shadow-primary/20")}>
@@ -128,9 +145,17 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
                 <h3 className="truncate font-headline text-lg font-medium text-foreground">
                   {chapter.name}
                 </h3>
-                <p className={cn("text-sm text-muted-foreground", isCompleted && "text-primary/80")}>
-                  {chapter.lectureCount} lectures
-                </p>
+                <div className="flex items-center gap-x-3 gap-y-1 text-sm flex-wrap">
+                  <p className={cn("text-muted-foreground", isCompleted && "text-primary/80")}>
+                    {chapter.lectureCount} lectures
+                  </p>
+                  {chapter.deadline && (
+                    <div className={cn("flex items-center gap-1.5", deadlineColorClass)}>
+                      <CalendarClock className="h-4 w-4" />
+                      <span>{format(new Date(chapter.deadline), 'MMM d, yyyy')}</span>
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-4 sm:w-2/5">
                  <div className="flex w-full items-center gap-2 text-sm text-muted-foreground">
