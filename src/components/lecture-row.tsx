@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { useData } from '@/contexts/data-context';
 import type { Chapter, Subject } from '@/lib/types';
 import { LectureNotesDialog } from './lecture-notes-dialog';
+import { DialogTrigger } from './ui/dialog';
 
 interface LectureRowProps {
   lectureNum: number;
@@ -68,25 +69,27 @@ export function LectureRow({ lectureNum, chapter, subject, checkedState, onCheck
     return (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg p-3 transition-colors hover:bg-muted/50">
             <div className="flex items-center gap-2 mr-auto pr-4">
-                <LectureNotesDialog
+                 <LectureNotesDialog
                     lectureNum={lectureNum}
                     currentNote={note}
                     currentLectureName={customLectureName || ''}
                     onSave={handleDetailsSave}
                 >
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button
-                            variant="link"
-                            className="p-0 h-auto font-medium text-foreground no-underline hover:underline focus-visible:ring-offset-background"
-                        >
-                            Lecture-{lectureNum}
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>Edit name and notes</p>
-                    </TooltipContent>
-                  </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <DialogTrigger asChild>
+                                <Button
+                                    variant="link"
+                                    className="p-0 h-auto font-medium text-foreground no-underline hover:underline focus-visible:ring-offset-background"
+                                >
+                                    Lecture-{lectureNum}
+                                </Button>
+                            </DialogTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Edit name and notes</p>
+                        </TooltipContent>
+                    </Tooltip>
                 </LectureNotesDialog>
 
                  {customLectureName && (
