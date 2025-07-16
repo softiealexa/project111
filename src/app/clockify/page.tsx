@@ -213,8 +213,9 @@ const TimesheetView = () => {
                 {/* Header */}
                 <div className="p-3 font-semibold text-muted-foreground border-b border-r">Projects</div>
                 {daysToDisplay.map(day => (
-                    <div key={day.toISOString()} className="p-3 font-semibold text-muted-foreground border-b text-center">
-                        {format(day, 'EEE, MMM d')}
+                    <div key={day.toISOString()} className="p-3 font-semibold text-muted-foreground border-b text-center flex flex-col items-center">
+                        <span className="text-xs">{format(day, 'EEE, MMM')}</span>
+                        <span className="text-lg font-bold text-foreground">{format(day, 'd')}</span>
                     </div>
                 ))}
                 <div className="p-3 font-semibold text-muted-foreground border-b border-l text-right">Total</div>
