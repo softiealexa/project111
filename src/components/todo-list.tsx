@@ -99,7 +99,7 @@ function SortableTaskItem({
       </div>
       <Checkbox
         id={`task-${task.id}`}
-        checked={task.completed}
+        checked={task.completed ? 'checked' : 'unchecked'}
         onCheckedChange={() => toggleTaskCompletion(task.id)}
         aria-label={`Mark task as ${task.completed ? 'incomplete' : 'complete'}`}
       />
