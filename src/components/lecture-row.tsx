@@ -1,20 +1,14 @@
 
 "use client";
 
-import { Suspense, useMemo } from 'react';
-import dynamic from 'next/dynamic';
+import { useMemo } from 'react';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
 import { Label } from './ui/label';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
-import { Pencil } from 'lucide-react';
 import { useData } from '@/contexts/data-context';
 import type { Chapter, Subject } from '@/lib/types';
-import { RenameDialog } from './rename-dialog';
-
-const LectureNotesDialog = dynamic(() => import('./lecture-notes-dialog').then(mod => mod.LectureNotesDialog), {
-  loading: () => <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" disabled><Pencil className="h-4 w-4" /></Button>
-});
+import { LectureNotesDialog } from './lecture-notes-dialog';
 
 interface LectureRowProps {
   lectureNum: number;
@@ -74,29 +68,27 @@ export function LectureRow({ lectureNum, chapter, subject, checkedState, onCheck
     return (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg p-3 transition-colors hover:bg-muted/50">
             <div className="flex items-center gap-2 mr-auto pr-4">
-                <Suspense>
-                    <LectureNotesDialog
-                        lectureNum={lectureNum}
-                        currentNote={note}
-                        currentLectureName={customLectureName || ''}
-                        onSave={handleDetailsSave}
-                    >
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="link"
-                                    className="p-0 h-auto font-medium text-foreground no-underline hover:underline focus-visible:ring-offset-background"
-                                >
-                                    L-{lectureNum}
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>Edit name and notes</p>
-                                {note && <p className="mt-2 pt-2 border-t max-w-xs whitespace-pre-wrap break-words">{note}</p>}
-                            </TooltipContent>
-                        </Tooltip>
-                    </LectureNotesDialog>
-                </Suspense>
+                <LectureNotesDialog
+                    lectureNum={lectureNum}
+                    currentNote={note}
+                    currentLectureName={customLectureName || ''}
+                    onSave={handleDetailsSave}
+                >
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                             <Button
+                                variant="link"
+                                className="p-0 h-auto font-medium text-foreground no-underline hover:underline focus-visible:ring-offset-background"
+                            >
+                                L-{lectureNum}
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Edit name and notes</p>
+                            {note && <p className="mt-2 pt-2 border-t max-w-xs whitespace-pre-wrap break-words">{note}</p>}
+                        </TooltipContent>
+                    </Tooltip>
+                </LectureNotesDialog>
 
                  {customLectureName && (
                     <span className="text-sm text-muted-foreground truncate max-w-40">{customLectureName}</span>
