@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import LiveClock from '@/components/live-clock';
 import { getIconComponent } from '@/lib/icons';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Pencil, Timer, ListTodo, CalendarDays, Link as LinkIcon, Keyboard } from 'lucide-react';
+import { Pencil, Timer, ListTodo, CalendarDays, Link as LinkIcon, Keyboard, Target } from 'lucide-react';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { useSearchParams } from 'next/navigation';
 
@@ -38,6 +38,9 @@ const ImportantLinks = dynamic(() => import("@/components/important-links"), {
 });
 const QuestionTimer = dynamic(() => import('@/components/question-timer'), {
     loading: () => <LoadingSpinner containerClassName="h-96" text="Loading Timer..." />
+});
+const ExamCountdown = dynamic(() => import('@/components/exam-countdown'), {
+    loading: () => <LoadingSpinner containerClassName="h-96" text="Loading Countdowns..." />
 });
 
 
@@ -162,6 +165,10 @@ export default function DashboardClient() {
                               <Keyboard className="h-5 w-5" />
                               Question Timer
                             </TabsTrigger>
+                            <TabsTrigger value="countdown" className="justify-start gap-2 py-2.5 text-base">
+                              <Target className="h-5 w-5" />
+                              Exam Countdown
+                            </TabsTrigger>
                       </TabsList>
                       <div className="md:col-start-2">
                           <TabsContent value="planner" className="mt-0">
@@ -182,6 +189,9 @@ export default function DashboardClient() {
                           <TabsContent value="question-timer" className="mt-0">
                               <QuestionTimer />
                           </TabsContent>
+                          <TabsContent value="countdown" className="mt-0">
+                              <ExamCountdown />
+                          </TabsContent>
                       </div>
                   </div>
               </Tabs>
@@ -201,5 +211,3 @@ export default function DashboardClient() {
     </div>
   );
 }
-
-    

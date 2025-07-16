@@ -80,6 +80,12 @@ export interface QuestionSession {
   questionTimes: number[]; // array of times in ms
 }
 
+export interface ExamCountdown {
+  id: string;
+  title: string;
+  date: number; // timestamp
+}
+
 export type SidebarWidth = number;
 
 export interface Profile {
@@ -91,6 +97,7 @@ export interface Profile {
   todos?: Todo[];
   progressHistory?: ProgressPoint[];
   questionSessions?: QuestionSession[];
+  examCountdowns?: ExamCountdown[];
   timeEntries?: TimeEntry[];
   projects?: Project[];
   timesheetData?: TimesheetData;

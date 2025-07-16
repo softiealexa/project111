@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useMe
 import { usePathname } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import type { Subject, Profile, Chapter, Note, ImportantLink, Todo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus } from '@/lib/types';
+import type { Subject, Profile, Chapter, Note, ImportantLink, Todo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus, ExamCountdown } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
 import { db } from '@/lib/firebase';
@@ -68,6 +68,10 @@ interface DataContextType {
   deleteProject: (projectId: string) => void;
   updateTimesheetEntry: (projectId: string, date: string, seconds: number) => void;
   setTimesheetData: (data: TimesheetData) => void;
+  addExamCountdown: (title: string, date: Date) => void;
+  updateExamCountdown: (countdown: ExamCountdown) => void;
+  deleteExamCountdown: (countdownId: string) => void;
+  setExamCountdowns: (countdowns: ExamCountdown[]) => void;
   exportData: () => void;
   importData: (file: File) => void;
   signOutUser: () => Promise<void>;
@@ -135,6 +139,7 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
             todos: profile.todos || [],
             progressHistory: profile.progressHistory || [],
             questionSessions: profile.questionSessions || [],
+            examCountdowns: profile.examCountdowns || [],
             timeEntries: profile.timeEntries || [],
             projects: profile.projects || [],
             timesheetData: profile.timesheetData || {},
@@ -952,6 +957,60 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateProfiles(newProfiles, activeProfileName);
   }, [activeProfileName, profiles, updateProfiles]);
 
+  const addExamCountdown = useCallback((title: string, date: Date) => {
+    if (!activeProfileName) return;
+    const newCountdown: ExamCountdown = {
+        id: crypto.randomUUID(),
+        title,
+        date: date.getTime(),
+    };
+    const newProfiles = profiles.map(p => {
+        if (p.name === activeProfileName) {
+            const updatedCountdowns = [...(p.examCountdowns || []), newCountdown];
+            return { ...p, examCountdowns: updatedCountdowns };
+        }
+        return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+    toast({ title: "Countdown Added", description: `"${title}" has been added.` });
+  }, [activeProfileName, profiles, updateProfiles, toast]);
+
+  const updateExamCountdown = useCallback((updatedCountdown: ExamCountdown) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const updatedCountdowns = (p.examCountdowns || []).map(cd => cd.id === updatedCountdown.id ? updatedCountdown : cd);
+        return { ...p, examCountdowns: updatedCountdowns };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+    toast({ title: "Countdown Updated", description: `"${updatedCountdown.title}" has been updated.` });
+  }, [activeProfileName, profiles, updateProfiles, toast]);
+
+  const deleteExamCountdown = useCallback((countdownId: string) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const updatedCountdowns = (p.examCountdowns || []).filter(cd => cd.id !== countdownId);
+        return { ...p, examCountdowns: updatedCountdowns };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+  
+  const setExamCountdowns = useCallback((countdowns: ExamCountdown[]) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        return { ...p, examCountdowns: countdowns };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
 
   const exportData = useCallback(() => {
     if (typeof window === 'undefined' || profiles.length === 0) {
@@ -1010,6 +1069,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addTodo, updateTodo, deleteTodo, setTodos,
     addQuestionSession, addTimeEntry, updateTimeEntry, deleteTimeEntry, setTimeEntries,
     addProject, updateProject, deleteProject, updateTimesheetEntry, setTimesheetData,
+    addExamCountdown, updateExamCountdown, deleteExamCountdown, setExamCountdowns,
     exportData, importData, signOutUser, refreshUserDoc,
     theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth,
   }), [
@@ -1020,6 +1080,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addTodo, updateTodo, deleteTodo, setTodos,
     addQuestionSession, addTimeEntry, updateTimeEntry, deleteTimeEntry, setTimeEntries,
     addProject, updateProject, deleteProject, updateTimesheetEntry, setTimesheetData,
+    addExamCountdown, updateExamCountdown, deleteExamCountdown, setExamCountdowns,
     exportData, importData, signOutUser, refreshUserDoc,
     theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth, setActiveSubjectName
   ]);
