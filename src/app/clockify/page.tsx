@@ -95,7 +95,7 @@ const formatSecondsToTime = (seconds: number): string => {
     if (seconds === 0) return '';
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
-    return `${hours}:${minutes.toString().padStart(2, '0')}`;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 };
 
 const PlaceholderContent = ({ title }: { title: string }) => (
@@ -113,9 +113,9 @@ const PlaceholderContent = ({ title }: { title: string }) => (
 );
 
 const TimesheetView = () => {
-  type TimeRange = 'Today' | 'This Week' | 'This Month';
+  type TimeRange = 'Day' | 'Week';
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [timeRange, setTimeRange] = useState<TimeRange>('This Week');
+  const [timeRange, setTimeRange] = useState<TimeRange>('Week');
 
   const [timesheetData, setTimesheetData] = useState([
     { project: 'Project Y', color: 'bg-blue-500', times: { '2024-02-11': 28800 } },
@@ -125,7 +125,7 @@ const TimesheetView = () => {
   ]);
 
   const daysToDisplay = useMemo(() => {
-    if (timeRange === 'Today') {
+    if (timeRange === 'Day') {
         return [currentDate];
     }
     const start = startOfWeek(currentDate, { weekStartsOn: 1 });
@@ -159,36 +159,30 @@ const TimesheetView = () => {
   
   const goToNext = () => {
     switch(timeRange) {
-        case 'Today': 
+        case 'Day': 
             setCurrentDate(addDays(currentDate, 1)); 
             break;
-        case 'This Week': 
+        case 'Week': 
             setCurrentDate(addDays(currentDate, 7)); 
-            break;
-        case 'This Month':
-            setCurrentDate(addMonths(currentDate, 1));
             break;
     }
   };
   const goToPrev = () => {
      switch(timeRange) {
-        case 'Today': 
+        case 'Day': 
             setCurrentDate(subDays(currentDate, 1)); 
             break;
-        case 'This Week': 
+        case 'Week': 
             setCurrentDate(subDays(currentDate, 7)); 
-            break;
-        case 'This Month':
-            setCurrentDate(subMonths(currentDate, 1));
             break;
     }
   };
   
-  const gridTemplateColumns = timeRange === 'Today' 
+  const gridTemplateColumns = timeRange === 'Day' 
     ? 'grid-cols-[200px_1fr_100px]'
     : 'grid-cols-[200px_repeat(7,1fr)_100px]';
 
-  const minWidth = timeRange === 'Today' ? 'min-w-[400px]' : 'min-w-[900px]';
+  const minWidth = timeRange === 'Day' ? 'min-w-[400px]' : 'min-w-[900px]';
 
   return (
     <div className="p-4 sm:p-6 bg-muted/30 flex-1">
@@ -208,9 +202,8 @@ const TimesheetView = () => {
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="Today">Today</SelectItem>
-                        <SelectItem value="This Week">This Week</SelectItem>
-                        <SelectItem value="This Month">This Month</SelectItem>
+                        <SelectItem value="Day">Day</SelectItem>
+                        <SelectItem value="Week">Week</SelectItem>
                     </SelectContent>
                 </Select>
                 <div className='flex items-center rounded-md border bg-card'>
@@ -247,13 +240,13 @@ const TimesheetView = () => {
                                         className="text-center border-none focus-visible:ring-1 focus-visible:ring-primary"
                                         value={formatSecondsToTime(row.times[dayKey] || 0)}
                                         onChange={(e) => handleTimeChange(projectIndex, day, e.target.value)}
-                                        placeholder="0:00"
+                                        placeholder="00:00"
                                     />
                                 </div>
                             )
                         })}
                         <div className="p-3 border-b border-l font-semibold text-right text-muted-foreground">
-                            {formatSecondsToTime(projectTotals[projectIndex]) || '0:00'}
+                            {formatSecondsToTime(projectTotals[projectIndex]) || '00:00'}
                         </div>
                     </React.Fragment>
                 ))}
@@ -267,10 +260,10 @@ const TimesheetView = () => {
                     </div>
                     {daysToDisplay.map((day, dayIndex) => (
                         <div key={dayIndex} className={cn("p-2 border-b", (day.getDay() === 6 || day.getDay() === 0) && "bg-muted/50")}>
-                            <Input className="text-center border-none" disabled placeholder="0:00" />
+                            <Input className="text-center border-none" disabled placeholder="00:00" />
                         </div>
                     ))}
-                    <div className="p-3 border-b border-l font-semibold text-right text-muted-foreground">0:00</div>
+                    <div className="p-3 border-b border-l font-semibold text-right text-muted-foreground">00:00</div>
                 </React.Fragment>
 
 
@@ -278,11 +271,11 @@ const TimesheetView = () => {
                 <div className="p-3 border-r bg-muted/50 font-bold">Total</div>
                 {dailyTotals.map((total, index) => (
                     <div key={index} className="p-3 bg-muted/50 font-bold text-center">
-                       {formatSecondsToTime(total) || '0:00'}
+                       {formatSecondsToTime(total) || '00:00'}
                     </div>
                 ))}
                  <div className="p-3 border-l bg-muted/50 font-bold text-right">
-                    {formatSecondsToTime(grandTotal) || '0:00'}
+                    {formatSecondsToTime(grandTotal) || '00:00'}
                 </div>
             </div>
         </div>
