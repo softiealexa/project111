@@ -49,6 +49,7 @@ import type { Chapter, Subject, SidebarWidth } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Calendar } from './ui/calendar';
 import { format } from 'date-fns';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 
 // Lazy load dialogs for better performance
@@ -237,6 +238,7 @@ export function CustomizationSheet() {
       setSidebarWidth
     } = useData();
     const { toast } = useToast();
+    const isMobile = useIsMobile();
     
     const [selectedSubjectName, setSelectedSubjectName] = useState<string | null>(null);
     const [newTaskName, setNewTaskName] = useState('');
@@ -383,7 +385,7 @@ export function CustomizationSheet() {
     }
 
     return (
-        <SheetContent className="w-full flex flex-col sm:max-w-none" style={{ width: `${sidebarWidth}px`}}>
+        <SheetContent className="w-full flex flex-col sm:max-w-none" style={!isMobile ? { width: `${sidebarWidth}px` } : {}}>
             <SheetHeader className="pr-6">
                 <SheetTitle>Customization</SheetTitle>
                 <SheetDescription>Manage profiles, subjects, chapters, and tasks.</SheetDescription>
@@ -569,36 +571,40 @@ export function CustomizationSheet() {
                         </div>
                     </div>
                 </Suspense>
-                </div>
-            </ScrollArea>
-            <SheetFooter className="mt-auto pt-4 border-t flex-col items-center gap-4 sm:flex-row sm:justify-between">
-                <div className="flex items-center gap-2">
-                    <Label htmlFor="sidebar-width" className="text-xs text-muted-foreground">Width:</Label>
-                    <div className="flex items-center">
-                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleWidthChange(localSidebarWidth - 20)}>
-                            <Minus className="h-4 w-4" />
-                        </Button>
-                        <Input
-                            id="sidebar-width"
-                            type="number"
-                            className="h-8 w-20 text-center mx-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            value={localSidebarWidth}
-                            onChange={(e) => {
-                                const val = e.target.value === '' ? 400 : parseInt(e.target.value, 10);
-                                if (!isNaN(val)) {
-                                    setLocalSidebarWidth(val);
-                                }
-                            }}
-                            onBlur={() => handleWidthChange(localSidebarWidth)}
-                            min="400"
-                            max="800"
-                        />
-                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleWidthChange(localSidebarWidth + 20)}>
-                            <PlusIcon className="h-4 w-4" />
-                        </Button>
+                    <Separator className="mt-8"/>
+                    <div className="space-y-4 pt-4">
+                        <h3 className="text-sm font-medium text-muted-foreground px-2">Sidebar Settings</h3>
+                         <div className="flex items-center gap-4 px-2">
+                            <Label htmlFor="sidebar-width" className="text-muted-foreground whitespace-nowrap">Sidebar Width:</Label>
+                            <div className="flex items-center">
+                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleWidthChange(localSidebarWidth - 20)}>
+                                    <Minus className="h-4 w-4" />
+                                </Button>
+                                <Input
+                                    id="sidebar-width"
+                                    type="number"
+                                    className="h-8 w-20 text-center mx-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    value={localSidebarWidth}
+                                    onChange={(e) => {
+                                        const val = e.target.value === '' ? 400 : parseInt(e.target.value, 10);
+                                        if (!isNaN(val)) {
+                                            setLocalSidebarWidth(val);
+                                        }
+                                    }}
+                                    onBlur={() => handleWidthChange(localSidebarWidth)}
+                                    min="400"
+                                    max="800"
+                                />
+                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleWidthChange(localSidebarWidth + 20)}>
+                                    <PlusIcon className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <p className="text-xs text-muted-foreground">Changes are saved automatically.</p>
+            </ScrollArea>
+            <SheetFooter className="mt-auto pt-4 border-t">
+                <p className="text-xs text-muted-foreground text-center w-full">Changes are saved automatically.</p>
             </SheetFooter>
         </SheetContent>
     );
