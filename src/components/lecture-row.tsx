@@ -24,7 +24,7 @@ interface LectureRowProps {
 export function LectureRow({ lectureNum, chapter, subject, checkedState, onCheckboxChange }: LectureRowProps) {
     const { activeProfile, updateSubjects } = useData();
 
-    const lectureKey = `L${lectureNum}`;
+    const lectureKey = `Lecture-${lectureNum}`;
     const customLectureName = useMemo(() => chapter.lectureNames?.[lectureKey], [chapter.lectureNames, lectureKey]);
     const note = useMemo(() => chapter.notes?.[lectureKey] || '', [chapter.notes, lectureKey]);
 
@@ -71,7 +71,7 @@ export function LectureRow({ lectureNum, chapter, subject, checkedState, onCheck
     return (
         <div className="group flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg p-3 transition-colors hover:bg-muted/50">
             <div className="flex items-center gap-2 mr-auto pr-4">
-                 <LectureNotesDialog
+                <LectureNotesDialog
                     lectureNum={lectureNum}
                     currentNote={note}
                     currentLectureName={customLectureName || ''}
@@ -80,31 +80,30 @@ export function LectureRow({ lectureNum, chapter, subject, checkedState, onCheck
                     <Tooltip>
                         <TooltipTrigger asChild>
                              <DialogTrigger asChild>
-                                <Button
-                                    variant="link"
-                                    className="p-0 h-auto font-medium text-foreground no-underline hover:underline focus-visible:ring-offset-background"
-                                >
-                                    Lecture-{lectureNum}
-                                </Button>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        variant="link"
+                                        className="p-0 h-auto font-medium text-foreground no-underline hover:underline focus-visible:ring-offset-background"
+                                    >
+                                        Lecture-{lectureNum}
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
+                                        aria-label="Edit lecture details"
+                                    >
+                                        <Pencil className="h-4 w-4" />
+                                    </Button>
+                                </div>
                             </DialogTrigger>
                         </TooltipTrigger>
                         {note && (
-                             <TooltipContent>
+                                <TooltipContent>
                                 <p className="max-w-xs whitespace-pre-wrap">{note}</p>
                             </TooltipContent>
                         )}
                     </Tooltip>
-
-                    <DialogTrigger asChild>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
-                        >
-                            <Pencil className="h-4 w-4" />
-                            <span className="sr-only">Edit</span>
-                        </Button>
-                    </DialogTrigger>
                 </LectureNotesDialog>
 
                  {customLectureName && (
@@ -114,7 +113,7 @@ export function LectureRow({ lectureNum, chapter, subject, checkedState, onCheck
             
             <div className="flex items-center gap-x-4">
                 {subject.tasks.map((task) => {
-                    const checkboxId = `${subject.name}-${chapter.name}-L${lectureNum}-${task}`;
+                    const checkboxId = `${subject.name}-${chapter.name}-Lecture-${lectureNum}-${task}`;
                     return (
                         <div key={task} className="flex items-center space-x-2">
                             <Checkbox 

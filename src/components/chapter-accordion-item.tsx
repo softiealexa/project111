@@ -78,7 +78,7 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
     const newCheckedState: Record<string, boolean> = { ...checkedState };
     for (let i = 1; i <= chapter.lectureCount; i++) {
         tasksToComplete.forEach(task => {
-            const checkboxId = `${subject.name}-${chapter.name}-L${i}-${task}`;
+            const checkboxId = `${subject.name}-${chapter.name}-Lecture-${i}-${task}`;
             newCheckedState[checkboxId] = true;
         });
     }
@@ -114,12 +114,12 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
   return (
     <div ref={setNodeRef} style={style} {...attributes} className={cn("relative", isDragging && "shadow-2xl shadow-primary/20")}>
        <Card className={cn(
-          "overflow-hidden border bg-card transition-all group",
+          "overflow-hidden border bg-card transition-all",
           "hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10",
           isDragging && "border-primary/50"
       )}>
         <AccordionItem value={`item-${index}`} className="border-b-0">
-          <AccordionPrimitive.Header className="flex w-full items-center group-hover:bg-primary/5">
+          <AccordionPrimitive.Header className="flex w-full items-center hover:bg-primary/5">
             <button {...listeners} aria-label="Drag to reorder chapter" className="cursor-grab pl-4 pr-2 py-4 text-muted-foreground hover:text-foreground touch-none">
               <GripVertical className="h-5 w-5" />
             </button>
