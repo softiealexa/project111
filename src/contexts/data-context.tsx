@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useMe
 import { usePathname } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import type { Subject, Profile, Chapter, Note, ImportantLink, Todo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData } from '@/lib/types';
+import type { Subject, Profile, Chapter, Note, ImportantLink, Todo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
 import { db } from '@/lib/firebase';
@@ -19,6 +19,7 @@ import { format } from 'date-fns';
 const LOCAL_PROFILE_KEY_PREFIX = 'trackacademic_profile_';
 const THEME_KEY = 'trackacademic_theme';
 const MODE_KEY = 'trackacademic_mode';
+const SIDEBAR_WIDTH_KEY = 'trackacademic_sidebar_width';
 
 interface DataContextType {
   user: FirebaseUser | null;
@@ -75,6 +76,8 @@ interface DataContextType {
   mode: 'light' | 'dark';
   setMode: (mode: 'light' | 'dark') => void;
   isThemeHydrated: boolean;
+  sidebarWidth: SidebarWidth;
+  setSidebarWidth: (width: SidebarWidth) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -166,7 +169,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const [theme, setThemeState] = useState<string>('default');
   const [mode, setModeState] = useState<'light' | 'dark'>('dark');
+  const [sidebarWidth, setSidebarWidthState] = useState<SidebarWidth>('default');
   const [isThemeHydrated, setIsThemeHydrated] = useState(false);
+
+  const setSidebarWidth = useCallback((width: SidebarWidth) => {
+    setSidebarWidthState(width);
+    localStorage.setItem(SIDEBAR_WIDTH_KEY, width);
+  }, []);
 
   const setMode = useCallback((newMode: 'light' | 'dark') => {
     setModeState(newMode);
@@ -191,13 +200,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const savedTheme = localStorage.getItem(THEME_KEY) || 'default';
     const savedMode = (localStorage.getItem(MODE_KEY) || 'dark') as 'light' | 'dark';
+    const savedWidth = (localStorage.getItem(SIDEBAR_WIDTH_KEY) || 'default') as SidebarWidth;
     
-    // Use the callbacks to ensure state and DOM are in sync
     setTheme(savedTheme);
     setMode(savedMode);
+    setSidebarWidth(savedWidth);
 
     setIsThemeHydrated(true);
-  }, [setTheme, setMode]);
+  }, [setTheme, setMode, setSidebarWidth]);
 
   const saveData = useCallback(async (profilesToSave: Profile[], activeNameToSave: string | null) => {
     if (typeof window === 'undefined') return;
@@ -983,7 +993,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addQuestionSession, addTimeEntry, updateTimeEntry, deleteTimeEntry, setTimeEntries,
     addProject, updateProject, deleteProject, updateTimesheetEntry, setTimesheetData,
     exportData, importData, signOutUser, refreshUserDoc,
-    theme, setTheme, mode, setMode, isThemeHydrated,
+    theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth,
   }), [
     user, userDoc, loading, profiles, activeProfile, activeSubjectName,
     addProfile, removeProfile, renameProfile, switchProfile, updateSubjects, addSubject, removeSubject, renameSubject,
@@ -993,7 +1003,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addQuestionSession, addTimeEntry, updateTimeEntry, deleteTimeEntry, setTimeEntries,
     addProject, updateProject, deleteProject, updateTimesheetEntry, setTimesheetData,
     exportData, importData, signOutUser, refreshUserDoc,
-    theme, setTheme, mode, setMode, isThemeHydrated, setActiveSubjectName
+    theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth, setActiveSubjectName
   ]);
   
   if (!loading && (pathname.startsWith('/dashboard') || pathname.startsWith('/settings')) && profiles.length === 0) {

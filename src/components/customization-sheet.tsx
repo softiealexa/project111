@@ -20,7 +20,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Trash2, Plus, GripVertical, Pencil, ChevronsUpDown, Check, LoaderCircle, Calendar as CalendarIcon, X } from 'lucide-react';
+import { Trash2, Plus, GripVertical, Pencil, ChevronsUpDown, Check, LoaderCircle, Calendar as CalendarIcon, X, Scaling } from 'lucide-react';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Separator } from './ui/separator';
@@ -45,7 +45,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { getIconComponent } from '@/lib/icons';
-import type { Chapter, Subject } from '@/lib/types';
+import type { Chapter, Subject, SidebarWidth } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Calendar } from './ui/calendar';
 import { format } from 'date-fns';
@@ -232,7 +232,9 @@ export function CustomizationSheet() {
       renameChapter,
       updateChapterDeadline,
       updateTasks, 
-      renameTask 
+      renameTask,
+      sidebarWidth,
+      setSidebarWidth
     } = useData();
     const { toast } = useToast();
     
@@ -365,13 +367,18 @@ export function CustomizationSheet() {
         }
     }
 
+    const widthClasses: Record<SidebarWidth, string> = {
+        default: 'sm:max-w-md',
+        medium: 'sm:max-w-lg',
+        large: 'sm:max-w-xl',
+    };
 
     if (!activeProfile) {
         return null;
     }
 
     return (
-        <SheetContent className="w-full sm:max-w-lg flex flex-col">
+        <SheetContent className={cn("w-full flex flex-col", widthClasses[sidebarWidth])}>
             <SheetHeader className="pr-6">
                 <SheetTitle>Customization</SheetTitle>
                 <SheetDescription>Manage profiles, subjects, chapters, and tasks.</SheetDescription>
@@ -559,7 +566,22 @@ export function CustomizationSheet() {
                 </Suspense>
                 </div>
             </ScrollArea>
-             <SheetFooter className="mt-auto pt-4 border-t">
+             <SheetFooter className="mt-auto pt-4 border-t flex-row items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <Label htmlFor="sidebar-width" className="text-xs text-muted-foreground flex-shrink-0">
+                        Sidebar Width
+                    </Label>
+                    <Select value={sidebarWidth} onValueChange={(value) => setSidebarWidth(value as SidebarWidth)}>
+                        <SelectTrigger id="sidebar-width" className="h-8 w-[100px] text-xs">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="default" className="text-xs">Default</SelectItem>
+                            <SelectItem value="medium" className="text-xs">Medium</SelectItem>
+                            <SelectItem value="large" className="text-xs">Large</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
                 <p className="text-xs text-muted-foreground">Changes are saved automatically.</p>
             </SheetFooter>
         </SheetContent>
