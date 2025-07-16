@@ -6,10 +6,8 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -42,14 +40,10 @@ export function LectureNotesDialog({ lectureNum, currentNote, currentLectureName
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      {children}
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Edit Details for Lecture {lectureNum}</DialogTitle>
-          <DialogDescription>
-            Add a custom name or notes. Changes are saved when you click the save button.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogTrigger asChild>
+          {children}
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
         <div className="py-4 space-y-4">
            <div className="grid gap-2">
             <Label htmlFor="lecture-name">Lecture Name (Optional)</Label>
@@ -57,7 +51,7 @@ export function LectureNotesDialog({ lectureNum, currentNote, currentLectureName
               id="lecture-name"
               value={lectureName}
               onChange={(e) => setLectureName(e.target.value)}
-              placeholder="e.g., Introduction to Kinematics"
+              placeholder={`Custom name for L-${lectureNum}`}
             />
           </div>
           <div className="grid gap-2">
@@ -67,7 +61,7 @@ export function LectureNotesDialog({ lectureNum, currentNote, currentLectureName
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="Type your notes here..."
-              className="min-h-[200px] text-base"
+              className="min-h-[150px] text-base"
             />
           </div>
         </div>
