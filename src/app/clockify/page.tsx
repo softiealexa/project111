@@ -235,7 +235,7 @@ const TimesheetView = () => {
                                         className="text-center border-none focus-visible:ring-1 focus-visible:ring-primary"
                                         value={formatSecondsToTime(row.times[dayKey] || 0)}
                                         onChange={(e) => handleTimeChange(projectIndex, day, e.target.value)}
-                                        placeholder="00:00"
+                                        placeholder="h:mm"
                                     />
                                 </div>
                             )
@@ -255,7 +255,7 @@ const TimesheetView = () => {
                     </div>
                     {daysToDisplay.map((day, dayIndex) => (
                         <div key={dayIndex} className={cn("p-2 border-b", (day.getDay() === 6 || day.getDay() === 0) && "bg-muted/50")}>
-                            <Input className="text-center border-none" disabled placeholder="00:00" />
+                            <Input className="text-center border-none" disabled placeholder="h:mm" />
                         </div>
                     ))}
                     <div className="p-3 border-b border-l font-semibold text-right text-muted-foreground">00:00</div>
@@ -588,5 +588,7 @@ export default function ClockifyPage() {
     </SidebarProvider>
   );
 }
+
+    
 
     
