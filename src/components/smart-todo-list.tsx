@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
-import { format, addDays, subDays, startOfDay, endOfDay, isToday, isYesterday } from 'date-fns';
+import { format, addDays, subDays, isToday, isYesterday, isThisWeek, isThisMonth } from 'date-fns';
 import { Calendar as CalendarIcon, Plus, Trash2, Edit, ChevronLeft, ChevronRight, CornerDownLeft } from 'lucide-react';
 
 import { useData } from "@/contexts/data-context";
@@ -15,14 +15,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { Separator } from './ui/separator';
 
 // Use the same logical date functions from the context for consistency
 const DAY_BOUNDARY_HOUR = 4;
 const getLogicalDate = (date: Date = new Date()): Date => {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours() - DAY_BOUNDARY_HOUR);
-};
-const getLogicalDateString = (date?: Date): string => {
-  return format(getLogicalDate(date), 'yyyy-MM-dd');
+  const d = new Date(date);
+  d.setHours(d.getHours() - DAY_BOUNDARY_HOUR);
+  return d;
 };
 
 export default function SmartTodoList() {
@@ -31,16 +32,17 @@ export default function SmartTodoList() {
   
   const allTasks = useMemo(() => activeProfile?.todos || [], [activeProfile]);
   
-  const [selectedDate, setSelectedDate] = useState<Date>(getLogicalDate());
+  const [selectedDay, setSelectedDay] = useState<Date>(getLogicalDate());
   const [inputText, setInputText] = useState("");
   const [editingTask, setEditingTask] = useState<SmartTodo | null>(null);
   
   useEffect(() => {
     // When date changes, reset editing state
     setEditingTask(null);
-  }, [selectedDate]);
+    setInputText("");
+  }, [selectedDay]);
 
-  const selectedDateString = format(selectedDate, 'yyyy-MM-dd');
+  const selectedDateString = format(selectedDay, 'yyyy-MM-dd');
 
   const tasksForSelectedDay = useMemo(() => {
     return allTasks
@@ -70,7 +72,7 @@ export default function SmartTodoList() {
         setEditingTask(null);
     } else {
         addTodo(text, selectedDateString);
-        toast({ title: 'Task Added', description: `"${text}" has been added for ${format(selectedDate, 'PPP')}.` });
+        toast({ title: 'Task Added', description: `"${text}" has been added for ${format(selectedDay, 'PPP')}.` });
     }
     setInputText("");
   };
@@ -95,124 +97,127 @@ export default function SmartTodoList() {
   const handleEdit = (task: SmartTodo) => {
     setEditingTask(task);
     setInputText(task.text);
+    // Focus the input field after setting state
+    setTimeout(() => {
+        document.getElementById('new-task-input')?.focus();
+    }, 100);
   };
   
   const getRelativeDateString = (date: Date): string => {
-    const logicalDate = getLogicalDate(new Date());
-    if (format(date, 'yyyy-MM-dd') === format(logicalDate, 'yyyy-MM-dd')) return 'Today';
-    if (format(date, 'yyyy-MM-dd') === format(subDays(logicalDate, 1), 'yyyy-MM-dd')) return 'Yesterday';
-    if (format(date, 'yyyy-MM-dd') === format(addDays(logicalDate, 1), 'yyyy-MM-dd')) return 'Tomorrow';
+    const logicalToday = getLogicalDate(new Date());
+    if (format(date, 'yyyy-MM-dd') === format(logicalToday, 'yyyy-MM-dd')) return 'Today';
+    if (format(date, 'yyyy-MM-dd') === format(subDays(logicalToday, 1), 'yyyy-MM-dd')) return 'Yesterday';
+    if (format(date, 'yyyy-MM-dd') === format(addDays(logicalToday, 1), 'yyyy-MM-dd')) return 'Tomorrow';
     return format(date, 'PPP');
   }
+
+  const modifiers = {
+    hasTask: (date: Date) => allTasks.some(task => task.forDate === format(date, 'yyyy-MM-dd'))
+  };
+
+  const modifiersClassNames = {
+    hasTask: 'has-task',
+  };
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Smart To-Do List</CardTitle>
         <CardDescription>
-          Manage your daily tasks. Incomplete tasks will roll over after 4:00 AM.
+          Organize your tasks by day. Incomplete tasks automatically roll over after 4:00 AM.
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="flex flex-col sm:flex-row gap-4 mb-4">
-            <div className="flex-1 space-y-2">
-                <Label htmlFor="new-task-input">
-                    {editingTask ? 'Edit Task' : 'New Task'}
-                </Label>
-                <div className="flex gap-2">
-                    <Input
-                        id="new-task-input"
-                        placeholder="Add a new task for your day..."
-                        value={inputText}
-                        onChange={(e) => setInputText(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
-                    />
-                    <Button onClick={handleAddTask}>
-                        {editingTask ? 'Save' : <Plus className="h-4 w-4" />}
-                    </Button>
-                </div>
-            </div>
-            <div className="flex flex-col space-y-2 sm:max-w-xs">
-                <Label>Selected Day</Label>
-                <div className="flex items-center gap-2 rounded-md border bg-card p-1">
-                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setSelectedDate(d => subDays(d,1))}>
-                        <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={(day) => day && setSelectedDate(day)}
-                        initialFocus
-                        classNames={{
-                            root: 'flex justify-center',
-                            day_selected: 'bg-primary text-primary-foreground',
-                            day_today: 'bg-accent text-accent-foreground',
-                        }}
-                        components={{
-                            Caption: () => (
-                                <div className="text-center font-medium flex-1">
-                                    {getRelativeDateString(selectedDate)}
-                                </div>
-                            ),
-                            IconLeft: () => null,
-                            IconRight: () => null,
-                        }}
-                    />
-                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setSelectedDate(d => addDays(d,1))}>
-                        <ChevronRight className="h-4 w-4" />
-                    </Button>
-                </div>
-            </div>
+      <CardContent className="grid md:grid-cols-[280px_1fr] gap-8">
+        <div>
+           <style>{`
+                .has-task:not([aria-selected]):after {
+                    content: '';
+                    position: absolute;
+                    bottom: 6px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: 5px;
+                    height: 5px;
+                    border-radius: 50%;
+                    background-color: hsl(var(--primary));
+                }
+            `}</style>
+          <Calendar
+            selected={selectedDay}
+            onSelect={(day) => day && setSelectedDay(day)}
+            className="rounded-md border"
+            modifiers={modifiers}
+            modifiersClassNames={modifiersClassNames}
+          />
         </div>
-
-        <div className="mt-6 space-y-3">
-            <h3 className="text-lg font-semibold border-b pb-2">
-                Tasks for {getRelativeDateString(selectedDate)}
+        <div className="space-y-4">
+            <h3 className="text-xl font-semibold">
+                Tasks for {getRelativeDateString(selectedDay)}
             </h3>
-            {tasksForSelectedDay.length > 0 ? (
-                tasksForSelectedDay.map((task) => (
-                    <div
-                        key={task.id}
-                        className="group flex items-center gap-3 p-2 rounded-md transition-colors hover:bg-muted/50"
-                    >
-                        <Checkbox
-                            id={`task-${task.id}`}
-                            checked={task.status === 'completed' ? 'checked' : 'unchecked'}
-                            onCheckedChange={() => handleToggleTask(task)}
-                            aria-label={`Mark task as ${task.status === 'completed' ? 'incomplete' : 'complete'}`}
-                        />
-                        <Label
-                            htmlFor={`task-${task.id}`}
-                            className={cn(
-                                "flex-grow cursor-pointer",
-                                task.status === 'completed' && "line-through text-muted-foreground"
-                            )}
+            <div className="flex gap-2">
+                <Input
+                    id="new-task-input"
+                    placeholder="Add a new task..."
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
+                />
+                <Button onClick={handleAddTask}>
+                    {editingTask ? 'Save' : <Plus className="h-4 w-4" />}
+                    <span className="sr-only">{editingTask ? 'Save Task' : 'Add Task'}</span>
+                </Button>
+            </div>
+            
+            <Separator />
+            
+            <div className="space-y-3 h-[300px] overflow-y-auto pr-2">
+                {tasksForSelectedDay.length > 0 ? (
+                    tasksForSelectedDay.map((task) => (
+                        <div
+                            key={task.id}
+                            className="group flex items-center gap-3 p-2 rounded-md transition-colors hover:bg-muted/50"
                         >
-                            {task.text}
-                        </Label>
-                        {task.rolledOver && (
-                             <span className="text-xs text-amber-600 flex items-center gap-1">
-                                <CornerDownLeft className="h-3 w-3" />
-                                Rollover
-                            </span>
-                        )}
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(task)}>
-                                <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDeleteTask(task.id)}>
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <Checkbox
+                                id={`task-${task.id}`}
+                                checked={task.status === 'completed' ? 'checked' : 'unchecked'}
+                                onCheckedChange={() => handleToggleTask(task)}
+                                aria-label={`Mark task as ${task.status === 'completed' ? 'incomplete' : 'complete'}`}
+                            />
+                            <Label
+                                htmlFor={`task-${task.id}`}
+                                className={cn(
+                                    "flex-grow cursor-pointer",
+                                    task.status === 'completed' && "line-through text-muted-foreground"
+                                )}
+                            >
+                                {task.text}
+                            </Label>
+                            {task.rolledOver && (
+                                <span className="text-xs text-amber-600 flex items-center gap-1">
+                                    <CornerDownLeft className="h-3 w-3" />
+                                    Rollover
+                                </span>
+                            )}
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(task)}>
+                                    <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDeleteTask(task.id)}>
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
-                    </div>
-                ))
-            ) : (
-                <p className="text-center text-muted-foreground py-8">
-                    No tasks for this day.
-                </p>
-            )}
+                    ))
+                ) : (
+                    <p className="text-center text-muted-foreground pt-12">
+                        No tasks for this day.
+                    </p>
+                )}
+            </div>
         </div>
       </CardContent>
     </Card>
   );
 }
+
+    

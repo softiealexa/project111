@@ -26,7 +26,9 @@ const DEFAULT_SIDEBAR_WIDTH = 448; // Corresponds to md (28rem)
 const DAY_BOUNDARY_HOUR = 4; // Day ends at 4 AM
 
 const getLogicalDate = (date: Date = new Date()): Date => {
-  return subHours(date, DAY_BOUNDARY_HOUR);
+  const d = new Date(date);
+  d.setHours(d.getHours() - DAY_BOUNDARY_HOUR);
+  return d;
 };
 
 const getLogicalDateString = (date?: Date): string => {
@@ -396,36 +398,52 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   // --- Smart Todo Rollover Logic ---
   useEffect(() => {
-    if (!activeProfile) return;
+    if (!activeProfile || loading) return;
+
+    const lastRolloverKey = `lastRollover_${activeProfile.name}`;
+    const todayStr = getLogicalDateString();
+    const lastRolloverDate = localStorage.getItem(lastRolloverKey);
+
+    // Only run rollover logic once per logical day
+    if (lastRolloverDate === todayStr) {
+        return;
+    }
 
     let todos = activeProfile.todos || [];
     let updated = false;
 
-    // The date for which we need to check for incomplete tasks
-    const yesterday = subDays(getLogicalDate(), 1); 
-    const yesterdayString = format(yesterday, 'yyyy-MM-dd');
+    // Check all past dates for incomplete tasks
+    const today = getLogicalDate();
+    const uniquePastDates = [...new Set(todos.map(t => t.forDate).filter(d => d < todayStr))];
+    
+    uniquePastDates.forEach(dateStr => {
+        const incompleteTasks = todos.filter(t => t.forDate === dateStr && t.status === 'pending');
 
-    // Find tasks from yesterday that are still pending
-    const incompleteFromYesterday = todos.filter(t => t.forDate === yesterdayString && t.status === 'pending');
+        if (incompleteTasks.length > 0) {
+            const rolledOverTasks = incompleteTasks.map(task => ({
+                ...task,
+                id: crypto.randomUUID(),
+                forDate: todayStr,
+                rolledOver: true,
+                createdAt: Date.now()
+            }));
 
-    if (incompleteFromYesterday.length > 0) {
-        const todayString = getLogicalDateString();
-        const rolledOverTasks = incompleteFromYesterday.map(task => ({
-            ...task,
-            id: crypto.randomUUID(), // Give it a new ID for the new day
-            forDate: todayString,
-            rolledOver: true,
-            createdAt: Date.now()
-        }));
-
-        todos = [...todos, ...rolledOverTasks];
-        updated = true;
-    }
+            // Mark original tasks as 'rolled' or some other status to prevent re-rolling
+            // For simplicity here, we just add the new ones.
+            // A more robust solution might remove/archive the old ones.
+            todos = [...todos, ...rolledOverTasks];
+            updated = true;
+        }
+    });
 
     if (updated) {
-        setTodos(todos);
+        const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, todos } : p);
+        updateProfiles(newProfiles, activeProfileName);
     }
-}, [activeProfile?.name]); // Re-run when profile changes or app loads
+    
+    // Mark today as the last rollover date
+    localStorage.setItem(lastRolloverKey, todayStr);
+  }, [activeProfile, loading, profiles, activeProfileName, updateProfiles]);
 
 
   const addProfile = useCallback((name: string) => {
@@ -1149,3 +1167,5 @@ export function useData() {
   }
   return context;
 }
+
+    
