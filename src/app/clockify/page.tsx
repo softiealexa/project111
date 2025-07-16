@@ -41,6 +41,7 @@ import {
   Search,
   Check,
   Pencil,
+  X,
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandSeparator } from '@/components/ui/popover';
@@ -620,6 +621,12 @@ export default function ClockifyPage() {
                             <Command>
                                 <CommandInput placeholder="Select project..." />
                                 <CommandEmpty>No project found.</CommandEmpty>
+                                <CommandGroup>
+                                    <CommandItem value="no-project" onSelect={() => setSelectedProjectId(null)}>
+                                         <X className="mr-2 h-4 w-4 text-destructive" /> No Project
+                                    </CommandItem>
+                                </CommandGroup>
+                                <CommandSeparator />
                                 <CommandGroup>
                                 {projects.map((project) => (
                                     <CommandItem

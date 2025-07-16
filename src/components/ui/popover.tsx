@@ -115,7 +115,7 @@ const CommandEmpty = React.forwardRef<
  
 CommandEmpty.displayName = "CommandEmpty"
 
-import { Search, Check, X } from "lucide-react"
+import { Search } from "lucide-react"
 import { Input } from "./input"
 
 
