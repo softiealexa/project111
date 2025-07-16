@@ -1,5 +1,17 @@
 
 
+export interface TimeEntry {
+    id: string;
+    task: string;
+    project: string;
+    projectColor: string;
+    tags: string[];
+    billable: boolean;
+    startTime: number; // timestamp
+    endTime: number | null; // timestamp
+    duration: number; // in seconds
+}
+
 export interface Note {
   id: string;
   title: string;
@@ -59,6 +71,7 @@ export interface Profile {
   todos?: Todo[];
   progressHistory?: ProgressPoint[];
   questionSessions?: QuestionSession[];
+  timeEntries?: TimeEntry[];
 }
 
 export interface AppUser {

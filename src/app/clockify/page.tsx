@@ -35,23 +35,12 @@ import {
   MoreVertical,
   Tag,
   Trash2,
-  Plus,
   AlertTriangle,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-
-interface TimeEntry {
-    id: string;
-    task: string;
-    project: string;
-    projectColor: string;
-    tags: string[];
-    billable: boolean;
-    startTime: Date;
-    endTime: Date | null;
-    duration: number; // in seconds
-}
+import { useData } from '@/contexts/data-context';
+import type { TimeEntry } from '@/lib/types';
 
 interface TimeEntryGroup {
     day: string;
@@ -77,10 +66,10 @@ const formatDurationShort = (seconds: number) => {
     return `${m.toString()}:${s.toString().padStart(2, '0')}`;
 };
 
-const formatTimeRange = (start: Date, end: Date | null) => {
+const formatTimeRange = (start: number, end: number | null) => {
     const formatOpts: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: 'numeric', hour12: true };
-    const startTimeStr = start.toLocaleTimeString([], formatOpts).replace(' ', '');
-    const endTimeStr = end ? end.toLocaleTimeString([], formatOpts).replace(' ', '') : 'Now';
+    const startTimeStr = new Date(start).toLocaleTimeString([], formatOpts).replace(' ', '');
+    const endTimeStr = end ? new Date(end).toLocaleTimeString([], formatOpts).replace(' ', '') : 'Now';
     return `${startTimeStr} - ${endTimeStr}`;
 }
 
@@ -99,14 +88,16 @@ const PlaceholderContent = ({ title }: { title: string }) => (
 );
 
 export default function ClockifyPage() {
+  const { activeProfile, addTimeEntry, deleteTimeEntry } = useData();
   const [activeMenu, setActiveMenu] = useState('Time Tracker');
   const [task, setTask] = useState('');
   const [timerRunning, setTimerRunning] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [startTime, setStartTime] = useState<Date | null>(null);
-  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
+  const [startTime, setStartTime] = useState<number | null>(null);
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const timeEntries = activeProfile?.timeEntries || [];
 
   const stopTimer = useCallback(() => {
     if (timerRef.current) {
@@ -114,35 +105,32 @@ export default function ClockifyPage() {
         timerRef.current = null;
     }
     setTimerRunning(false);
-    if (startTime && elapsedTime > 0) {
-        const newEntry: TimeEntry = {
-            id: crypto.randomUUID(),
+    if (startTime && elapsedTime > 0 && addTimeEntry) {
+        addTimeEntry({
             task: task || 'Unspecified Task',
             project: 'Office',
             projectColor: 'text-blue-500',
             tags: [],
             billable: true,
             startTime: startTime,
-            endTime: new Date(),
+            endTime: Date.now(),
             duration: Math.round(elapsedTime),
-        };
-        setTimeEntries(prev => [newEntry, ...prev]);
+        });
     }
     // Reset for the next run
     setElapsedTime(0);
     setTask('');
     setStartTime(null);
-  }, [startTime, elapsedTime, task]);
+  }, [startTime, elapsedTime, task, addTimeEntry]);
 
   const startTimer = useCallback(() => {
-    // Reset state for a new timer session
     setElapsedTime(0); 
-    const now = new Date();
+    const now = Date.now();
     setStartTime(now);
     setTimerRunning(true);
     
     timerRef.current = setInterval(() => {
-        setElapsedTime(Math.round((new Date().getTime() - now.getTime()) / 1000));
+        setElapsedTime(Math.round((Date.now() - now) / 1000));
     }, 1000);
   }, []);
 
@@ -163,7 +151,9 @@ export default function ClockifyPage() {
   };
   
   const handleDeleteEntry = (id: string) => {
-    setTimeEntries(prev => prev.filter(entry => entry.id !== id));
+    if (deleteTimeEntry) {
+      deleteTimeEntry(id);
+    }
   };
   
   const handleResumeEntry = (entryToResume: TimeEntry) => {
@@ -171,19 +161,17 @@ export default function ClockifyPage() {
       stopTimer();
     }
     setTask(entryToResume.task);
-    // Use a timeout to ensure state updates from stopTimer are processed
-    // before starting the new timer.
     setTimeout(() => {
       startTimer();
     }, 100);
   };
   
   const timeEntryGroups = timeEntries.reduce<TimeEntryGroup[]>((acc, entry) => {
-    const day = entry.startTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    const day = new Date(entry.startTime).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     let group = acc.find(g => g.day === day);
     if (!group) {
         group = { day: 'Today', total: 0, items: [] };
-        if (entry.startTime.toDateString() !== new Date().toDateString()) {
+        if (new Date(entry.startTime).toDateString() !== new Date().toDateString()) {
              group.day = day;
         }
         acc.push(group);
@@ -239,7 +227,7 @@ export default function ClockifyPage() {
             </div>
             <div className="mt-6 space-y-6">
                 <div className="flex justify-between items-center text-sm px-4">
-                    <span className="font-semibold">Jul 1 - Jul 7</span>
+                    <span className="font-semibold">This Week</span>
                     <span className="text-muted-foreground">Week total: <span className="font-semibold text-foreground">{formatDuration(weekTotal)}</span></span>
                 </div>
 
@@ -257,7 +245,7 @@ export default function ClockifyPage() {
                         </div>
                         <div className="space-y-px bg-card">
                             {group.items.map((item) => (
-                                <div key={item.id} className="p-3 border-b shadow-sm">
+                                <div key={item.id} className="p-3 border-b last:border-b-0 shadow-sm hover:bg-muted/50">
                                     <div className="flex items-center gap-3">
                                         <div className="flex-1">
                                             <span>{item.task}</span>

@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useMe
 import { usePathname } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import type { Subject, Profile, Chapter, Note, ImportantLink, Todo, Priority, ProgressPoint, QuestionSession, AppUser } from '@/lib/types';
+import type { Subject, Profile, Chapter, Note, ImportantLink, Todo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
 import { db } from '@/lib/firebase';
@@ -56,6 +56,10 @@ interface DataContextType {
   deleteTodo: (todoId: string) => void;
   setTodos: (todos: Todo[]) => void;
   addQuestionSession: (session: QuestionSession) => void;
+  addTimeEntry: (entry: Omit<TimeEntry, 'id'>) => TimeEntry | undefined;
+  updateTimeEntry: (entry: TimeEntry) => void;
+  deleteTimeEntry: (entryId: string) => void;
+  setTimeEntries: (entries: TimeEntry[]) => void;
   exportData: () => void;
   importData: (file: File) => void;
   signOutUser: () => Promise<void>;
@@ -105,7 +109,7 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
             todos: profile.todos || [],
             progressHistory: profile.progressHistory || [],
             questionSessions: profile.questionSessions || [],
-            timesheet: profile.timesheet || { subjects: [], entries: [] },
+            timeEntries: profile.timeEntries || [],
         };
     });
 };
@@ -761,6 +765,58 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateProfiles(newProfiles, activeProfileName);
   }, [activeProfileName, profiles, updateProfiles]);
 
+  const addTimeEntry = useCallback((entry: Omit<TimeEntry, 'id'>): TimeEntry | undefined => {
+    if (!activeProfileName) return;
+    const newEntry: TimeEntry = {
+        id: crypto.randomUUID(),
+        ...entry
+    };
+    const newProfiles = profiles.map(p => {
+        if (p.name === activeProfileName) {
+            const updatedEntries = [newEntry, ...(p.timeEntries || [])];
+            return { ...p, timeEntries: updatedEntries };
+        }
+        return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+    return newEntry;
+  }, [activeProfileName, profiles, updateProfiles]);
+
+  const updateTimeEntry = useCallback((updatedEntry: TimeEntry) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+        if (p.name === activeProfileName) {
+            const updatedEntries = (p.timeEntries || []).map(entry => entry.id === updatedEntry.id ? updatedEntry : entry);
+            return { ...p, timeEntries: updatedEntries };
+        }
+        return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
+  const deleteTimeEntry = useCallback((entryId: string) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+        if (p.name === activeProfileName) {
+            const updatedEntries = (p.timeEntries || []).filter(entry => entry.id !== entryId);
+            return { ...p, timeEntries: updatedEntries };
+        }
+        return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
+  const setTimeEntries = useCallback((entries: TimeEntry[]) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+        if (p.name === activeProfileName) {
+            return { ...p, timeEntries: entries };
+        }
+        return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
   const exportData = useCallback(() => {
     if (typeof window === 'undefined' || profiles.length === 0) {
         toast({ title: "Export Failed", description: "No data to export.", variant: "destructive" });
@@ -816,7 +872,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addChapter, removeChapter, updateChapter, renameChapter, updateTasks, renameTask,
     updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
     addTodo, updateTodo, deleteTodo, setTodos,
-    addQuestionSession,
+    addQuestionSession, addTimeEntry, updateTimeEntry, deleteTimeEntry, setTimeEntries,
     exportData, importData, signOutUser, refreshUserDoc,
     theme, setTheme, mode, setMode, isThemeHydrated,
   }), [
@@ -825,7 +881,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addChapter, removeChapter, updateChapter, renameChapter, updateTasks, renameTask,
     updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
     addTodo, updateTodo, deleteTodo, setTodos,
-    addQuestionSession,
+    addQuestionSession, addTimeEntry, updateTimeEntry, deleteTimeEntry, setTimeEntries,
     exportData, importData, signOutUser, refreshUserDoc,
     theme, setTheme, mode, setMode, isThemeHydrated, setActiveSubjectName
   ]);
