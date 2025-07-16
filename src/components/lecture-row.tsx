@@ -82,7 +82,7 @@ export function LectureRow({ lectureNum, chapter, subject, checkedState, onCheck
                                     variant="link"
                                     className="p-0 h-auto font-medium text-foreground no-underline hover:underline focus-visible:ring-offset-background"
                                 >
-                                    L-{lectureNum}
+                                    Lecture-{lectureNum}
                                 </Button>
                              </DialogTrigger>
                         </TooltipTrigger>

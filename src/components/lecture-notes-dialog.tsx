@@ -51,7 +51,7 @@ export function LectureNotesDialog({ lectureNum, currentNote, currentLectureName
               id="lecture-name"
               value={lectureName}
               onChange={(e) => setLectureName(e.target.value)}
-              placeholder={`Custom name for L-${lectureNum}`}
+              placeholder={`Custom name for Lecture-${lectureNum}`}
             />
           </div>
           <div className="grid gap-2">
