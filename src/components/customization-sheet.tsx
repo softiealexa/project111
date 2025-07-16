@@ -20,7 +20,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Trash2, Plus, GripVertical, Pencil, ChevronsUpDown, Check, LoaderCircle, Calendar as CalendarIcon, X, Scaling } from 'lucide-react';
+import { Trash2, Plus, GripVertical, Pencil, ChevronsUpDown, Check, LoaderCircle, Calendar as CalendarIcon, X, Scaling, Minus, PlusIcon } from 'lucide-react';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Separator } from './ui/separator';
@@ -49,7 +49,6 @@ import type { Chapter, Subject, SidebarWidth } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Calendar } from './ui/calendar';
 import { format } from 'date-fns';
-import { Slider } from './ui/slider';
 
 
 // Lazy load dialogs for better performance
@@ -242,6 +241,11 @@ export function CustomizationSheet() {
     const [selectedSubjectName, setSelectedSubjectName] = useState<string | null>(null);
     const [newTaskName, setNewTaskName] = useState('');
     const [lectureCounts, setLectureCounts] = useState<Record<string, string>>({});
+    const [localSidebarWidth, setLocalSidebarWidth] = useState(sidebarWidth);
+
+    useEffect(() => {
+        setLocalSidebarWidth(sidebarWidth);
+    }, [sidebarWidth]);
 
     useEffect(() => {
         if (activeProfile) {
@@ -367,6 +371,12 @@ export function CustomizationSheet() {
             }
         }
     }
+
+    const handleWidthChange = (newWidth: number) => {
+        const clampedWidth = Math.max(400, Math.min(800, newWidth));
+        setLocalSidebarWidth(clampedWidth);
+        setSidebarWidth(clampedWidth);
+    };
 
     if (!activeProfile) {
         return null;
@@ -561,20 +571,32 @@ export function CustomizationSheet() {
                 </Suspense>
                 </div>
             </ScrollArea>
-             <SheetFooter className="mt-auto pt-4 border-t flex-col items-center gap-4 sm:flex-row sm:justify-between">
-                <div className="w-full sm:w-auto sm:flex-1 grid grid-cols-[auto_1fr_auto] items-center gap-2">
-                    <Label htmlFor="sidebar-width" className="text-xs text-muted-foreground flex-shrink-0">
-                        Width
-                    </Label>
-                    <Slider
-                        id="sidebar-width"
-                        min={400}
-                        max={800}
-                        step={10}
-                        value={[sidebarWidth]}
-                        onValueChange={(value) => setSidebarWidth(value[0])}
-                    />
-                    <span className="text-xs font-mono text-muted-foreground w-12 text-center">{sidebarWidth}px</span>
+            <SheetFooter className="mt-auto pt-4 border-t flex-col items-center gap-4 sm:flex-row sm:justify-between">
+                <div className="flex items-center gap-2">
+                    <Label htmlFor="sidebar-width" className="text-xs text-muted-foreground">Width:</Label>
+                    <div className="flex items-center">
+                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleWidthChange(localSidebarWidth - 20)}>
+                            <Minus className="h-4 w-4" />
+                        </Button>
+                        <Input
+                            id="sidebar-width"
+                            type="number"
+                            className="h-8 w-20 text-center mx-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            value={localSidebarWidth}
+                            onChange={(e) => {
+                                const val = e.target.value === '' ? 400 : parseInt(e.target.value, 10);
+                                if (!isNaN(val)) {
+                                    setLocalSidebarWidth(val);
+                                }
+                            }}
+                            onBlur={() => handleWidthChange(localSidebarWidth)}
+                            min="400"
+                            max="800"
+                        />
+                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleWidthChange(localSidebarWidth + 20)}>
+                            <PlusIcon className="h-4 w-4" />
+                        </Button>
+                    </div>
                 </div>
                 <p className="text-xs text-muted-foreground">Changes are saved automatically.</p>
             </SheetFooter>
