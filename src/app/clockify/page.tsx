@@ -147,6 +147,27 @@ const TimesheetView = () => {
     setTimesheetData(newTimesheetData);
   };
   
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, projectIndex: number, day: Date) => {
+    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+    
+    e.preventDefault();
+    
+    const dayKey = format(day, 'yyyy-MM-dd');
+    const currentValue = timesheetData[projectIndex].times[dayKey] || 0;
+    const fiveMinutes = 5 * 60;
+    let newValue;
+    
+    if (e.key === 'ArrowUp') {
+        newValue = currentValue + fiveMinutes;
+    } else {
+        newValue = Math.max(0, currentValue - fiveMinutes);
+    }
+    
+    const newTimesheetData = [...timesheetData];
+    newTimesheetData[projectIndex].times[dayKey] = newValue;
+    setTimesheetData(newTimesheetData);
+  };
+
   const dailyTotals = useMemo(() => {
     return daysToDisplay.map(day => {
         const dayKey = format(day, 'yyyy-MM-dd');
@@ -235,6 +256,7 @@ const TimesheetView = () => {
                                         className="text-center border-none focus-visible:ring-1 focus-visible:ring-primary"
                                         value={formatSecondsToTime(row.times[dayKey] || 0)}
                                         onChange={(e) => handleTimeChange(projectIndex, day, e.target.value)}
+                                        onKeyDown={(e) => handleKeyDown(e, projectIndex, day)}
                                         placeholder="h:mm"
                                     />
                                 </div>
@@ -588,6 +610,8 @@ export default function ClockifyPage() {
     </SidebarProvider>
   );
 }
+
+    
 
     
 
