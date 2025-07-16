@@ -6,8 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowRightLeft } from 'lucide-react';
+import { ArrowRightLeft, ChevronsUpDown } from 'lucide-react';
 import { Button } from './ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { cn } from '@/lib/utils';
 
 type UnitCategory = 'Length' | 'Mass' | 'Temperature' | 'Volume' | 'Pressure' | 'Time' | 'Force' | 'Energy' | 'Velocity' | 'Charge' | 'Density' | 'Amount of Substance' | 'Electric Current' | 'Luminous Intensity';
 
@@ -92,8 +94,43 @@ const CONVERSION_FACTORS: Record<Exclude<UnitCategory, 'Temperature' | 'Amount o
   }
 };
 
+const TEMPERATURE_UNITS = ['Celsius', 'Fahrenheit', 'Kelvin'];
+const CHEMISTRY_UNITS = ['Mole', 'Volume at STP (L)', 'Particles'];
+
 const STP_MOLAR_VOLUME = 22.4; // L/mol
 const AVOGADRO_CONSTANT = 6.02214076e23;
+
+const UnitPicker = ({ value, units, onValueChange }: { value: string, units: string[], onValueChange: (unit: string) => void }) => {
+    const [open, setOpen] = useState(false);
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between">
+                    <span className="truncate">{value}</span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[300px] p-0">
+                <div className="p-2 grid grid-cols-3 gap-2">
+                    {units.map(unit => (
+                        <Button
+                            key={unit}
+                            variant={unit === value ? "default" : "outline"}
+                            onClick={() => {
+                                onValueChange(unit);
+                                setOpen(false);
+                            }}
+                            className="w-full h-auto justify-center text-xs py-2 px-1"
+                        >
+                           {unit}
+                        </Button>
+                    ))}
+                </div>
+            </PopoverContent>
+        </Popover>
+    );
+};
 
 export default function UnitConverter() {
   const [category, setCategory] = useState<UnitCategory>('Length');
@@ -103,15 +140,21 @@ export default function UnitConverter() {
   const [toUnit, setToUnit] = useState('Foot');
 
   const units = useMemo(() => {
-    if (category === 'Amount of Substance') return ['Mole', 'Volume at STP (L)', 'Particles'];
+    if (category === 'Amount of Substance') return CHEMISTRY_UNITS;
+    if (category === 'Temperature') return TEMPERATURE_UNITS;
     return Object.keys(CONVERSION_FACTORS[category as keyof typeof CONVERSION_FACTORS] || {});
   }, [category]);
 
   const handleCategoryChange = (newCategory: UnitCategory) => {
     setCategory(newCategory);
-    const newUnits = newCategory === 'Amount of Substance' 
-      ? ['Mole', 'Volume at STP (L)', 'Particles']
-      : Object.keys(CONVERSION_FACTORS[newCategory as keyof typeof CONVERSION_FACTORS]);
+    let newUnits: string[];
+    if (newCategory === 'Amount of Substance') {
+        newUnits = CHEMISTRY_UNITS;
+    } else if (newCategory === 'Temperature') {
+        newUnits = TEMPERATURE_UNITS;
+    } else {
+        newUnits = Object.keys(CONVERSION_FACTORS[newCategory as keyof typeof CONVERSION_FACTORS]);
+    }
     setFromUnit(newUnits[0]);
     setToUnit(newUnits[1] || newUnits[0]);
     setFromValue('1');
@@ -160,7 +203,11 @@ export default function UnitConverter() {
     const value = parseFloat(fromValue);
     if (!isNaN(value)) {
       const result = convert(value, fromUnit, toUnit, category);
-      setToValue(result.toLocaleString('en-US', { maximumFractionDigits: 6, useGrouping: false }));
+      if (typeof result === 'number' && !isNaN(result)) {
+        setToValue(result.toLocaleString('en-US', { maximumFractionDigits: 6, useGrouping: false }));
+      } else {
+        setToValue('');
+      }
     } else {
       setToValue('');
     }
@@ -222,14 +269,11 @@ export default function UnitConverter() {
                 onChange={handleFromValueChange}
                 className="text-lg"
               />
-              <Select value={fromUnit} onValueChange={setFromUnit}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {units.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <UnitPicker
+                value={fromUnit}
+                units={units}
+                onValueChange={setFromUnit}
+              />
             </div>
 
             {/* Swap Button */}
@@ -248,14 +292,11 @@ export default function UnitConverter() {
                 readOnly
                 className="text-lg font-semibold bg-muted/50"
               />
-              <Select value={toUnit} onValueChange={setToUnit}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {units.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
-                </SelectContent>
-              </Select>
+               <UnitPicker
+                value={toUnit}
+                units={units}
+                onValueChange={setToUnit}
+              />
             </div>
           </div>
         </div>
@@ -263,3 +304,4 @@ export default function UnitConverter() {
     </Card>
   );
 }
+
