@@ -5,8 +5,8 @@ import { useState, useMemo, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { AccordionContent, AccordionItem } from "@/components/ui/accordion";
 import { Card } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import type { Chapter, Subject } from "@/lib/types";
 import { Progress } from "@/components/ui/progress";
 import { GripVertical, ChevronDown, CheckCircle, Pencil } from 'lucide-react';
@@ -15,14 +15,9 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Button } from './ui/button';
-import { DialogTrigger } from './ui/dialog';
-
-const LectureNotesDialog = dynamic(() => import('./lecture-notes-dialog').then(mod => mod.LectureNotesDialog), {
-  loading: () => <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" disabled><Pencil className="h-4 w-4" /></Button>
-});
+import { LectureRow } from './lecture-row';
 
 interface ChapterAccordionItemProps {
   chapter: Chapter;
@@ -106,42 +101,6 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
     setTasksToComplete([]);
   };
   
-  const handleNoteSave = (lectureNum: number, newNote: string) => {
-    if (!activeProfile) return;
-    
-    const trimmedNote = newNote.trim();
-    const originalNote = chapter.notes?.[`L${lectureNum}`] || '';
-
-    // Only update if the note has actually changed
-    if (trimmedNote === originalNote) {
-        return;
-    }
-
-    const newSubjects = activeProfile.subjects.map(s => {
-      if (s.name === subject.name) {
-        const newChapters = s.chapters.map((c, i) => {
-          if (i === index) {
-            const lectureKey = `L${lectureNum}`;
-            const newNotes = { ...(c.notes || {}) };
-
-            if (trimmedNote) {
-                newNotes[lectureKey] = trimmedNote;
-            } else {
-                delete newNotes[lectureKey];
-            }
-            
-            return { ...c, notes: newNotes };
-          }
-          return c;
-        });
-        return { ...s, chapters: newChapters };
-      }
-      return s;
-    });
-    updateSubjects(newSubjects);
-  };
-
-
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
   const isCompleted = progress === 100;
 
@@ -187,47 +146,14 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
             <div className="border-t border-border bg-background/50 p-4 space-y-4">
               <div className="space-y-2">
                 {Array.from({ length: chapter.lectureCount }, (_, i) => i + 1).map((lectureNum) => (
-                   <div key={lectureNum}>
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg p-3 transition-colors hover:bg-muted/50">
-                            <Suspense>
-                                <LectureNotesDialog
-                                    lectureNum={lectureNum}
-                                    currentNote={chapter.notes?.[`L${lectureNum}`] || ''}
-                                    onSave={(newNote) => handleNoteSave(lectureNum, newNote)}
-                                >
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <DialogTrigger asChild>
-                                                <button className="group/lecture-btn flex items-center gap-2 font-medium text-foreground mr-auto pr-4 text-left rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
-                                                    <span>Lecture {lectureNum}</span>
-                                                    <Pencil className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover/lecture-btn:opacity-100 transition-opacity" />
-                                                </button>
-                                            </DialogTrigger>
-                                        </TooltipTrigger>
-                                        {chapter.notes?.[`L${lectureNum}`] && (
-                                            <TooltipContent>
-                                            <p className="max-w-xs whitespace-pre-wrap break-words">{chapter.notes[`L${lectureNum}`]}</p>
-                                            </TooltipContent>
-                                        )}
-                                    </Tooltip>
-                                </LectureNotesDialog>
-                            </Suspense>
-                            
-                            <div className="flex items-center gap-x-4">
-                                {tasks.map((task) => {
-                                const checkboxId = `${subject.name}-${chapter.name}-L${lectureNum}-${task}`;
-                                return (
-                                    <div key={task} className="flex items-center space-x-2">
-                                        <Checkbox id={checkboxId} checked={!!checkedState[checkboxId]} onCheckedChange={(checked) => handleCheckboxChange(checkboxId, !!checked)} />
-                                        <Label htmlFor={checkboxId} className="text-sm font-normal text-muted-foreground cursor-pointer">
-                                            {task}
-                                        </Label>
-                                    </div>
-                                );
-                                })}
-                            </div>
-                        </div>
-                  </div>
+                   <LectureRow
+                    key={lectureNum}
+                    lectureNum={lectureNum}
+                    chapter={chapter}
+                    subject={subject}
+                    checkedState={checkedState}
+                    onCheckboxChange={handleCheckboxChange}
+                  />
                 ))}
               </div>
               

@@ -53,6 +53,7 @@ export interface Chapter {
   lectureCount: number;
   checkedState?: Record<string, boolean>;
   notes?: Record<string, string>;
+  lectureNames?: Record<string, string>;
 }
 
 export interface Subject {
