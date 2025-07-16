@@ -22,20 +22,6 @@ const MODE_KEY = 'trackacademic_mode';
 const SIDEBAR_WIDTH_KEY = 'trackacademic_sidebar_width';
 const DEFAULT_SIDEBAR_WIDTH = 448; // Corresponds to md (28rem)
 
-// --- Smart Todo Logic ---
-const DAY_BOUNDARY_HOUR = 4; // Day ends at 4 AM
-
-const getLogicalDate = (date: Date = new Date()): Date => {
-  const d = new Date(date);
-  d.setHours(d.getHours() - DAY_BOUNDARY_HOUR);
-  return d;
-};
-
-const getLogicalDateString = (date?: Date): string => {
-  return format(getLogicalDate(date), 'yyyy-MM-dd');
-};
-
-
 interface DataContextType {
   user: FirebaseUser | null;
   userDoc: AppUser | null;
@@ -401,10 +387,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (!activeProfile || loading) return;
 
     const lastRolloverKey = `lastRollover_${activeProfile.name}`;
-    const todayStr = getLogicalDateString();
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
     const lastRolloverDate = localStorage.getItem(lastRolloverKey);
 
-    // Only run rollover logic once per logical day
+    // Only run rollover logic once per day
     if (lastRolloverDate === todayStr) {
         return;
     }
@@ -413,7 +399,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     let updated = false;
 
     // Check all past dates for incomplete tasks
-    const today = getLogicalDate();
     const uniquePastDates = [...new Set(todos.map(t => t.forDate).filter(d => d < todayStr))];
     
     uniquePastDates.forEach(dateStr => {
@@ -428,9 +413,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 createdAt: Date.now()
             }));
 
-            // Mark original tasks as 'rolled' or some other status to prevent re-rolling
-            // For simplicity here, we just add the new ones.
-            // A more robust solution might remove/archive the old ones.
+            // Add the new rolled-over tasks
             todos = [...todos, ...rolledOverTasks];
             updated = true;
         }
@@ -1167,5 +1150,3 @@ export function useData() {
   }
   return context;
 }
-
-    

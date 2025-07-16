@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
-import { format, addDays, subDays } from 'date-fns';
+import { format, addDays, subDays, startOfDay } from 'date-fns';
 import { Calendar as CalendarIcon, Plus, Trash2, Edit, ChevronLeft, ChevronRight, CornerDownLeft } from 'lucide-react';
 
 import { useData } from "@/contexts/data-context";
@@ -18,21 +18,13 @@ import { useToast } from "@/hooks/use-toast";
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Separator } from './ui/separator';
 
-// Use the same logical date functions from the context for consistency
-const DAY_BOUNDARY_HOUR = 4;
-const getLogicalDate = (date: Date = new Date()): Date => {
-  const d = new Date(date);
-  d.setHours(d.getHours() - DAY_BOUNDARY_HOUR);
-  return d;
-};
-
 export default function SmartTodoList() {
   const { activeProfile, addTodo, updateTodo, deleteTodo } = useData();
   const { toast } = useToast();
   
   const allTasks = useMemo(() => activeProfile?.todos || [], [activeProfile]);
   
-  const [selectedDay, setSelectedDay] = useState<Date>(getLogicalDate());
+  const [selectedDay, setSelectedDay] = useState<Date>(startOfDay(new Date()));
   const [inputText, setInputText] = useState("");
   const [editingTask, setEditingTask] = useState<SmartTodo | null>(null);
   
@@ -104,10 +96,10 @@ export default function SmartTodoList() {
   };
   
   const getRelativeDateString = (date: Date): string => {
-    const logicalToday = getLogicalDate(new Date());
-    if (format(date, 'yyyy-MM-dd') === format(logicalToday, 'yyyy-MM-dd')) return 'Today';
-    if (format(date, 'yyyy-MM-dd') === format(subDays(logicalToday, 1), 'yyyy-MM-dd')) return 'Yesterday';
-    if (format(date, 'yyyy-MM-dd') === format(addDays(logicalToday, 1), 'yyyy-MM-dd')) return 'Tomorrow';
+    const today = startOfDay(new Date());
+    if (format(date, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')) return 'Today';
+    if (format(date, 'yyyy-MM-dd') === format(subDays(today, 1), 'yyyy-MM-dd')) return 'Yesterday';
+    if (format(date, 'yyyy-MM-dd') === format(addDays(today, 1), 'yyyy-MM-dd')) return 'Tomorrow';
     return format(date, 'PPP');
   }
 
@@ -124,7 +116,7 @@ export default function SmartTodoList() {
       <CardHeader>
         <CardTitle>Smart To-Do List</CardTitle>
         <CardDescription>
-          Organize your tasks by day. Incomplete tasks automatically roll over after 4:00 AM.
+          Organize your tasks by day. Incomplete tasks automatically roll over to the next day.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -134,7 +126,7 @@ export default function SmartTodoList() {
               </h3>
                <div className='flex items-center rounded-md border bg-card'>
                     <Button variant="ghost" size="icon" onClick={() => setSelectedDay(subDays(selectedDay, 1))} className="rounded-r-none h-9 w-9"><ChevronLeft className="h-5 w-5" /></Button>
-                    <Button variant="ghost" className="rounded-none border-x h-9" onClick={() => setSelectedDay(getLogicalDate(new Date()))}>Today</Button>
+                    <Button variant="ghost" className="rounded-none border-x h-9" onClick={() => setSelectedDay(startOfDay(new Date()))}>Today</Button>
                     <Button variant="ghost" size="icon" onClick={() => setSelectedDay(addDays(selectedDay, 1))} className="rounded-l-none h-9 w-9"><ChevronRight className="h-5 w-5" /></Button>
                 </div>
          </div>
