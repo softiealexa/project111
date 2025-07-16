@@ -198,6 +198,7 @@ const TimesheetView = () => {
     : 'grid-cols-[200px_repeat(7,1fr)_100px]';
 
   const minWidth = timeRange === 'Day' ? 'min-w-[400px]' : 'min-w-[900px]';
+  const todayString = format(new Date(), 'yyyy-MM-dd');
 
   return (
     <div className="p-4 sm:p-6 bg-muted/30 flex-1">
@@ -236,7 +237,9 @@ const TimesheetView = () => {
                 {daysToDisplay.map(day => (
                     <div key={day.toISOString()} className="p-3 font-semibold text-muted-foreground border-b text-center flex flex-col items-center">
                         <span className="text-xs">{format(day, 'EEE, MMM')}</span>
-                        <span className="text-lg font-bold text-foreground">{format(day, 'd')}</span>
+                        <span className={cn("text-lg font-bold text-foreground", format(day, 'yyyy-MM-dd') === todayString && "text-primary")}>
+                            {format(day, 'd')}
+                        </span>
                     </div>
                 ))}
                 <div className="p-3 font-semibold text-muted-foreground border-b border-l text-right">Total</div>
