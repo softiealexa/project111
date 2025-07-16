@@ -48,7 +48,7 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useData } from '@/contexts/data-context';
 import type { TimeEntry } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { startOfWeek, endOfWeek, eachDayOfInterval, format, addDays, subDays, addMonths, subMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { startOfWeek, endOfWeek, eachDayOfInterval, format, addDays, subDays } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 interface TimeEntryGroup {
@@ -113,7 +113,7 @@ const PlaceholderContent = ({ title }: { title: string }) => (
 );
 
 const TimesheetView = () => {
-  type TimeRange = 'Day' | 'Week' | 'Month';
+  type TimeRange = 'Day' | 'Week';
   const [currentDate, setCurrentDate] = useState(new Date());
   const [timeRange, setTimeRange] = useState<TimeRange>('Week');
 
@@ -128,8 +128,6 @@ const TimesheetView = () => {
     if (timeRange === 'Day') {
         return [currentDate];
     }
-    // For both 'Week' and 'Month', we display a 7-day interval.
-    // The navigation logic will handle how we jump between dates.
     const start = startOfWeek(currentDate, { weekStartsOn: 1 });
     const end = endOfWeek(currentDate, { weekStartsOn: 1 });
     return eachDayOfInterval({ start, end });
@@ -160,30 +158,12 @@ const TimesheetView = () => {
   const grandTotal = useMemo(() => dailyTotals.reduce((total, dayTotal) => total + dayTotal, 0), [dailyTotals]);
   
   const goToNext = () => {
-    switch(timeRange) {
-        case 'Day': 
-            setCurrentDate(addDays(currentDate, 1)); 
-            break;
-        case 'Week': 
-            setCurrentDate(addDays(currentDate, 7)); 
-            break;
-        case 'Month':
-            setCurrentDate(addMonths(currentDate, 1));
-            break;
-    }
+    const increment = timeRange === 'Day' ? 1 : 7;
+    setCurrentDate(addDays(currentDate, increment));
   };
   const goToPrev = () => {
-     switch(timeRange) {
-        case 'Day': 
-            setCurrentDate(subDays(currentDate, 1)); 
-            break;
-        case 'Week': 
-            setCurrentDate(subDays(currentDate, 7)); 
-            break;
-        case 'Month':
-            setCurrentDate(subMonths(currentDate, 1));
-            break;
-    }
+    const decrement = timeRange === 'Day' ? 1 : 7;
+    setCurrentDate(subDays(currentDate, decrement));
   };
   
   const gridTemplateColumns = timeRange === 'Day' 
@@ -212,7 +192,6 @@ const TimesheetView = () => {
                     <SelectContent>
                         <SelectItem value="Day">Day</SelectItem>
                         <SelectItem value="Week">Week</SelectItem>
-                        <SelectItem value="Month">Month</SelectItem>
                     </SelectContent>
                 </Select>
                 <div className='flex items-center rounded-md border bg-card'>
