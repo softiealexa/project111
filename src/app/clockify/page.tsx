@@ -418,7 +418,7 @@ export default function ClockifyPage() {
                                       <div className="flex items-center gap-3">
                                           <div className="flex-1">
                                               <span>{item.task}</span>
-                                              {item.project && <span className={`ml-2 font-semibold ${item.projectColor}`}>• {item.project}</span>}
+                                              {item.project && <span className={cn('ml-2 font-semibold', item.projectColor)}>• {item.project}</span>}
                                           </div>
                                           <div className="hidden sm:flex items-center gap-2">
                                               {item.tags?.map(tag => <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>)}
@@ -562,5 +562,3 @@ export default function ClockifyPage() {
     </SidebarProvider>
   );
 }
-
-    
