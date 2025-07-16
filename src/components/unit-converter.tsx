@@ -5,13 +5,19 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowRightLeft, ChevronsUpDown } from 'lucide-react';
 import { Button } from './ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { cn } from '@/lib/utils';
 
 type UnitCategory = 'Length' | 'Mass' | 'Temperature' | 'Volume' | 'Pressure' | 'Time' | 'Force' | 'Energy' | 'Velocity' | 'Charge' | 'Density' | 'Amount of Substance' | 'Electric Current' | 'Luminous Intensity';
+
+const ALL_CATEGORIES: UnitCategory[] = [
+    'Length', 'Mass', 'Temperature', 'Volume', 'Pressure', 'Time', 'Force', 
+    'Energy', 'Velocity', 'Charge', 'Density', 'Amount of Substance', 
+    'Electric Current', 'Luminous Intensity'
+];
+
 
 const CONVERSION_FACTORS: Record<Exclude<UnitCategory, 'Temperature' | 'Amount of Substance'>, Record<string, number>> = {
   Length: {
@@ -132,6 +138,39 @@ const UnitPicker = ({ value, units, onValueChange }: { value: string, units: str
     );
 };
 
+const CategoryPicker = ({ value, onValueChange }: { value: string, onValueChange: (category: UnitCategory) => void }) => {
+    const [open, setOpen] = useState(false);
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between">
+                    <span className="truncate">{value === 'Amount of Substance' ? 'Chemistry' : value}</span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[300px] p-0">
+                <div className="p-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {ALL_CATEGORIES.map(cat => (
+                        <Button
+                            key={cat}
+                            variant={cat === value ? "default" : "outline"}
+                            onClick={() => {
+                                onValueChange(cat);
+                                setOpen(false);
+                            }}
+                            className="w-full h-auto justify-center text-xs py-2 px-1"
+                        >
+                           {cat === 'Amount of Substance' ? 'Chemistry' : cat}
+                        </Button>
+                    ))}
+                </div>
+            </PopoverContent>
+        </Popover>
+    );
+};
+
+
 export default function UnitConverter() {
   const [category, setCategory] = useState<UnitCategory>('Length');
   const [fromValue, setFromValue] = useState('1');
@@ -235,27 +274,10 @@ export default function UnitConverter() {
         <div className="space-y-6">
           <div className="grid gap-2">
             <Label htmlFor="category-select">Conversion Type</Label>
-            <Select value={category} onValueChange={(v: UnitCategory) => handleCategoryChange(v)}>
-              <SelectTrigger id="category-select">
-                <SelectValue placeholder="Select a category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Length">Length</SelectItem>
-                <SelectItem value="Mass">Mass</SelectItem>
-                <SelectItem value="Temperature">Temperature</SelectItem>
-                <SelectItem value="Time">Time</SelectItem>
-                <SelectItem value="Volume">Volume</SelectItem>
-                <SelectItem value="Pressure">Pressure</SelectItem>
-                <SelectItem value="Force">Force</SelectItem>
-                <SelectItem value="Energy">Energy</SelectItem>
-                <SelectItem value="Velocity">Velocity</SelectItem>
-                <SelectItem value="Charge">Charge</SelectItem>
-                <SelectItem value="Density">Density</SelectItem>
-                <SelectItem value="Amount of Substance">Amount of Substance (Chemistry)</SelectItem>
-                <SelectItem value="Electric Current">Electric Current</SelectItem>
-                <SelectItem value="Luminous Intensity">Luminous Intensity</SelectItem>
-              </SelectContent>
-            </Select>
+            <CategoryPicker
+                value={category}
+                onValueChange={handleCategoryChange}
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-end gap-4">
@@ -304,4 +326,3 @@ export default function UnitConverter() {
     </Card>
   );
 }
-
