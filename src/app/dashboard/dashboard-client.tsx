@@ -104,8 +104,8 @@ export default function DashboardClient() {
                 <div className="flex items-center justify-between gap-4">
                   <ScrollArea className="flex-1 whitespace-nowrap rounded-md pb-2.5">
                     <TabsList className={cn(
-                      "bg-muted h-auto transition-all duration-300",
-                      hasMoreThanFourSubjects ? 'justify-start' : 'grid w-full sm:grid-cols-4 sm:justify-center'
+                      "transition-all duration-300",
+                      !hasMoreThanFourSubjects && "grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
                     )}>
                       {activeProfile.subjects.map((subject) => {
                         const Icon = getIconComponent(subject.icon);
@@ -201,3 +201,5 @@ export default function DashboardClient() {
     </div>
   );
 }
+
+    
