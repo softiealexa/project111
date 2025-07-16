@@ -11,6 +11,7 @@ import type { Chapter, Subject } from '@/lib/types';
 import { LectureNotesDialog } from './lecture-notes-dialog';
 import { Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { DialogTrigger } from './ui/dialog';
 
 interface LectureRowProps {
   lectureNum: number;
@@ -76,21 +77,25 @@ export function LectureRow({ lectureNum, chapter, subject, checkedState, onCheck
                     currentLectureName={customLectureName || ''}
                     onSave={handleDetailsSave}
                 >
-                    <div className="flex items-center gap-2">
-                         <Tooltip>
-                            <TooltipTrigger asChild>
-                                 <Button
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                             <DialogTrigger asChild>
+                                <Button
                                     variant="link"
                                     className="p-0 h-auto font-medium text-foreground no-underline hover:underline focus-visible:ring-offset-background"
                                 >
                                     Lecture-{lectureNum}
                                 </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>Edit name and notes</p>
+                            </DialogTrigger>
+                        </TooltipTrigger>
+                        {note && (
+                             <TooltipContent>
+                                <p className="max-w-xs whitespace-pre-wrap">{note}</p>
                             </TooltipContent>
-                        </Tooltip>
+                        )}
+                    </Tooltip>
 
+                    <DialogTrigger asChild>
                         <Button
                             variant="ghost"
                             size="icon"
@@ -99,18 +104,12 @@ export function LectureRow({ lectureNum, chapter, subject, checkedState, onCheck
                             <Pencil className="h-4 w-4" />
                             <span className="sr-only">Edit</span>
                         </Button>
-
-                         {customLectureName && (
-                            <span className="text-sm text-muted-foreground truncate max-w-40">{customLectureName}</span>
-                         )}
-
-                         {note && (
-                            <span className="text-sm text-muted-foreground italic truncate max-w-xs opacity-0 transition-opacity group-hover:opacity-100">
-                                - {note}
-                            </span>
-                         )}
-                    </div>
+                    </DialogTrigger>
                 </LectureNotesDialog>
+
+                 {customLectureName && (
+                    <span className="text-sm text-muted-foreground truncate max-w-40">{customLectureName}</span>
+                 )}
             </div>
             
             <div className="flex items-center gap-x-4">
