@@ -1,6 +1,8 @@
 
 
 
+export type TaskStatus = 'unchecked' | 'checked' | 'not-applicable';
+
 
 export interface TimesheetEntry {
   [date: string]: number; // date is 'YYYY-MM-DD', value is seconds
@@ -53,7 +55,7 @@ export interface Todo {
 export interface Chapter {
   name: string;
   lectureCount: number;
-  checkedState?: Record<string, boolean>;
+  checkedState?: Record<string, TaskStatus>;
   notes?: Record<string, string>;
   lectureNames?: Record<string, string>;
   deadline?: number;

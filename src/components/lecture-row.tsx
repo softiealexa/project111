@@ -7,7 +7,7 @@ import { Checkbox } from './ui/checkbox';
 import { Label } from './ui/label';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { useData } from '@/contexts/data-context';
-import type { Chapter, Subject } from '@/lib/types';
+import type { Chapter, Subject, TaskStatus } from '@/lib/types';
 import { LectureNotesDialog } from './lecture-notes-dialog';
 import { Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -17,8 +17,8 @@ interface LectureRowProps {
   lectureNum: number;
   chapter: Chapter;
   subject: Subject;
-  checkedState: Record<string, boolean>;
-  onCheckboxChange: (checkboxId: string, checked: boolean) => void;
+  checkedState: Record<string, TaskStatus>;
+  onCheckboxChange: (checkboxId: string, status: TaskStatus) => void;
 }
 
 export function LectureRow({ lectureNum, chapter, subject, checkedState, onCheckboxChange }: LectureRowProps) {
@@ -118,8 +118,8 @@ export function LectureRow({ lectureNum, chapter, subject, checkedState, onCheck
                         <div key={task} className="flex items-center space-x-2">
                             <Checkbox 
                                 id={checkboxId} 
-                                checked={!!checkedState[checkboxId]} 
-                                onCheckedChange={(checked) => onCheckboxChange(checkboxId, !!checked)} 
+                                checked={checkedState[checkboxId] || 'unchecked'} 
+                                onCheckedChange={(status) => onCheckboxChange(checkboxId, status)} 
                             />
                             <Label htmlFor={checkboxId} className="text-sm font-normal text-muted-foreground cursor-pointer">
                                 {task}

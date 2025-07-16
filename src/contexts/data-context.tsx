@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useMe
 import { usePathname } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import type { Subject, Profile, Chapter, Note, ImportantLink, Todo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth } from '@/lib/types';
+import type { Subject, Profile, Chapter, Note, ImportantLink, Todo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
 import { db } from '@/lib/firebase';
@@ -103,11 +103,27 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
                     default: iconName = 'Book';
                 }
             }
+            const migratedChapters = (subject.chapters || []).map((chapter: any) => {
+                const newCheckedState: Record<string, TaskStatus> = {};
+                if (chapter.checkedState) {
+                    Object.keys(chapter.checkedState).forEach(key => {
+                        const value = chapter.checkedState[key];
+                        if (typeof value === 'boolean') {
+                            newCheckedState[key] = value ? 'checked' : 'unchecked';
+                        } else if (['unchecked', 'checked', 'not-applicable'].includes(value)) {
+                            newCheckedState[key] = value;
+                        }
+                    });
+                }
+                return { ...chapter, checkedState: newCheckedState };
+            });
+
             return {
                 ...subject,
                 icon: iconName,
                 // Ensure tasks are there for backwards compatibility
                 tasks: subject.tasks || ['Lecture', 'DPP', 'Module', 'Class Qs'],
+                chapters: migratedChapters,
             };
         });
         return {
@@ -243,7 +259,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         let completedTasks = 0;
         subject.chapters.forEach(chapter => {
             totalTasks += chapter.lectureCount * tasksPerLecture;
-            completedTasks += Object.values(chapter.checkedState || {}).filter(Boolean).length;
+            completedTasks += Object.values(chapter.checkedState || {}).filter(status => status === 'checked').length;
         });
 
         return totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
@@ -438,7 +454,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const newSubjects = activeProfile.subjects.map(s => {
         if (s.name === oldName) {
             const newChapters = s.chapters.map(c => {
-                const newCheckedState: Record<string, boolean> = {};
+                const newCheckedState: Record<string, TaskStatus> = {};
                 if (c.checkedState) {
                     Object.keys(c.checkedState).forEach(key => {
                         const newKey = key.replace(`${oldName}-`, `${newName}-`);
@@ -505,7 +521,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (s.name === subjectName) {
             const newChapters = s.chapters.map(c => {
                 if (c.name === oldName) {
-                     const newCheckedState: Record<string, boolean> = {};
+                     const newCheckedState: Record<string, TaskStatus> = {};
                      if (c.checkedState) {
                         Object.keys(c.checkedState).forEach(key => {
                             const newKey = key.replace(`-${oldName}-`, `-${newName}-`);
@@ -568,7 +584,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (removedTasks.length > 0) {
           updatedChapters = subject.chapters.map(chapter => {
             const oldCheckedState = chapter.checkedState || {};
-            const newCheckedState: Record<string, boolean> = {};
+            const newCheckedState: Record<string, TaskStatus> = {};
             Object.keys(oldCheckedState).forEach(key => {
               const wasRemoved = removedTasks.some(removedTask => key.endsWith(`-${removedTask}`));
               if (!wasRemoved) {
@@ -595,7 +611,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (s.name === subjectName) {
             const newTasks = s.tasks.map(t => t === oldName ? newName : t);
             const newChapters = s.chapters.map(c => {
-                const newCheckedState: Record<string, boolean> = {};
+                const newCheckedState: Record<string, TaskStatus> = {};
                 if (c.checkedState) {
                     Object.keys(c.checkedState).forEach(key => {
                         if (key.endsWith(`-${oldName}`)) {
