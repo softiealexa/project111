@@ -46,6 +46,8 @@ function SortableLinkItem({ link, onEdit, onDelete }: { link: ImportantLink, onE
     zIndex: isDragging ? 10 : 'auto',
   };
 
+  const displayUrl = link.url.replace(/^(https?:\/\/)/, '');
+
   return (
     <div ref={setNodeRef} style={style} {...attributes} className={cn("flex items-center gap-3 rounded-md border p-3 transition-colors hover:bg-muted/50", isDragging && "shadow-lg z-10 bg-card ring-1 ring-primary")}>
         <button {...listeners} aria-label="Drag to reorder link" className="cursor-grab touch-none p-1 text-muted-foreground hover:text-foreground">
@@ -58,7 +60,7 @@ function SortableLinkItem({ link, onEdit, onDelete }: { link: ImportantLink, onE
             <a href={link.url} target="_blank" rel="noopener noreferrer" className="font-medium text-foreground hover:underline truncate block">
                 {link.title}
             </a>
-            <p className="text-sm text-muted-foreground truncate">{link.url}</p>
+            <p className="text-sm text-muted-foreground truncate">{displayUrl}</p>
         </div>
         <div className="flex gap-1">
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(link)}>
