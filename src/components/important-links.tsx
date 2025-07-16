@@ -46,7 +46,7 @@ function SortableLinkItem({ link, onEdit, onDelete }: { link: ImportantLink, onE
     zIndex: isDragging ? 10 : 'auto',
   };
 
-  const displayUrl = link.url.replace(/^(https?:\/\/)/, '');
+  const displayUrl = link.url.replace(/^(https?:\/\/)?(www\.)?/, '');
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} className={cn("flex items-center gap-3 rounded-md border p-3 transition-colors hover:bg-muted/50", isDragging && "shadow-lg z-10 bg-card ring-1 ring-primary")}>
