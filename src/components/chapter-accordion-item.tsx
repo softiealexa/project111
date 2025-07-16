@@ -157,7 +157,7 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-4 sm:w-2/5">
+              <div className="flex shrink-0 items-center gap-4 sm:w-[260px]">
                  <div className="flex w-full items-center gap-2 text-sm text-muted-foreground">
                     <span className="font-medium tabular-nums whitespace-nowrap w-12 text-center">{completedTasks}/{totalTasks}</span>
                     <Progress value={progress} indicatorClassName={progressColorClass} className="flex-1" />
