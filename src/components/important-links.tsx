@@ -189,7 +189,7 @@ export default function ImportantLinks() {
           {links.length > 0 ? (
              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={links.map(l => l.id)} strategy={verticalListSortingStrategy}>
-                <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {links.map((link) => (
                     <SortableLinkItem 
                       key={link.id} 
