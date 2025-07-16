@@ -134,7 +134,7 @@ export default function SmartTodoList() {
               </h3>
                <div className='flex items-center rounded-md border bg-card'>
                     <Button variant="ghost" size="icon" onClick={() => setSelectedDay(subDays(selectedDay, 1))} className="rounded-r-none h-9 w-9"><ChevronLeft className="h-5 w-5" /></Button>
-                    <Button variant="ghost" className="rounded-none border-x h-9" onClick={() => setSelectedDay(new Date())}>Today</Button>
+                    <Button variant="ghost" className="rounded-none border-x h-9" onClick={() => setSelectedDay(getLogicalDate(new Date()))}>Today</Button>
                     <Button variant="ghost" size="icon" onClick={() => setSelectedDay(addDays(selectedDay, 1))} className="rounded-l-none h-9 w-9"><ChevronRight className="h-5 w-5" /></Button>
                 </div>
          </div>
