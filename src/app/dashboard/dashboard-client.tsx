@@ -141,24 +141,16 @@ export default function DashboardClient() {
             </TabsContent>
 
             <TabsContent value="tools">
-              <Tabs defaultValue="planner" orientation="vertical" className="w-full">
+              <Tabs defaultValue="todo" orientation="vertical" className="w-full">
                   <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] lg:grid-cols-[250px_1fr] gap-6">
                       <TabsList className="flex-col h-auto items-stretch justify-start bg-transparent border-none p-0">
-                          <TabsTrigger value="planner" className="justify-start gap-2 py-2.5 text-base">
-                              <CalendarDays className="h-5 w-5" />
-                              Study Planner
-                          </TabsTrigger>
                           <TabsTrigger value="todo" className="justify-start gap-2 py-2.5 text-base">
                               <ListTodo className="h-5 w-5" />
                               Smart To-Do
                           </TabsTrigger>
-                          <TabsTrigger value="notes" className="justify-start gap-2 py-2.5 text-base">
-                              <Pencil className="h-5 w-5" />
-                              Notes Writer
-                          </TabsTrigger>
-                          <TabsTrigger value="timer" className="justify-start gap-2 py-2.5 text-base">
-                              <Timer className="h-5 w-5" />
-                              Pomodoro Timer
+                          <TabsTrigger value="unit-converter" className="justify-start gap-2 py-2.5 text-base">
+                              <Beaker className="h-5 w-5" />
+                              Unit Converter
                           </TabsTrigger>
                            <TabsTrigger value="links" className="justify-start gap-2 py-2.5 text-base">
                               <LinkIcon className="h-5 w-5" />
@@ -168,27 +160,29 @@ export default function DashboardClient() {
                               <Keyboard className="h-5 w-5" />
                               Question Timer
                             </TabsTrigger>
-                            <TabsTrigger value="countdown" className="justify-start gap-2 py-2.5 text-base">
+                          <TabsTrigger value="notes" className="justify-start gap-2 py-2.5 text-base">
+                              <Pencil className="h-5 w-5" />
+                              Notes Writer
+                          </TabsTrigger>
+                          <TabsTrigger value="planner" className="justify-start gap-2 py-2.5 text-base">
+                              <CalendarDays className="h-5 w-5" />
+                              Study Planner
+                          </TabsTrigger>
+                          <TabsTrigger value="timer" className="justify-start gap-2 py-2.5 text-base">
+                              <Timer className="h-5 w-5" />
+                              Pomodoro Timer
+                          </TabsTrigger>
+                          <TabsTrigger value="countdown" className="justify-start gap-2 py-2.5 text-base">
                               <Target className="h-5 w-5" />
                               Exam Countdown
-                            </TabsTrigger>
-                            <TabsTrigger value="unit-converter" className="justify-start gap-2 py-2.5 text-base">
-                              <Beaker className="h-5 w-5" />
-                              Unit Converter
-                            </TabsTrigger>
+                          </TabsTrigger>
                       </TabsList>
                       <div className="md:col-start-2">
-                          <TabsContent value="planner" className="mt-0">
-                              <StudyPlanner />
-                          </TabsContent>
                           <TabsContent value="todo" className="mt-0">
                               <SmartTodoList />
                           </TabsContent>
-                          <TabsContent value="notes" className="mt-0">
-                              <NotesWriter />
-                          </TabsContent>
-                          <TabsContent value="timer" className="mt-0">
-                              <PomodoroTimer />
+                          <TabsContent value="unit-converter" className="mt-0">
+                              <UnitConverter />
                           </TabsContent>
                           <TabsContent value="links" className="mt-0">
                               <ImportantLinks />
@@ -196,11 +190,17 @@ export default function DashboardClient() {
                           <TabsContent value="question-timer" className="mt-0">
                               <QuestionTimer />
                           </TabsContent>
+                          <TabsContent value="notes" className="mt-0">
+                              <NotesWriter />
+                          </TabsContent>
+                          <TabsContent value="planner" className="mt-0">
+                              <StudyPlanner />
+                          </TabsContent>
+                          <TabsContent value="timer" className="mt-0">
+                              <PomodoroTimer />
+                          </TabsContent>
                           <TabsContent value="countdown" className="mt-0">
                               <ExamCountdown />
-                          </TabsContent>
-                           <TabsContent value="unit-converter" className="mt-0">
-                              <UnitConverter />
                           </TabsContent>
                       </div>
                   </div>
