@@ -47,7 +47,7 @@ const getProgress = (chapters: Chapter[], tasksPerLecture: number) => {
     let completedTasks = 0;
     chapters.forEach((chapter) => {
       totalTasks += chapter.lectureCount * tasksPerLecture;
-      completedTasks += Object.values(chapter.checkedState || {}).filter(status => status === 'checked').length;
+      completedTasks += Object.values(chapter.checkedState || {}).filter(status => status === 'checked' || status === 'checked-red').length;
     });
     return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 };

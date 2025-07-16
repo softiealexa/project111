@@ -50,7 +50,7 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
   
   const tasks = subject.tasks || [];
   const totalTasks = chapter.lectureCount * tasks.length;
-  const completedTasks = Object.values(checkedState).filter(status => status === 'checked').length;
+  const completedTasks = Object.values(checkedState).filter(status => status === 'checked' || status === 'checked-red').length;
   
   const handleCheckboxChange = (checkboxId: string, status: TaskStatus) => {
     const newCheckedState: Record<string, TaskStatus> = { ...checkedState };

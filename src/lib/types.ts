@@ -1,7 +1,6 @@
 
 
-
-export type TaskStatus = 'unchecked' | 'checked' | 'not-applicable';
+export type TaskStatus = 'unchecked' | 'checked' | 'checked-red';
 
 
 export interface TimesheetEntry {

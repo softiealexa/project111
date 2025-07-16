@@ -110,7 +110,7 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
                         const value = chapter.checkedState[key];
                         if (typeof value === 'boolean') {
                             newCheckedState[key] = value ? 'checked' : 'unchecked';
-                        } else if (['unchecked', 'checked', 'not-applicable'].includes(value)) {
+                        } else if (['unchecked', 'checked', 'checked-red'].includes(value)) {
                             newCheckedState[key] = value;
                         }
                     });
@@ -259,7 +259,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         let completedTasks = 0;
         subject.chapters.forEach(chapter => {
             totalTasks += chapter.lectureCount * tasksPerLecture;
-            completedTasks += Object.values(chapter.checkedState || {}).filter(status => status === 'checked').length;
+            completedTasks += Object.values(chapter.checkedState || {}).filter(status => status === 'checked' || status === 'checked-red').length;
         });
 
         return totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;

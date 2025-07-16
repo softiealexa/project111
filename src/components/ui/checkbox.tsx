@@ -1,8 +1,9 @@
+
 "use client"
 
 import * as React from "react"
 import * as CheckboxPrimitive from "@radix-ui/react-checkbox"
-import { Check, X } from "lucide-react"
+import { Check } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import type { TaskStatus } from "@/lib/types";
@@ -17,8 +18,8 @@ const Checkbox = React.forwardRef<
   
   const handleStateChange = () => {
     if (checked === 'checked') {
-      onCheckedChange('not-applicable');
-    } else if (checked === 'not-applicable') {
+      onCheckedChange('checked-red');
+    } else if (checked === 'checked-red') {
       onCheckedChange('unchecked');
     } else {
       onCheckedChange('checked');
@@ -31,7 +32,7 @@ const Checkbox = React.forwardRef<
       className={cn(
         "peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
         "data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground",
-        "data-[state=not-applicable]:bg-destructive/20 data-[state=not-applicable]:border-destructive/50 data-[state=not-applicable]:text-destructive",
+        "data-[state=checked-red]:bg-destructive data-[state=checked-red]:border-destructive data-[state=checked-red]:text-destructive-foreground",
         className
       )}
       data-state={checked}
@@ -41,8 +42,7 @@ const Checkbox = React.forwardRef<
       <CheckboxPrimitive.Indicator
         className={cn("flex items-center justify-center text-current")}
       >
-        {checked === 'checked' && <Check className="h-4 w-4" />}
-        {checked === 'not-applicable' && <X className="h-4 w-4" />}
+        {(checked === 'checked' || checked === 'checked-red') && <Check className="h-4 w-4" />}
       </CheckboxPrimitive.Indicator>
     </CheckboxPrimitive.Root>
   );
