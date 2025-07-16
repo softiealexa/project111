@@ -149,7 +149,7 @@ const CategoryPicker = ({ value, onValueChange }: { value: string, onValueChange
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[300px] p-0">
+            <PopoverContent className="w-[400px] p-0">
                 <div className="p-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {ALL_CATEGORIES.map(cat => (
                         <Button
