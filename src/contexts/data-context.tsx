@@ -20,6 +20,7 @@ const LOCAL_PROFILE_KEY_PREFIX = 'trackacademic_profile_';
 const THEME_KEY = 'trackacademic_theme';
 const MODE_KEY = 'trackacademic_mode';
 const SIDEBAR_WIDTH_KEY = 'trackacademic_sidebar_width';
+const DEFAULT_SIDEBAR_WIDTH = 448; // Corresponds to md (28rem)
 
 interface DataContextType {
   user: FirebaseUser | null;
@@ -76,8 +77,8 @@ interface DataContextType {
   mode: 'light' | 'dark';
   setMode: (mode: 'light' | 'dark') => void;
   isThemeHydrated: boolean;
-  sidebarWidth: SidebarWidth;
-  setSidebarWidth: (width: SidebarWidth) => void;
+  sidebarWidth: number;
+  setSidebarWidth: (width: number) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -169,12 +170,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const [theme, setThemeState] = useState<string>('default');
   const [mode, setModeState] = useState<'light' | 'dark'>('dark');
-  const [sidebarWidth, setSidebarWidthState] = useState<SidebarWidth>('default');
+  const [sidebarWidth, setSidebarWidthState] = useState<number>(DEFAULT_SIDEBAR_WIDTH);
   const [isThemeHydrated, setIsThemeHydrated] = useState(false);
 
-  const setSidebarWidth = useCallback((width: SidebarWidth) => {
+  const setSidebarWidth = useCallback((width: number) => {
     setSidebarWidthState(width);
-    localStorage.setItem(SIDEBAR_WIDTH_KEY, width);
+    localStorage.setItem(SIDEBAR_WIDTH_KEY, String(width));
   }, []);
 
   const setMode = useCallback((newMode: 'light' | 'dark') => {
@@ -200,7 +201,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const savedTheme = localStorage.getItem(THEME_KEY) || 'default';
     const savedMode = (localStorage.getItem(MODE_KEY) || 'dark') as 'light' | 'dark';
-    const savedWidth = (localStorage.getItem(SIDEBAR_WIDTH_KEY) || 'default') as SidebarWidth;
+    const savedWidthStr = localStorage.getItem(SIDEBAR_WIDTH_KEY);
+    const savedWidth = savedWidthStr ? parseInt(savedWidthStr, 10) : DEFAULT_SIDEBAR_WIDTH;
     
     setTheme(savedTheme);
     setMode(savedMode);

@@ -49,6 +49,7 @@ import type { Chapter, Subject, SidebarWidth } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Calendar } from './ui/calendar';
 import { format } from 'date-fns';
+import { Slider } from './ui/slider';
 
 
 // Lazy load dialogs for better performance
@@ -367,18 +368,12 @@ export function CustomizationSheet() {
         }
     }
 
-    const widthClasses: Record<SidebarWidth, string> = {
-        default: 'sm:max-w-md',
-        medium: 'sm:max-w-lg',
-        large: 'sm:max-w-xl',
-    };
-
     if (!activeProfile) {
         return null;
     }
 
     return (
-        <SheetContent className={cn("w-full flex flex-col", widthClasses[sidebarWidth])}>
+        <SheetContent className="w-full flex flex-col sm:max-w-none" style={{ width: `${sidebarWidth}px`}}>
             <SheetHeader className="pr-6">
                 <SheetTitle>Customization</SheetTitle>
                 <SheetDescription>Manage profiles, subjects, chapters, and tasks.</SheetDescription>
@@ -566,21 +561,20 @@ export function CustomizationSheet() {
                 </Suspense>
                 </div>
             </ScrollArea>
-             <SheetFooter className="mt-auto pt-4 border-t flex-row items-center justify-between">
-                <div className="flex items-center gap-2">
+             <SheetFooter className="mt-auto pt-4 border-t flex-col items-center gap-4 sm:flex-row sm:justify-between">
+                <div className="w-full sm:w-auto sm:flex-1 grid grid-cols-[auto_1fr_auto] items-center gap-2">
                     <Label htmlFor="sidebar-width" className="text-xs text-muted-foreground flex-shrink-0">
-                        Sidebar Width
+                        Width
                     </Label>
-                    <Select value={sidebarWidth} onValueChange={(value) => setSidebarWidth(value as SidebarWidth)}>
-                        <SelectTrigger id="sidebar-width" className="h-8 w-[100px] text-xs">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="default" className="text-xs">Default</SelectItem>
-                            <SelectItem value="medium" className="text-xs">Medium</SelectItem>
-                            <SelectItem value="large" className="text-xs">Large</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <Slider
+                        id="sidebar-width"
+                        min={400}
+                        max={800}
+                        step={10}
+                        value={[sidebarWidth]}
+                        onValueChange={(value) => setSidebarWidth(value[0])}
+                    />
+                    <span className="text-xs font-mono text-muted-foreground w-12 text-center">{sidebarWidth}px</span>
                 </div>
                 <p className="text-xs text-muted-foreground">Changes are saved automatically.</p>
             </SheetFooter>

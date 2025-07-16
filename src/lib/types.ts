@@ -1,6 +1,7 @@
 
 
 
+
 export interface TimesheetEntry {
   [date: string]: number; // date is 'YYYY-MM-DD', value is seconds
 }
@@ -78,7 +79,7 @@ export interface QuestionSession {
   questionTimes: number[]; // array of times in ms
 }
 
-export type SidebarWidth = 'default' | 'medium' | 'large';
+export type SidebarWidth = number;
 
 export interface Profile {
   name:string;
