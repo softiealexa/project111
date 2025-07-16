@@ -3,6 +3,7 @@
 
 import React, { useState, useRef, Suspense } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { useData } from '@/contexts/data-context';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { LoaderCircle, User, Palette, Shield, Download, Upload, MessageSquarePlus, Moon, Sun, Check, LogOut } from 'lucide-react';
+import { LoaderCircle, User, Palette, Shield, Download, Upload, MessageSquarePlus, Moon, Sun, Check, LogOut, ArrowLeft } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -314,9 +315,19 @@ export default function SettingsPage() {
     <TooltipProvider>
       <Navbar />
       <main className="max-w-4xl mx-auto py-8 px-4">
-        <div className="space-y-2 mb-8">
-            <h1 className="text-3xl font-bold font-headline">Settings</h1>
-            <p className="text-muted-foreground">Manage your account, appearance, and data settings.</p>
+        <div className="space-y-4 mb-8">
+            <div className="flex justify-between items-start">
+                <div>
+                    <h1 className="text-3xl font-bold font-headline">Settings</h1>
+                    <p className="text-muted-foreground">Manage your account, appearance, and data settings.</p>
+                </div>
+                 <Button asChild variant="outline">
+                    <Link href="/dashboard">
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Back to Dashboard
+                    </Link>
+                </Button>
+            </div>
         </div>
         <Tabs defaultValue="profile" className="w-full">
           <TabsList className="grid w-full grid-cols-3 mb-6">
