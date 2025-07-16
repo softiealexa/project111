@@ -6,7 +6,10 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -43,7 +46,13 @@ export function LectureNotesDialog({ lectureNum, currentNote, currentLectureName
       <DialogTrigger asChild>
           {children}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-xs">
+        <DialogHeader>
+            <DialogTitle className="sr-only">Edit Lecture Details</DialogTitle>
+            <DialogDescription className="sr-only">
+              Add or edit the custom name and notes for this lecture.
+            </DialogDescription>
+        </DialogHeader>
         <div className="py-4 space-y-4">
            <div className="grid gap-2">
             <Label htmlFor="lecture-name">Lecture Name (Optional)</Label>
