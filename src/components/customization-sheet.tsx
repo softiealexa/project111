@@ -165,13 +165,13 @@ function SortableChapterItem({ id, chapter, lectureCount, onLectureCountChange, 
             <button {...listeners} {...attributes} aria-label="Drag to reorder chapter" className="cursor-grab touch-none p-1 text-muted-foreground hover:text-foreground">
                 <GripVertical className="h-5 w-5" />
             </button>
-            <span className="flex-1 min-w-0 truncate">{chapter.name}</span>
+            <span className="flex-1 min-w-0 truncate" title={chapter.name}>{chapter.name}</span>
             
             <Input
                 type="number"
                 min="1"
                 max="25"
-                className="w-16 h-7 text-center"
+                className="w-16 h-7 text-center shrink-0"
                 value={lectureCount}
                 onChange={(e) => onLectureCountChange(e.target.value)}
                 onBlur={onLectureCountBlur}
@@ -180,7 +180,7 @@ function SortableChapterItem({ id, chapter, lectureCount, onLectureCountChange, 
             
             <Popover>
                 <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon" className={cn("h-7 w-7", deadlineDate && 'text-primary')}>
+                    <Button variant="ghost" size="icon" className={cn("h-7 w-7 shrink-0", deadlineDate && 'text-primary')}>
                         <CalendarIcon className="h-4 w-4" />
                     </Button>
                 </PopoverTrigger>
@@ -200,13 +200,13 @@ function SortableChapterItem({ id, chapter, lectureCount, onLectureCountChange, 
                 onRename={onRename}
                 existingNames={existingChapterNames}
             >
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" aria-label={`Rename chapter: ${chapter.name}`}>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground shrink-0" aria-label={`Rename chapter: ${chapter.name}`}>
                     <Pencil className="h-4 w-4" />
                 </Button>
             </RenameDialog>
 
             <RemoveChapterDialog chapter={chapter} onConfirm={onRemove}>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" aria-label={`Remove chapter: ${chapter.name}`}>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive shrink-0" aria-label={`Remove chapter: ${chapter.name}`}>
                     <Trash2 className="h-4 w-4" />
                 </Button>
             </RemoveChapterDialog>
