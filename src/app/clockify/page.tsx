@@ -104,9 +104,15 @@ const PlaceholderContent = ({ title }: { title: string }) => (
             <CardTitle>{title}</CardTitle>
         </CardHeader>
         <CardContent>
-            <div className="flex flex-col items-center justify-center h-64 text-center border-2 border-dashed rounded-lg">
-                <p className="text-lg font-medium text-muted-foreground">This feature is not yet implemented.</p>
-                <p className="text-sm text-muted-foreground">Check back for future updates!</p>
+             <Alert variant="destructive" className="mb-6">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Feature Not Implemented</AlertTitle>
+                <AlertDescription>
+                    This section is currently a placeholder. Check back for future updates!
+                </AlertDescription>
+            </Alert>
+            <div className="flex flex-col items-center justify-center h-64 text-center border-2 border-dashed rounded-lg bg-muted/50">
+                <p className="text-lg font-medium text-muted-foreground">Coming Soon</p>
             </div>
         </CardContent>
     </Card>
@@ -382,13 +388,6 @@ export default function ClockifyPage() {
       case 'Time Tracker':
         return (
           <div className="flex-1 p-4 sm:p-6 bg-muted/30">
-              <Alert variant="destructive" className="mb-6">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>Under Development</AlertTitle>
-                  <AlertDescription>
-                      This page is currently under development. It contains more bugs than features.
-                  </AlertDescription>
-              </Alert>
               <div className="shadow-sm border bg-card">
                   <div className="flex flex-wrap items-center gap-4 p-2">
                       <Input 
