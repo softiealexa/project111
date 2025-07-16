@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,11 +36,19 @@ import {
   Tag,
   Trash2,
   AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Save,
+  Copy,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useData } from '@/contexts/data-context';
 import type { TimeEntry } from '@/lib/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { startOfWeek, endOfWeek, eachDayOfInterval, format, addDays, subDays } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface TimeEntryGroup {
     day: string;
@@ -49,6 +57,7 @@ interface TimeEntryGroup {
 }
 
 const formatDuration = (seconds: number) => {
+    if (isNaN(seconds) || seconds < 0) return '00:00:00';
     const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
     const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
     const s = Math.floor(seconds % 60).toString().padStart(2, '0');
@@ -56,14 +65,14 @@ const formatDuration = (seconds: number) => {
 };
 
 const formatDurationShort = (seconds: number) => {
+    if (isNaN(seconds) || seconds < 0) return '00:00';
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
-    const s = Math.floor(seconds % 60);
-
+    
     if (h > 0) {
-        return `${h.toString()}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        return `${h.toString()}:${m.toString().padStart(2, '0')}`;
     }
-    return `${m.toString()}:${s.toString().padStart(2, '0')}`;
+    return `0:${m.toString().padStart(2, '0')}`;
 };
 
 const formatTimeRange = (start: number, end: number | null) => {
@@ -72,6 +81,21 @@ const formatTimeRange = (start: number, end: number | null) => {
     const endTimeStr = end ? new Date(end).toLocaleTimeString([], formatOpts).replace(' ', '') : 'Now';
     return `${startTimeStr} - ${endTimeStr}`;
 }
+
+const parseTimeToSeconds = (time: string): number => {
+    if (!time) return 0;
+    const parts = time.split(':');
+    const hours = parseInt(parts[0], 10) || 0;
+    const minutes = parseInt(parts[1], 10) || 0;
+    return hours * 3600 + minutes * 60;
+};
+
+const formatSecondsToTime = (seconds: number): string => {
+    if (seconds === 0) return '';
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return `${hours}:${minutes.toString().padStart(2, '0')}`;
+};
 
 const PlaceholderContent = ({ title }: { title: string }) => (
     <Card className="m-4 sm:m-6">
@@ -86,6 +110,149 @@ const PlaceholderContent = ({ title }: { title: string }) => (
         </CardContent>
     </Card>
 );
+
+const TimesheetView = () => {
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [timesheetData, setTimesheetData] = useState([
+    { project: 'Project Y', color: 'bg-blue-500', times: { '2024-02-11': 28800 } },
+    { project: 'Project X', color: 'bg-pink-500', times: { '2024-02-12': 14400, '2024-02-13': 14400 } },
+    { project: 'Office', color: 'bg-orange-500', times: { '2024-02-13': 9000, '2024-02-14': 21600 } },
+    { project: 'Break', color: 'bg-gray-500', times: { '2024-02-11': 1800, '2024-02-12': 1800, '2024-02-13': 1800, '2024-02-14': 1800 } },
+  ]);
+
+  const week = useMemo(() => {
+    const start = startOfWeek(currentDate, { weekStartsOn: 1 });
+    const end = endOfWeek(currentDate, { weekStartsOn: 1 });
+    return eachDayOfInterval({ start, end });
+  }, [currentDate]);
+
+  const handleTimeChange = (projectIndex: number, day: Date, value: string) => {
+    const newTimesheetData = [...timesheetData];
+    const dayKey = format(day, 'yyyy-MM-dd');
+    const seconds = parseTimeToSeconds(value);
+    newTimesheetData[projectIndex].times[dayKey] = seconds;
+    setTimesheetData(newTimesheetData);
+  };
+  
+  const dailyTotals = useMemo(() => {
+    return week.map(day => {
+        const dayKey = format(day, 'yyyy-MM-dd');
+        return timesheetData.reduce((total, row) => total + (row.times[dayKey] || 0), 0);
+    })
+  }, [week, timesheetData]);
+
+  const projectTotals = useMemo(() => {
+    return timesheetData.map(row => {
+        return Object.values(row.times).reduce((total, time) => total + (time || 0), 0)
+    });
+  }, [timesheetData]);
+
+  const grandTotal = useMemo(() => dailyTotals.reduce((total, dayTotal) => total + dayTotal, 0), [dailyTotals]);
+
+  const nextWeek = () => setCurrentDate(addDays(currentDate, 7));
+  const prevWeek = () => setCurrentDate(subDays(currentDate, 7));
+
+  return (
+    <div className="p-4 sm:p-6 bg-muted/30 flex-1">
+        <div className="flex flex-wrap items-center justify-between mb-4 gap-4">
+            <h1 className="text-2xl font-semibold">Timesheet</h1>
+            <div className="flex items-center gap-2">
+                <Select defaultValue="teammates">
+                    <SelectTrigger className="w-[150px]">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="teammates">Teammates</SelectItem>
+                    </SelectContent>
+                </Select>
+                 <Select defaultValue="this-week">
+                    <SelectTrigger className="w-[150px]">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="this-week">This week</SelectItem>
+                    </SelectContent>
+                </Select>
+                <div className='flex items-center'>
+                    <Button variant="ghost" size="icon" onClick={prevWeek}><ChevronLeft className="h-5 w-5" /></Button>
+                    <Button variant="ghost" size="icon" onClick={nextWeek}><ChevronRight className="h-5 w-5" /></Button>
+                </div>
+            </div>
+        </div>
+
+        <div className="bg-card border rounded-lg overflow-x-auto">
+            <div className="grid grid-cols-[200px_repeat(7,1fr)_100px] min-w-[900px]">
+                {/* Header */}
+                <div className="p-3 font-semibold text-muted-foreground border-b border-r">Projects</div>
+                {week.map(day => (
+                    <div key={day.toISOString()} className="p-3 font-semibold text-muted-foreground border-b text-center">
+                        {format(day, 'EEE, MMM d')}
+                    </div>
+                ))}
+                <div className="p-3 font-semibold text-muted-foreground border-b border-l text-right">Total</div>
+
+                {/* Body */}
+                {timesheetData.map((row, projectIndex) => (
+                    <React.Fragment key={projectIndex}>
+                        <div className="p-3 border-b border-r flex items-center gap-2">
+                            <span className={cn("h-2 w-2 rounded-full", row.color)}></span>
+                            <span className="font-medium">{row.project}</span>
+                        </div>
+                        {week.map((day, dayIndex) => {
+                            const dayKey = format(day, 'yyyy-MM-dd');
+                            return (
+                                <div key={dayIndex} className={cn("p-2 border-b", (day.getDay() === 6 || day.getDay() === 0) && "bg-muted/50")}>
+                                    <Input 
+                                        className="text-center border-none focus-visible:ring-1 focus-visible:ring-primary"
+                                        value={formatSecondsToTime(row.times[dayKey] || 0)}
+                                        onChange={(e) => handleTimeChange(projectIndex, day, e.target.value)}
+                                        placeholder="0:00"
+                                    />
+                                </div>
+                            )
+                        })}
+                        <div className="p-3 border-b border-l font-semibold text-right text-muted-foreground">
+                            {formatSecondsToTime(projectTotals[projectIndex]) || '0:00'}
+                        </div>
+                    </React.Fragment>
+                ))}
+
+                 {/* Select Project Row */}
+                <React.Fragment>
+                    <div className="p-3 border-b border-r flex items-center">
+                        <Button variant="link" className="p-0 h-auto">
+                            <Plus className="h-4 w-4 mr-2"/> Select project
+                        </Button>
+                    </div>
+                    {week.map((day, dayIndex) => (
+                        <div key={dayIndex} className={cn("p-2 border-b", (day.getDay() === 6 || day.getDay() === 0) && "bg-muted/50")}>
+                            <Input className="text-center border-none" disabled placeholder="0:00" />
+                        </div>
+                    ))}
+                    <div className="p-3 border-b border-l font-semibold text-right text-muted-foreground">0:00</div>
+                </React.Fragment>
+
+
+                {/* Footer */}
+                <div className="p-3 border-r bg-muted/50 font-bold">Total</div>
+                {dailyTotals.map((total, index) => (
+                    <div key={index} className="p-3 bg-muted/50 font-bold text-center">
+                       {formatSecondsToTime(total) || '0:00'}
+                    </div>
+                ))}
+                 <div className="p-3 border-l bg-muted/50 font-bold text-right">
+                    {formatSecondsToTime(grandTotal) || '0:00'}
+                </div>
+            </div>
+        </div>
+        <div className="flex items-center gap-2 mt-4">
+            <Button variant="outline"><Plus className="mr-2 h-4 w-4" /> Add new row</Button>
+            <Button variant="outline"><Copy className="mr-2 h-4 w-4" /> Copy last week</Button>
+            <Button variant="outline"><Save className="mr-2 h-4 w-4" /> Save as template</Button>
+        </div>
+    </div>
+  )
+}
 
 export default function ClockifyPage() {
   const { activeProfile, addTimeEntry, deleteTimeEntry } = useData();
@@ -117,7 +284,6 @@ export default function ClockifyPage() {
             duration: Math.round(elapsedTime),
         });
     }
-    // Reset for the next run
     setElapsedTime(0);
     setTask('');
     setStartTime(null);
@@ -130,12 +296,13 @@ export default function ClockifyPage() {
     setTimerRunning(true);
     
     timerRef.current = setInterval(() => {
-        setElapsedTime(Math.round((Date.now() - now) / 1000));
+        const currentElapsed = Math.round((Date.now() - now) / 1000);
+        setElapsedTime(currentElapsed);
     }, 1000);
   }, []);
 
   useEffect(() => {
-    return () => { // Cleanup on unmount
+    return () => { 
         if (timerRef.current) {
             clearInterval(timerRef.current);
         }
@@ -184,105 +351,109 @@ export default function ClockifyPage() {
   const weekTotal = timeEntries.reduce((acc, entry) => acc + entry.duration, 0);
 
   const renderContent = () => {
-    if (activeMenu === 'Time Tracker') {
-      return (
-        <div className="flex-1 p-4 sm:p-6 bg-muted/30">
-            <Alert variant="destructive" className="mb-6">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Under Development</AlertTitle>
-                <AlertDescription>
-                    This page is currently under development. It contains more bugs than features.
-                </AlertDescription>
-            </Alert>
-            <div className="shadow-sm border bg-card">
-                <div className="flex flex-wrap items-center gap-4 p-2">
-                    <Input 
-                        placeholder="What are you working on?" 
-                        className="flex-1 min-w-[200px] border-none focus-visible:ring-0 focus-visible:ring-offset-0" 
-                        value={task}
-                        onChange={(e) => setTask(e.target.value)}
-                    />
-                    <Button variant="outline" className="text-primary hover:text-primary hover:bg-primary/10">
-                        <Briefcase className="mr-2 h-4 w-4" />
-                        Project
-                    </Button>
-                    <Separator orientation="vertical" className="h-6" />
-                    <Button variant="ghost" size="icon">
-                        <Tag className="h-5 w-5 text-muted-foreground" />
-                    </Button>
-                    <Button variant="ghost" size="icon">
-                        <DollarSign className="h-5 w-5 text-muted-foreground" />
-                    </Button>
-                    <span className="font-semibold text-lg font-mono ml-auto">{formatDuration(elapsedTime)}</span>
-                    <Button 
-                        className="w-24"
-                        onClick={handleToggleTimer}
-                    >
-                        {timerRunning ? 'STOP' : 'START'}
-                    </Button>
-                     <Button variant="ghost" size="icon">
-                        <ListTodo className="h-5 w-5 text-muted-foreground" />
-                    </Button>
-                </div>
-            </div>
-            <div className="mt-6 space-y-6">
-                <div className="flex justify-between items-center text-sm px-4">
-                    <span className="font-semibold">This Week</span>
-                    <span className="text-muted-foreground">Week total: <span className="font-semibold text-foreground">{formatDuration(weekTotal)}</span></span>
-                </div>
+    switch (activeMenu) {
+      case 'Time Tracker':
+        return (
+          <div className="flex-1 p-4 sm:p-6 bg-muted/30">
+              <Alert variant="destructive" className="mb-6">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Under Development</AlertTitle>
+                  <AlertDescription>
+                      This page is currently under development. It contains more bugs than features.
+                  </AlertDescription>
+              </Alert>
+              <div className="shadow-sm border bg-card">
+                  <div className="flex flex-wrap items-center gap-4 p-2">
+                      <Input 
+                          placeholder="What are you working on?" 
+                          className="flex-1 min-w-[200px] border-none focus-visible:ring-0 focus-visible:ring-offset-0" 
+                          value={task}
+                          onChange={(e) => setTask(e.target.value)}
+                      />
+                      <Button variant="outline" className="text-primary hover:text-primary hover:bg-primary/10">
+                          <Briefcase className="mr-2 h-4 w-4" />
+                          Project
+                      </Button>
+                      <Separator orientation="vertical" className="h-6" />
+                      <Button variant="ghost" size="icon">
+                          <Tag className="h-5 w-5 text-muted-foreground" />
+                      </Button>
+                      <Button variant="ghost" size="icon">
+                          <DollarSign className="h-5 w-5 text-muted-foreground" />
+                      </Button>
+                      <span className="font-semibold text-lg font-mono ml-auto">{formatDuration(elapsedTime)}</span>
+                      <Button 
+                          className="w-24"
+                          onClick={handleToggleTimer}
+                      >
+                          {timerRunning ? 'STOP' : 'START'}
+                      </Button>
+                       <Button variant="ghost" size="icon">
+                          <ListTodo className="h-5 w-5 text-muted-foreground" />
+                      </Button>
+                  </div>
+              </div>
+              <div className="mt-6 space-y-6">
+                  <div className="flex justify-between items-center text-sm px-4">
+                      <span className="font-semibold">This Week</span>
+                      <span className="text-muted-foreground">Week total: <span className="font-semibold text-foreground">{formatDuration(weekTotal)}</span></span>
+                  </div>
 
-                {timeEntryGroups.length === 0 && (
-                    <div className="text-center text-muted-foreground py-10">
-                        <p>No time entries yet. Start the timer to log your work.</p>
-                    </div>
-                )}
+                  {timeEntryGroups.length === 0 && (
+                      <div className="text-center text-muted-foreground py-10">
+                          <p>No time entries yet. Start the timer to log your work.</p>
+                      </div>
+                  )}
 
-                {timeEntryGroups.map((group, groupIndex) => (
-                    <div key={groupIndex}>
-                        <div className="flex justify-between items-center text-sm bg-muted/60 p-2 px-4 border-y">
-                            <span className="font-semibold">{group.day}</span>
-                            <span className="text-muted-foreground">Total: <span className="font-semibold text-foreground">{formatDurationShort(group.total)}</span></span>
-                        </div>
-                        <div className="space-y-px bg-card">
-                            {group.items.map((item) => (
-                                <div key={item.id} className="p-3 border-b last:border-b-0 shadow-sm hover:bg-muted/50">
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex-1">
-                                            <span>{item.task}</span>
-                                            {item.project && <span className={`ml-2 font-semibold ${item.projectColor}`}>• {item.project}</span>}
-                                        </div>
-                                        <div className="hidden sm:flex items-center gap-2">
-                                            {item.tags?.map(tag => <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>)}
-                                        </div>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                                            <DollarSign className={`h-4 w-4 ${item.billable ? 'text-primary' : 'text-muted-foreground/50'}`} />
-                                        </Button>
-                                        <span className="hidden lg:inline-block text-sm text-muted-foreground w-40 text-center">{formatTimeRange(item.startTime, item.endTime)}</span>
-                                        <span className="font-bold w-20 text-right">{formatDurationShort(item.duration)}</span>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleResumeEntry(item)}>
-                                            <Play className="h-4 w-4" />
-                                        </Button>
-                                        <div className="relative group">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                <MoreVertical className="h-4 w-4" />
-                                            </Button>
-                                            <div className="absolute right-0 top-full mt-1 w-32 bg-card border rounded-md shadow-lg z-10 hidden group-hover:block">
-                                                <Button variant="ghost" className="w-full justify-start text-sm text-red-500 hover:text-red-500" onClick={() => handleDeleteEntry(item.id)}>
-                                                    <Trash2 className="mr-2 h-4 w-4"/> Delete
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </div>
-      );
+                  {timeEntryGroups.map((group, groupIndex) => (
+                      <div key={groupIndex}>
+                          <div className="flex justify-between items-center text-sm bg-muted/60 p-2 px-4 border-y">
+                              <span className="font-semibold">{group.day}</span>
+                              <span className="text-muted-foreground">Total: <span className="font-semibold text-foreground">{formatDurationShort(group.total)}</span></span>
+                          </div>
+                          <div className="space-y-px bg-card">
+                              {group.items.map((item) => (
+                                  <div key={item.id} className="p-3 border-b last:border-b-0 shadow-sm hover:bg-muted/50">
+                                      <div className="flex items-center gap-3">
+                                          <div className="flex-1">
+                                              <span>{item.task}</span>
+                                              {item.project && <span className={`ml-2 font-semibold ${item.projectColor}`}>• {item.project}</span>}
+                                          </div>
+                                          <div className="hidden sm:flex items-center gap-2">
+                                              {item.tags?.map(tag => <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>)}
+                                          </div>
+                                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                                              <DollarSign className={`h-4 w-4 ${item.billable ? 'text-primary' : 'text-muted-foreground/50'}`} />
+                                          </Button>
+                                          <span className="hidden lg:inline-block text-sm text-muted-foreground w-40 text-center">{formatTimeRange(item.startTime, item.endTime)}</span>
+                                          <span className="font-bold w-20 text-right">{formatDurationShort(item.duration)}</span>
+                                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleResumeEntry(item)}>
+                                              <Play className="h-4 w-4" />
+                                          </Button>
+                                          <div className="relative group">
+                                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                  <MoreVertical className="h-4 w-4" />
+                                              </Button>
+                                              <div className="absolute right-0 top-full mt-1 w-32 bg-card border rounded-md shadow-lg z-10 hidden group-hover:block">
+                                                  <Button variant="ghost" className="w-full justify-start text-sm text-red-500 hover:text-red-500" onClick={() => handleDeleteEntry(item.id)}>
+                                                      <Trash2 className="mr-2 h-4 w-4"/> Delete
+                                                  </Button>
+                                              </div>
+                                          </div>
+                                      </div>
+                                  </div>
+                              ))}
+                          </div>
+                      </div>
+                  ))}
+              </div>
+          </div>
+        );
+      case 'Timesheet':
+        return <TimesheetView />;
+      default:
+        return <PlaceholderContent title={activeMenu} />;
     }
-    return <PlaceholderContent title={activeMenu} />;
   };
 
   return (
@@ -383,7 +554,7 @@ export default function ClockifyPage() {
                     <h1 className="text-xl font-semibold">{activeMenu}</h1>
                 </div>
             </header>
-            <main className="flex-1 bg-muted/30">
+            <main className="flex-1 bg-muted/30 flex flex-col">
                 {renderContent()}
             </main>
         </SidebarInset>
