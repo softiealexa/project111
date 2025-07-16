@@ -48,7 +48,7 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useData } from '@/contexts/data-context';
 import type { TimeEntry } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { startOfWeek, endOfWeek, eachDayOfInterval, format, addDays, subDays, startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns';
+import { startOfWeek, endOfWeek, eachDayOfInterval, format, addDays, subDays, addMonths, subMonths, isSameMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 interface TimeEntryGroup {
@@ -125,20 +125,14 @@ const TimesheetView = () => {
   ]);
 
   const daysToDisplay = useMemo(() => {
-    switch (timeRange) {
-        case 'Today':
-            return [currentDate];
-        case 'This Week':
-            const start = startOfWeek(currentDate, { weekStartsOn: 1 });
-            const end = endOfWeek(currentDate, { weekStartsOn: 1 });
-            return eachDayOfInterval({ start, end });
-        case 'This Month':
-            const monthStart = startOfMonth(currentDate);
-            const monthEnd = endOfMonth(currentDate);
-            return eachDayOfInterval({ start: monthStart, end: monthEnd });
-        default:
-            return [];
+    if (timeRange === 'Today') {
+        return [currentDate];
     }
+    // For both 'This Week' and 'This Month', we display a 7-day week view.
+    // The navigation logic will differ.
+    const start = startOfWeek(currentDate, { weekStartsOn: 1 });
+    const end = endOfWeek(currentDate, { weekStartsOn: 1 });
+    return eachDayOfInterval({ start, end });
   }, [currentDate, timeRange]);
 
   const handleTimeChange = (projectIndex: number, day: Date, value: string) => {
@@ -164,33 +158,49 @@ const TimesheetView = () => {
   }, [timesheetData, daysToDisplay]);
 
   const grandTotal = useMemo(() => dailyTotals.reduce((total, dayTotal) => total + dayTotal, 0), [dailyTotals]);
-
+  
   const goToNext = () => {
     switch(timeRange) {
-        case 'Today': setCurrentDate(addDays(currentDate, 1)); break;
-        case 'This Week': setCurrentDate(addDays(currentDate, 7)); break;
-        case 'This Month': setCurrentDate(addMonths(currentDate, 1)); break;
+        case 'Today': 
+            setCurrentDate(addDays(currentDate, 1)); 
+            break;
+        case 'This Week': 
+            setCurrentDate(addDays(currentDate, 7)); 
+            break;
+        case 'This Month':
+            const nextWeek = addDays(currentDate, 7);
+            if (isSameMonth(nextWeek, currentDate)) {
+                setCurrentDate(nextWeek);
+            } else {
+                setCurrentDate(addMonths(currentDate, 1));
+            }
+            break;
     }
   };
   const goToPrev = () => {
-    switch(timeRange) {
-        case 'Today': setCurrentDate(subDays(currentDate, 1)); break;
-        case 'This Week': setCurrentDate(subDays(currentDate, 7)); break;
-        case 'This Month': setCurrentDate(subMonths(currentDate, 1)); break;
+     switch(timeRange) {
+        case 'Today': 
+            setCurrentDate(subDays(currentDate, 1)); 
+            break;
+        case 'This Week': 
+            setCurrentDate(subDays(currentDate, 7)); 
+            break;
+        case 'This Month':
+            const prevWeek = subDays(currentDate, 7);
+            if (isSameMonth(prevWeek, currentDate)) {
+                setCurrentDate(prevWeek);
+            } else {
+                setCurrentDate(subMonths(currentDate, 1));
+            }
+            break;
     }
   };
   
-  const gridTemplateColumns = {
-    'Today': 'grid-cols-[200px_1fr_100px]',
-    'This Week': `grid-cols-[200px_repeat(7,1fr)_100px]`,
-    'This Month': `grid-cols-[200px_repeat(${daysToDisplay.length},minmax(80px,1fr))_100px]`,
-  };
+  const gridTemplateColumns = timeRange === 'Today' 
+    ? 'grid-cols-[200px_1fr_100px]'
+    : 'grid-cols-[200px_repeat(7,1fr)_100px]';
 
-  const minWidth = {
-    'Today': 'min-w-[400px]',
-    'This Week': 'min-w-[900px]',
-    'This Month': 'min-w-[2400px]',
-  }
+  const minWidth = timeRange === 'Today' ? 'min-w-[400px]' : 'min-w-[900px]';
 
   return (
     <div className="p-4 sm:p-6 bg-muted/30 flex-1">
@@ -215,20 +225,21 @@ const TimesheetView = () => {
                         <SelectItem value="This Month">This Month</SelectItem>
                     </SelectContent>
                 </Select>
-                <div className='flex items-center'>
-                    <Button variant="ghost" size="icon" onClick={goToPrev}><ChevronLeft className="h-5 w-5" /></Button>
-                    <Button variant="ghost" size="icon" onClick={goToNext}><ChevronRight className="h-5 w-5" /></Button>
+                <div className='flex items-center rounded-md border bg-card'>
+                    <Button variant="ghost" size="icon" onClick={goToPrev} className="rounded-r-none"><ChevronLeft className="h-5 w-5" /></Button>
+                    <Button variant="ghost" className="rounded-none border-x" onClick={() => setCurrentDate(new Date())}>Today</Button>
+                    <Button variant="ghost" size="icon" onClick={goToNext} className="rounded-l-none"><ChevronRight className="h-5 w-5" /></Button>
                 </div>
             </div>
         </div>
 
         <div className="bg-card border rounded-lg overflow-x-auto">
-            <div className={cn("grid", gridTemplateColumns[timeRange], minWidth[timeRange])}>
+            <div className={cn("grid", gridTemplateColumns, minWidth)}>
                 {/* Header */}
                 <div className="p-3 font-semibold text-muted-foreground border-b border-r">Projects</div>
                 {daysToDisplay.map(day => (
                     <div key={day.toISOString()} className="p-3 font-semibold text-muted-foreground border-b text-center">
-                        {format(day, timeRange === 'This Month' ? 'd' : 'EEE, MMM d')}
+                        {format(day, 'EEE, MMM d')}
                     </div>
                 ))}
                 <div className="p-3 font-semibold text-muted-foreground border-b border-l text-right">Total</div>
@@ -332,6 +343,9 @@ export default function ClockifyPage() {
   }, [startTime, elapsedTime, task, addTimeEntry]);
 
   const startTimer = useCallback(() => {
+    if (timerRef.current) {
+        clearInterval(timerRef.current);
+    }
     setElapsedTime(0); 
     const now = Date.now();
     setStartTime(now);
@@ -367,7 +381,7 @@ export default function ClockifyPage() {
   
   const handleResumeEntry = (entryToResume: TimeEntry) => {
     if (timerRunning) {
-      // Don't stop the timer, just use the new task description
+      stopTimer();
     }
     setTask(entryToResume.task);
     setTimeout(() => {
@@ -603,3 +617,5 @@ export default function ClockifyPage() {
     </SidebarProvider>
   );
 }
+
+    
