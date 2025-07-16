@@ -9,7 +9,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { useData } from '@/contexts/data-context';
 import type { Chapter, Subject } from '@/lib/types';
 import { LectureNotesDialog } from './lecture-notes-dialog';
-import { DialogTrigger } from './ui/dialog';
+import { Pencil } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface LectureRowProps {
   lectureNum: number;
@@ -67,7 +68,7 @@ export function LectureRow({ lectureNum, chapter, subject, checkedState, onCheck
     };
 
     return (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg p-3 transition-colors hover:bg-muted/50">
+        <div className="group flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg p-3 transition-colors hover:bg-muted/50">
             <div className="flex items-center gap-2 mr-auto pr-4">
                  <LectureNotesDialog
                     lectureNum={lectureNum}
@@ -75,26 +76,41 @@ export function LectureRow({ lectureNum, chapter, subject, checkedState, onCheck
                     currentLectureName={customLectureName || ''}
                     onSave={handleDetailsSave}
                 >
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <DialogTrigger asChild>
-                                <Button
+                    <div className="flex items-center gap-2">
+                         <Tooltip>
+                            <TooltipTrigger asChild>
+                                 <Button
                                     variant="link"
                                     className="p-0 h-auto font-medium text-foreground no-underline hover:underline focus-visible:ring-offset-background"
                                 >
                                     Lecture-{lectureNum}
                                 </Button>
-                            </DialogTrigger>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>Edit name and notes</p>
-                        </TooltipContent>
-                    </Tooltip>
-                </LectureNotesDialog>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Edit name and notes</p>
+                            </TooltipContent>
+                        </Tooltip>
 
-                 {customLectureName && (
-                    <span className="text-sm text-muted-foreground truncate max-w-40">{customLectureName}</span>
-                 )}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
+                        >
+                            <Pencil className="h-4 w-4" />
+                            <span className="sr-only">Edit</span>
+                        </Button>
+
+                         {customLectureName && (
+                            <span className="text-sm text-muted-foreground truncate max-w-40">{customLectureName}</span>
+                         )}
+
+                         {note && (
+                            <span className="text-sm text-muted-foreground italic truncate max-w-xs opacity-0 transition-opacity group-hover:opacity-100">
+                                - {note}
+                            </span>
+                         )}
+                    </div>
+                </LectureNotesDialog>
             </div>
             
             <div className="flex items-center gap-x-4">
