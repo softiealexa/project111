@@ -45,10 +45,11 @@ import {
   Pencil,
   Search,
 } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useData } from '@/contexts/data-context';
-import type { TimeEntry, Project } from '@/lib/types';
+import type { TimeEntry, Project, TimesheetData } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { startOfWeek, endOfWeek, eachDayOfInterval, format, addDays, subDays } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -92,6 +93,9 @@ const formatTimeRange = (start: number, end: number | null) => {
 const parseTimeToSeconds = (time: string): number => {
     if (!time) return 0;
     const parts = time.split(':');
+    if (parts.length === 1 && !isNaN(parseInt(parts[0], 10))) {
+        return (parseInt(parts[0], 10) || 0) * 3600;
+    }
     const hours = parseInt(parts[0], 10) || 0;
     const minutes = parseInt(parts[1], 10) || 0;
     return hours * 3600 + minutes * 60;
@@ -287,16 +291,14 @@ const ProjectsView = () => {
 
 
 const TimesheetView = () => {
+  const { activeProfile, updateTimesheetEntry } = useData();
   type TimeRange = 'Day' | 'Week';
   const [currentDate, setCurrentDate] = useState(new Date());
   const [timeRange, setTimeRange] = useState<TimeRange>('Week');
 
-  const [timesheetData, setTimesheetData] = useState([
-    { project: 'Project Y', color: 'bg-blue-500', times: { '2024-07-14': 28800 } },
-    { project: 'Project X', color: 'bg-pink-500', times: { '2024-07-15': 14400, '2024-07-16': 14400 } },
-    { project: 'Office', color: 'bg-orange-500', times: { '2024-07-16': 9000, '2024-07-17': 21600 } },
-    { project: 'Break', color: 'bg-gray-500', times: { '2024-07-14': 1800, '2024-07-15': 1800, '2024-07-16': 1800, '2024-07-17': 1800 } },
-  ]);
+  const projects = useMemo(() => activeProfile?.projects || [], [activeProfile]);
+  const timesheetData = useMemo(() => activeProfile?.timesheetData || {}, [activeProfile]);
+  
 
   const daysToDisplay = useMemo(() => {
     if (timeRange === 'Day') {
@@ -307,21 +309,21 @@ const TimesheetView = () => {
     return eachDayOfInterval({ start, end });
   }, [currentDate, timeRange]);
 
-  const handleTimeChange = (projectIndex: number, day: Date, value: string) => {
-    const newTimesheetData = [...timesheetData];
+  const handleTimeChange = (projectId: string, day: Date, value: string) => {
     const dayKey = format(day, 'yyyy-MM-dd');
     const seconds = parseTimeToSeconds(value);
-    newTimesheetData[projectIndex].times[dayKey] = seconds;
-    setTimesheetData(newTimesheetData);
+    if (updateTimesheetEntry) {
+        updateTimesheetEntry(projectId, dayKey, seconds);
+    }
   };
   
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, projectIndex: number, day: Date) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, projectId: string, day: Date) => {
     if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
     
     e.preventDefault();
     
     const dayKey = format(day, 'yyyy-MM-dd');
-    const currentValue = timesheetData[projectIndex].times[dayKey] || 0;
+    const currentValue = timesheetData[projectId]?.[dayKey] || 0;
     const fiveMinutes = 5 * 60;
     let newValue;
     
@@ -331,24 +333,24 @@ const TimesheetView = () => {
         newValue = Math.max(0, currentValue - fiveMinutes);
     }
     
-    const newTimesheetData = [...timesheetData];
-    newTimesheetData[projectIndex].times[dayKey] = newValue;
-    setTimesheetData(newTimesheetData);
+    if (updateTimesheetEntry) {
+        updateTimesheetEntry(projectId, dayKey, newValue);
+    }
   };
 
   const dailyTotals = useMemo(() => {
     return daysToDisplay.map(day => {
         const dayKey = format(day, 'yyyy-MM-dd');
-        return timesheetData.reduce((total, row) => total + (row.times[dayKey] || 0), 0);
+        return projects.reduce((total, project) => total + (timesheetData[project.id]?.[dayKey] || 0), 0);
     })
-  }, [daysToDisplay, timesheetData]);
+  }, [daysToDisplay, timesheetData, projects]);
 
   const projectTotals = useMemo(() => {
     const relevantDayKeys = daysToDisplay.map(d => format(d, 'yyyy-MM-dd'));
-    return timesheetData.map(row => {
-        return relevantDayKeys.reduce((total, dayKey) => total + (row.times[dayKey] || 0), 0)
+    return projects.map(project => {
+        return relevantDayKeys.reduce((total, dayKey) => total + (timesheetData[project.id]?.[dayKey] || 0), 0)
     });
-  }, [timesheetData, daysToDisplay]);
+  }, [timesheetData, daysToDisplay, projects]);
 
   const grandTotal = useMemo(() => dailyTotals.reduce((total, dayTotal) => total + dayTotal, 0), [dailyTotals]);
   
@@ -373,14 +375,6 @@ const TimesheetView = () => {
         <div className="flex flex-wrap items-center justify-between mb-4 gap-4">
             <h1 className="text-2xl font-semibold">Timesheet</h1>
             <div className="flex items-center gap-2">
-                <Select defaultValue="teammates">
-                    <SelectTrigger className="w-[150px]">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="teammates">Teammates</SelectItem>
-                    </SelectContent>
-                </Select>
                  <Select value={timeRange} onValueChange={(v: TimeRange) => setTimeRange(v)}>
                     <SelectTrigger className="w-[150px]">
                         <SelectValue />
@@ -413,11 +407,11 @@ const TimesheetView = () => {
                 <div className="p-3 font-semibold text-muted-foreground border-b border-l text-right">Total</div>
 
                 {/* Body */}
-                {timesheetData.map((row, projectIndex) => (
-                    <React.Fragment key={projectIndex}>
+                {projects.map((project, projectIndex) => (
+                    <React.Fragment key={project.id}>
                         <div className="p-3 border-b border-r flex items-center gap-2">
-                            <span className={cn("h-2 w-2 rounded-full", row.color)}></span>
-                            <span className="font-medium">{row.project}</span>
+                            <span className={cn("h-2 w-2 rounded-full")} style={{backgroundColor: project.color}}></span>
+                            <span className="font-medium">{project.name}</span>
                         </div>
                         {daysToDisplay.map((day, dayIndex) => {
                             const dayKey = format(day, 'yyyy-MM-dd');
@@ -425,9 +419,9 @@ const TimesheetView = () => {
                                 <div key={dayIndex} className={cn("p-2 border-b", (day.getDay() === 6 || day.getDay() === 0) && "bg-muted/50")}>
                                     <Input 
                                         className="text-center border-none focus-visible:ring-1 focus-visible:ring-primary"
-                                        value={formatSecondsToTime(row.times[dayKey] || 0)}
-                                        onChange={(e) => handleTimeChange(projectIndex, day, e.target.value)}
-                                        onKeyDown={(e) => handleKeyDown(e, projectIndex, day)}
+                                        value={formatSecondsToTime(timesheetData[project.id]?.[dayKey] || 0)}
+                                        onChange={(e) => handleTimeChange(project.id, day, e.target.value)}
+                                        onKeyDown={(e) => handleKeyDown(e, project.id, day)}
                                         placeholder="h:mm"
                                     />
                                 </div>
@@ -438,22 +432,9 @@ const TimesheetView = () => {
                         </div>
                     </React.Fragment>
                 ))}
-
-                 {/* Select Project Row */}
-                <React.Fragment>
-                    <div className="p-3 border-b border-r flex items-center">
-                        <Button variant="link" className="p-0 h-auto">
-                            <Plus className="h-4 w-4 mr-2"/> Select project
-                        </Button>
-                    </div>
-                    {daysToDisplay.map((day, dayIndex) => (
-                        <div key={dayIndex} className={cn("p-2 border-b", (day.getDay() === 6 || day.getDay() === 0) && "bg-muted/50")}>
-                            <Input className="text-center border-none" disabled placeholder="h:mm" />
-                        </div>
-                    ))}
-                    <div className="p-3 border-b border-l font-semibold text-right text-muted-foreground">00:00</div>
-                </React.Fragment>
-
+                <div className="p-3 border-b border-r flex items-center col-span-full">
+                    <p className="text-sm text-muted-foreground">Manage projects in the 'Projects' tab.</p>
+                </div>
 
                 {/* Footer */}
                 <div className="p-3 border-r bg-muted/50 font-bold">Total</div>
@@ -467,72 +448,95 @@ const TimesheetView = () => {
                 </div>
             </div>
         </div>
-        <div className="flex items-center gap-2 mt-4">
-            <Button variant="outline"><Plus className="mr-2 h-4 w-4" /> Add new row</Button>
-            <Button variant="outline"><Copy className="mr-2 h-4 w-4" /> Copy last week</Button>
-            <Button variant="outline"><Save className="mr-2 h-4 w-4" /> Save as template</Button>
-        </div>
     </div>
   )
 }
 
 export default function ClockifyPage() {
-  const { activeProfile, addTimeEntry, deleteTimeEntry } = useData();
+  const { activeProfile, addTimeEntry, deleteTimeEntry, updateTimeEntry } = useData();
   const [activeMenu, setActiveMenu] = useState('Time Tracker');
   const [task, setTask] = useState('');
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [timerRunning, setTimerRunning] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [startTime, setStartTime] = useState<number | null>(null);
+  const [activeTimerId, setActiveTimerId] = useState<string | null>(null);
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   
-  const timeEntries = activeProfile?.timeEntries || [];
-
-  const stopTimer = useCallback(() => {
+  const timeEntries = useMemo(() => activeProfile?.timeEntries || [], [activeProfile]);
+  const projects = useMemo(() => activeProfile?.projects || [], [activeProfile]);
+  const selectedProject = useMemo(() => projects.find(p => p.id === selectedProjectId), [projects, selectedProjectId]);
+  
+  const stopTimer = useCallback((isSwitching = false) => {
     if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
     }
     setTimerRunning(false);
-    if (startTime && elapsedTime > 0 && addTimeEntry) {
-        addTimeEntry({
-            task: task || 'Unspecified Task',
-            project: 'Office',
-            projectColor: '#3f51b5',
-            tags: [],
-            billable: true,
-            startTime: startTime,
-            endTime: Date.now(),
-            duration: Math.round(elapsedTime),
-        });
+    
+    if (activeTimerId && updateTimeEntry) {
+      const entry = timeEntries.find(e => e.id === activeTimerId);
+      if(entry) {
+        const duration = Math.round((Date.now() - entry.startTime) / 1000);
+        updateTimeEntry({ ...entry, endTime: Date.now(), duration });
+      }
+    }
+    
+    if (!isSwitching) {
+      setTask('');
+      setSelectedProjectId(null);
+      setActiveTimerId(null);
     }
     setElapsedTime(0);
-    setTask('');
-    setStartTime(null);
-  }, [startTime, elapsedTime, task, addTimeEntry]);
+  }, [activeTimerId, timeEntries, updateTimeEntry]);
 
   const startTimer = useCallback(() => {
-    if (timerRef.current) {
-        clearInterval(timerRef.current);
+    if (timerRunning) {
+        stopTimer(true);
     }
-    const now = Date.now();
-    setStartTime(now);
-    setTimerRunning(true);
-    setElapsedTime(0);
+    const newEntry = addTimeEntry && addTimeEntry({
+        task: task || 'Unspecified Task',
+        projectId: selectedProjectId,
+        tags: [],
+        billable: true,
+        startTime: Date.now(),
+        endTime: null,
+        duration: 0,
+    });
     
-    timerRef.current = setInterval(() => {
-        const currentElapsed = Math.round((Date.now() - now) / 1000);
-        setElapsedTime(currentElapsed);
-    }, 1000);
-  }, []);
+    if (newEntry) {
+        setActiveTimerId(newEntry.id);
+        setTimerRunning(true);
+        setElapsedTime(0);
+        
+        timerRef.current = setInterval(() => {
+            const currentElapsed = Math.round((Date.now() - newEntry.startTime) / 1000);
+            setElapsedTime(currentElapsed);
+        }, 1000);
+    }
+  }, [timerRunning, stopTimer, addTimeEntry, task, selectedProjectId]);
 
   useEffect(() => {
+    //Check for running timers on load
+    const runningEntry = timeEntries.find(e => e.endTime === null);
+    if(runningEntry) {
+      setActiveTimerId(runningEntry.id);
+      setTask(runningEntry.task);
+      setSelectedProjectId(runningEntry.projectId);
+      setTimerRunning(true);
+      setElapsedTime(Math.round((Date.now() - runningEntry.startTime) / 1000));
+      
+      timerRef.current = setInterval(() => {
+        setElapsedTime(prev => prev + 1);
+      }, 1000);
+    }
+
     return () => { 
         if (timerRef.current) {
             clearInterval(timerRef.current);
         }
     };
-  }, []);
+  }, []); // Run only on mount
   
   const handleToggleTimer = () => {
     if (timerRunning) {
@@ -544,17 +548,20 @@ export default function ClockifyPage() {
   
   const handleDeleteEntry = (id: string) => {
     if (deleteTimeEntry) {
+      if (id === activeTimerId) {
+        stopTimer();
+      }
       deleteTimeEntry(id);
     }
   };
   
   const handleResumeEntry = (entryToResume: TimeEntry) => {
     if (timerRunning) {
-      // Allow seamless switching by stopping the current timer first
-      stopTimer();
+      stopTimer(true); // Stop current timer but indicate we are switching
     }
     setTask(entryToResume.task);
-    // Use a small timeout to ensure state update completes before starting new timer
+    setSelectedProjectId(entryToResume.projectId);
+
     setTimeout(() => {
       startTimer();
     }, 100);
@@ -564,10 +571,19 @@ export default function ClockifyPage() {
     const day = new Date(entry.startTime).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     let group = acc.find(g => g.day === day);
     if (!group) {
-        group = { day: 'Today', total: 0, items: [] };
-        if (new Date(entry.startTime).toDateString() !== new Date().toDateString()) {
-             group.day = day;
+        const entryDate = new Date(entry.startTime);
+        const today = new Date();
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        let dayLabel = day;
+        if(entryDate.toDateString() === today.toDateString()) {
+            dayLabel = 'Today';
+        } else if (entryDate.toDateString() === yesterday.toDateString()) {
+            dayLabel = 'Yesterday';
         }
+
+        group = { day: dayLabel, total: 0, items: [] };
         acc.push(group);
     }
     group.items.push(entry);
@@ -590,10 +606,44 @@ export default function ClockifyPage() {
                           value={task}
                           onChange={(e) => setTask(e.target.value)}
                       />
-                      <Button variant="outline" className="text-primary hover:text-primary hover:bg-primary/10">
-                          <Briefcase className="mr-2 h-4 w-4" />
-                          Project
-                      </Button>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline" className={cn(selectedProject && "text-primary hover:text-primary hover:bg-primary/10")}>
+                                <Briefcase className="mr-2 h-4 w-4" />
+                                {selectedProject?.name || 'Project'}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[200px] p-0">
+                            <Command>
+                                <CommandInput placeholder="Select project..." />
+                                <CommandEmpty>No project found.</CommandEmpty>
+                                <CommandGroup>
+                                {projects.map((project) => (
+                                    <CommandItem
+                                        key={project.id}
+                                        value={project.name}
+                                        onSelect={() => {
+                                            setSelectedProjectId(project.id);
+                                            const popoverTrigger = document.querySelector('[aria-controls="radix-:R3mmkq:"]');
+                                            if (popoverTrigger instanceof HTMLElement) popoverTrigger.click();
+                                        }}
+                                    >
+                                        <Check className={cn("mr-2 h-4 w-4", selectedProjectId === project.id ? "opacity-100" : "opacity-0")} />
+                                        <span className="h-2 w-2 rounded-full mr-2" style={{backgroundColor: project.color}}></span>
+                                        {project.name}
+                                    </CommandItem>
+                                ))}
+                                </CommandGroup>
+                                <CommandSeparator />
+                                <CommandGroup>
+                                    <CommandItem onSelect={() => setSelectedProjectId(null)}>
+                                         <X className="mr-2 h-4 w-4 text-destructive" /> No Project
+                                    </CommandItem>
+                                </CommandGroup>
+                            </Command>
+                        </PopoverContent>
+                      </Popover>
+
                       <Separator orientation="vertical" className="h-6" />
                       <Button variant="ghost" size="icon">
                           <Tag className="h-5 w-5 text-muted-foreground" />
@@ -632,12 +682,14 @@ export default function ClockifyPage() {
                               <span className="text-muted-foreground">Total: <span className="font-semibold text-foreground">{formatDurationShort(group.total)}</span></span>
                           </div>
                           <div className="space-y-px bg-card">
-                              {group.items.map((item) => (
+                              {group.items.map((item) => {
+                                  const itemProject = projects.find(p => p.id === item.projectId);
+                                  return (
                                   <div key={item.id} className="p-3 border-b last:border-b-0 shadow-sm hover:bg-muted/50">
                                       <div className="flex items-center gap-3">
                                           <div className="flex-1">
                                               <span>{item.task}</span>
-                                              {item.project && <span className={'ml-2 font-semibold'} style={{color: item.projectColor}}>• {item.project}</span>}
+                                              {itemProject && <span className={'ml-2 font-semibold'} style={{color: itemProject.color}}>• {itemProject.name}</span>}
                                           </div>
                                           <div className="hidden sm:flex items-center gap-2">
                                               {item.tags?.map(tag => <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>)}
@@ -662,7 +714,7 @@ export default function ClockifyPage() {
                                           </div>
                                       </div>
                                   </div>
-                              ))}
+                              )})}
                           </div>
                       </div>
                   ))}

@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useMe
 import { usePathname } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import type { Subject, Profile, Chapter, Note, ImportantLink, Todo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project } from '@/lib/types';
+import type { Subject, Profile, Chapter, Note, ImportantLink, Todo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
 import { db } from '@/lib/firebase';
@@ -63,6 +63,8 @@ interface DataContextType {
   addProject: (name: string, color: string) => void;
   updateProject: (project: Project) => void;
   deleteProject: (projectId: string) => void;
+  updateTimesheetEntry: (projectId: string, date: string, seconds: number) => void;
+  setTimesheetData: (data: TimesheetData) => void;
   exportData: () => void;
   importData: (file: File) => void;
   signOutUser: () => Promise<void>;
@@ -114,6 +116,7 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
             questionSessions: profile.questionSessions || [],
             timeEntries: profile.timeEntries || [],
             projects: profile.projects || [],
+            timesheetData: profile.timesheetData || {},
         };
     });
 };
@@ -859,6 +862,38 @@ export function DataProvider({ children }: { children: ReactNode }) {
     toast({ title: "Project Deleted", description: "The project has been successfully deleted.", variant: "destructive" });
   }, [activeProfileName, profiles, updateProfiles, toast]);
 
+  const updateTimesheetEntry = useCallback((projectId: string, date: string, seconds: number) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const newTimesheetData = { ...(p.timesheetData || {}) };
+        if (!newTimesheetData[projectId]) {
+          newTimesheetData[projectId] = {};
+        }
+        if (seconds > 0) {
+            newTimesheetData[projectId][date] = seconds;
+        } else {
+            delete newTimesheetData[projectId][date];
+        }
+        
+        return { ...p, timesheetData: newTimesheetData };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+  
+  const setTimesheetData = useCallback((data: TimesheetData) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        return { ...p, timesheetData: data };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
 
   const exportData = useCallback(() => {
     if (typeof window === 'undefined' || profiles.length === 0) {
@@ -916,7 +951,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
     addTodo, updateTodo, deleteTodo, setTodos,
     addQuestionSession, addTimeEntry, updateTimeEntry, deleteTimeEntry, setTimeEntries,
-    addProject, updateProject, deleteProject,
+    addProject, updateProject, deleteProject, updateTimesheetEntry, setTimesheetData,
     exportData, importData, signOutUser, refreshUserDoc,
     theme, setTheme, mode, setMode, isThemeHydrated,
   }), [
@@ -926,7 +961,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
     addTodo, updateTodo, deleteTodo, setTodos,
     addQuestionSession, addTimeEntry, updateTimeEntry, deleteTimeEntry, setTimeEntries,
-    addProject, updateProject, deleteProject,
+    addProject, updateProject, deleteProject, updateTimesheetEntry, setTimesheetData,
     exportData, importData, signOutUser, refreshUserDoc,
     theme, setTheme, mode, setMode, isThemeHydrated, setActiveSubjectName
   ]);

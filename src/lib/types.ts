@@ -1,5 +1,13 @@
 
 
+export interface TimesheetEntry {
+  [date: string]: number; // date is 'YYYY-MM-DD', value is seconds
+}
+
+export interface TimesheetData {
+  [projectId: string]: TimesheetEntry;
+}
+
 export interface Project {
     id: string;
     name: string;
@@ -9,8 +17,7 @@ export interface Project {
 export interface TimeEntry {
     id: string;
     task: string;
-    project: string;
-    projectColor: string;
+    projectId: string | null;
     tags: string[];
     billable: boolean;
     startTime: number; // timestamp
@@ -79,6 +86,7 @@ export interface Profile {
   questionSessions?: QuestionSession[];
   timeEntries?: TimeEntry[];
   projects?: Project[];
+  timesheetData?: TimesheetData;
 }
 
 export interface AppUser {
