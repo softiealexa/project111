@@ -1,6 +1,7 @@
 
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
@@ -561,3 +562,5 @@ export default function ClockifyPage() {
     </SidebarProvider>
   );
 }
+
+    
