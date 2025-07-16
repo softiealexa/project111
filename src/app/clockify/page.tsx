@@ -29,9 +29,7 @@ import {
   Coffee,
   LayoutGrid,
   BarChart2,
-  Activity,
   Briefcase,
-  Users,
   Play,
   MoreVertical,
   Tag,
@@ -40,25 +38,21 @@ import {
   ChevronLeft,
   ChevronRight,
   Plus,
-  Save,
-  Copy,
-  Pencil,
   Search,
   Check,
-  X,
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useData } from '@/contexts/data-context';
-import type { TimeEntry, Project, TimesheetData } from '@/lib/types';
+import type { TimeEntry, Project } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { startOfWeek, endOfWeek, eachDayOfInterval, format, addDays, subDays } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ProjectDialog } from '@/components/project-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandSeparator } from '@/components/ui/popover';
 
 
 interface TimeEntryGroup {
@@ -121,7 +115,7 @@ const PlaceholderContent = ({ title }: { title: string }) => (
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Feature Not Implemented</AlertTitle>
                 <AlertDescription>
-                    This section is currently a placeholder. Check back for future updates!
+                    This section is a placeholder. Check back for future updates!
                 </AlertDescription>
             </Alert>
             <div className="flex flex-col items-center justify-center h-64 text-center border-2 border-dashed rounded-lg bg-muted/50">
@@ -302,7 +296,6 @@ const TimesheetView = () => {
   const projects = useMemo(() => activeProfile?.projects || [], [activeProfile]);
   const timesheetData = useMemo(() => activeProfile?.timesheetData || {}, [activeProfile]);
   
-
   const daysToDisplay = useMemo(() => {
     if (timeRange === 'Day') {
         return [currentDate];
@@ -456,7 +449,7 @@ const TimesheetView = () => {
 }
 
 export default function ClockifyPage() {
-  const { activeProfile, addTimeEntry, deleteTimeEntry, updateTimeEntry } = useData();
+  const { activeProfile, addTimeEntry, deleteTimeEntry, updateTimeEntry, loading } = useData();
   const [activeMenu, setActiveMenu] = useState('Time Tracker');
   const [task, setTask] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -520,17 +513,20 @@ export default function ClockifyPage() {
   }, [timerRunning, stopTimer, addTimeEntry, task, selectedProjectId]);
 
   useEffect(() => {
-    //Check for running timers on load
+    if (loading) return; // Don't run effect if data is still loading
+    
     const runningEntry = timeEntries.find(e => e.endTime === null);
-    if(runningEntry) {
+    if(runningEntry && !timerRunning) { // Prevent re-running if timer is already set
       setActiveTimerId(runningEntry.id);
       setTask(runningEntry.task);
       setSelectedProjectId(runningEntry.projectId);
       setTimerRunning(true);
-      setElapsedTime(Math.round((Date.now() - runningEntry.startTime) / 1000));
+      
+      const start = runningEntry.startTime;
+      setElapsedTime(Math.round((Date.now() - start) / 1000));
       
       timerRef.current = setInterval(() => {
-        setElapsedTime(prev => prev + 1);
+        setElapsedTime(Math.round((Date.now() - start) / 1000));
       }, 1000);
     }
 
@@ -539,7 +535,7 @@ export default function ClockifyPage() {
             clearInterval(timerRef.current);
         }
     };
-  }, []); // Run only on mount
+  }, [timeEntries, loading, timerRunning]); 
   
   const handleToggleTimer = () => {
     if (timerRunning) {
@@ -562,11 +558,14 @@ export default function ClockifyPage() {
     if (timerRunning) {
       stopTimer(true); // Stop current timer but indicate we are switching
     }
+
+    // Set task and project first
     setTask(entryToResume.task);
     setSelectedProjectId(entryToResume.projectId);
 
+    // Use a timeout to ensure state has been updated before starting timer
     setTimeout(() => {
-      startTimer();
+        startTimer();
     }, 100);
   };
   
@@ -611,7 +610,7 @@ export default function ClockifyPage() {
                       />
                       <Popover>
                         <PopoverTrigger asChild>
-                            <Button variant="outline" className={cn(selectedProject && "text-primary hover:text-primary hover:bg-primary/10")}>
+                            <Button variant="outline" className={cn("text-primary hover:text-primary hover:bg-primary/10", !selectedProject && "text-foreground")}>
                                 <Briefcase className="mr-2 h-4 w-4" />
                                 {selectedProject?.name || 'Project'}
                             </Button>
@@ -636,12 +635,6 @@ export default function ClockifyPage() {
                                         {project.name}
                                     </CommandItem>
                                 ))}
-                                </CommandGroup>
-                                <CommandSeparator />
-                                <CommandGroup>
-                                    <CommandItem onSelect={() => setSelectedProjectId(null)}>
-                                         <X className="mr-2 h-4 w-4 text-destructive" /> No Project
-                                    </CommandItem>
                                 </CommandGroup>
                             </Command>
                         </PopoverContent>
