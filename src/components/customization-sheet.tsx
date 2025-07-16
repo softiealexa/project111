@@ -371,7 +371,7 @@ export function CustomizationSheet() {
     }
 
     return (
-        <SheetContent className="w-full sm:max-w-md flex flex-col">
+        <SheetContent className="w-full sm:max-w-lg flex flex-col">
             <SheetHeader className="pr-6">
                 <SheetTitle>Customization</SheetTitle>
                 <SheetDescription>Manage profiles, subjects, chapters, and tasks.</SheetDescription>
