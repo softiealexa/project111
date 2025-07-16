@@ -48,7 +48,7 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useData } from '@/contexts/data-context';
 import type { TimeEntry } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { startOfWeek, endOfWeek, eachDayOfInterval, format, addDays, subDays } from 'date-fns';
+import { startOfWeek, endOfWeek, eachDayOfInterval, format, addDays, subDays, startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 interface TimeEntryGroup {
@@ -113,7 +113,10 @@ const PlaceholderContent = ({ title }: { title: string }) => (
 );
 
 const TimesheetView = () => {
+  type TimeRange = 'Today' | 'This Week' | 'This Month';
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [timeRange, setTimeRange] = useState<TimeRange>('This Week');
+
   const [timesheetData, setTimesheetData] = useState([
     { project: 'Project Y', color: 'bg-blue-500', times: { '2024-02-11': 28800 } },
     { project: 'Project X', color: 'bg-pink-500', times: { '2024-02-12': 14400, '2024-02-13': 14400 } },
@@ -121,11 +124,22 @@ const TimesheetView = () => {
     { project: 'Break', color: 'bg-gray-500', times: { '2024-02-11': 1800, '2024-02-12': 1800, '2024-02-13': 1800, '2024-02-14': 1800 } },
   ]);
 
-  const week = useMemo(() => {
-    const start = startOfWeek(currentDate, { weekStartsOn: 1 });
-    const end = endOfWeek(currentDate, { weekStartsOn: 1 });
-    return eachDayOfInterval({ start, end });
-  }, [currentDate]);
+  const daysToDisplay = useMemo(() => {
+    switch (timeRange) {
+        case 'Today':
+            return [currentDate];
+        case 'This Week':
+            const start = startOfWeek(currentDate, { weekStartsOn: 1 });
+            const end = endOfWeek(currentDate, { weekStartsOn: 1 });
+            return eachDayOfInterval({ start, end });
+        case 'This Month':
+            const monthStart = startOfMonth(currentDate);
+            const monthEnd = endOfMonth(currentDate);
+            return eachDayOfInterval({ start: monthStart, end: monthEnd });
+        default:
+            return [];
+    }
+  }, [currentDate, timeRange]);
 
   const handleTimeChange = (projectIndex: number, day: Date, value: string) => {
     const newTimesheetData = [...timesheetData];
@@ -136,22 +150,47 @@ const TimesheetView = () => {
   };
   
   const dailyTotals = useMemo(() => {
-    return week.map(day => {
+    return daysToDisplay.map(day => {
         const dayKey = format(day, 'yyyy-MM-dd');
         return timesheetData.reduce((total, row) => total + (row.times[dayKey] || 0), 0);
     })
-  }, [week, timesheetData]);
+  }, [daysToDisplay, timesheetData]);
 
   const projectTotals = useMemo(() => {
+    const relevantDayKeys = daysToDisplay.map(d => format(d, 'yyyy-MM-dd'));
     return timesheetData.map(row => {
-        return Object.values(row.times).reduce((total, time) => total + (time || 0), 0)
+        return relevantDayKeys.reduce((total, dayKey) => total + (row.times[dayKey] || 0), 0)
     });
-  }, [timesheetData]);
+  }, [timesheetData, daysToDisplay]);
 
   const grandTotal = useMemo(() => dailyTotals.reduce((total, dayTotal) => total + dayTotal, 0), [dailyTotals]);
 
-  const nextWeek = () => setCurrentDate(addDays(currentDate, 7));
-  const prevWeek = () => setCurrentDate(subDays(currentDate, 7));
+  const goToNext = () => {
+    switch(timeRange) {
+        case 'Today': setCurrentDate(addDays(currentDate, 1)); break;
+        case 'This Week': setCurrentDate(addDays(currentDate, 7)); break;
+        case 'This Month': setCurrentDate(addMonths(currentDate, 1)); break;
+    }
+  };
+  const goToPrev = () => {
+    switch(timeRange) {
+        case 'Today': setCurrentDate(subDays(currentDate, 1)); break;
+        case 'This Week': setCurrentDate(subDays(currentDate, 7)); break;
+        case 'This Month': setCurrentDate(subMonths(currentDate, 1)); break;
+    }
+  };
+  
+  const gridTemplateColumns = {
+    'Today': 'grid-cols-[200px_1fr_100px]',
+    'This Week': `grid-cols-[200px_repeat(7,1fr)_100px]`,
+    'This Month': `grid-cols-[200px_repeat(${daysToDisplay.length},minmax(80px,1fr))_100px]`,
+  };
+
+  const minWidth = {
+    'Today': 'min-w-[400px]',
+    'This Week': 'min-w-[900px]',
+    'This Month': 'min-w-[2400px]',
+  }
 
   return (
     <div className="p-4 sm:p-6 bg-muted/30 flex-1">
@@ -166,28 +205,30 @@ const TimesheetView = () => {
                         <SelectItem value="teammates">Teammates</SelectItem>
                     </SelectContent>
                 </Select>
-                 <Select defaultValue="this-week">
+                 <Select value={timeRange} onValueChange={(v: TimeRange) => setTimeRange(v)}>
                     <SelectTrigger className="w-[150px]">
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="this-week">This week</SelectItem>
+                        <SelectItem value="Today">Today</SelectItem>
+                        <SelectItem value="This Week">This Week</SelectItem>
+                        <SelectItem value="This Month">This Month</SelectItem>
                     </SelectContent>
                 </Select>
                 <div className='flex items-center'>
-                    <Button variant="ghost" size="icon" onClick={prevWeek}><ChevronLeft className="h-5 w-5" /></Button>
-                    <Button variant="ghost" size="icon" onClick={nextWeek}><ChevronRight className="h-5 w-5" /></Button>
+                    <Button variant="ghost" size="icon" onClick={goToPrev}><ChevronLeft className="h-5 w-5" /></Button>
+                    <Button variant="ghost" size="icon" onClick={goToNext}><ChevronRight className="h-5 w-5" /></Button>
                 </div>
             </div>
         </div>
 
         <div className="bg-card border rounded-lg overflow-x-auto">
-            <div className="grid grid-cols-[200px_repeat(7,1fr)_100px] min-w-[900px]">
+            <div className={cn("grid", gridTemplateColumns[timeRange], minWidth[timeRange])}>
                 {/* Header */}
                 <div className="p-3 font-semibold text-muted-foreground border-b border-r">Projects</div>
-                {week.map(day => (
+                {daysToDisplay.map(day => (
                     <div key={day.toISOString()} className="p-3 font-semibold text-muted-foreground border-b text-center">
-                        {format(day, 'EEE, MMM d')}
+                        {format(day, timeRange === 'This Month' ? 'd' : 'EEE, MMM d')}
                     </div>
                 ))}
                 <div className="p-3 font-semibold text-muted-foreground border-b border-l text-right">Total</div>
@@ -199,7 +240,7 @@ const TimesheetView = () => {
                             <span className={cn("h-2 w-2 rounded-full", row.color)}></span>
                             <span className="font-medium">{row.project}</span>
                         </div>
-                        {week.map((day, dayIndex) => {
+                        {daysToDisplay.map((day, dayIndex) => {
                             const dayKey = format(day, 'yyyy-MM-dd');
                             return (
                                 <div key={dayIndex} className={cn("p-2 border-b", (day.getDay() === 6 || day.getDay() === 0) && "bg-muted/50")}>
@@ -225,7 +266,7 @@ const TimesheetView = () => {
                             <Plus className="h-4 w-4 mr-2"/> Select project
                         </Button>
                     </div>
-                    {week.map((day, dayIndex) => (
+                    {daysToDisplay.map((day, dayIndex) => (
                         <div key={dayIndex} className={cn("p-2 border-b", (day.getDay() === 6 || day.getDay() === 0) && "bg-muted/50")}>
                             <Input className="text-center border-none" disabled placeholder="0:00" />
                         </div>
@@ -326,7 +367,7 @@ export default function ClockifyPage() {
   
   const handleResumeEntry = (entryToResume: TimeEntry) => {
     if (timerRunning) {
-      stopTimer();
+      // Don't stop the timer, just use the new task description
     }
     setTask(entryToResume.task);
     setTimeout(() => {
