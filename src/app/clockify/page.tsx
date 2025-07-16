@@ -42,14 +42,19 @@ import {
   Plus,
   Save,
   Copy,
+  Pencil,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useData } from '@/contexts/data-context';
-import type { TimeEntry } from '@/lib/types';
+import type { TimeEntry, Project } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { startOfWeek, endOfWeek, eachDayOfInterval, format, addDays, subDays } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ProjectDialog } from '@/components/project-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+
 
 interface TimeEntryGroup {
     day: string;
@@ -117,6 +122,103 @@ const PlaceholderContent = ({ title }: { title: string }) => (
         </CardContent>
     </Card>
 );
+
+const ProjectsView = () => {
+    const { activeProfile, deleteProject } = useData();
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [editingProject, setEditingProject] = useState<Project | null>(null);
+
+    const projects = useMemo(() => activeProfile?.projects || [], [activeProfile]);
+
+    const handleEdit = (project: Project) => {
+        setEditingProject(project);
+        setDialogOpen(true);
+    };
+
+    const handleAddNew = () => {
+        setEditingProject(null);
+        setDialogOpen(true);
+    };
+
+    return (
+        <div className="p-4 sm:p-6 bg-muted/30 flex-1">
+            <div className="flex flex-wrap items-center justify-between mb-4 gap-4">
+                <h1 className="text-2xl font-semibold">Projects</h1>
+                <Button onClick={handleAddNew}>
+                    <Plus className="mr-2 h-4 w-4" /> Add New Project
+                </Button>
+            </div>
+
+            <Card>
+                <CardContent className="p-0">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-[50px]"></TableHead>
+                                <TableHead>Name</TableHead>
+                                <TableHead className="w-[100px] text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {projects.length > 0 ? (
+                                projects.map((project) => (
+                                    <TableRow key={project.id}>
+                                        <TableCell>
+                                            <span 
+                                                className="h-4 w-4 rounded-full block" 
+                                                style={{ backgroundColor: project.color }}
+                                            />
+                                        </TableCell>
+                                        <TableCell className="font-medium">{project.name}</TableCell>
+                                        <TableCell className="text-right">
+                                            <div className="flex items-center justify-end gap-1">
+                                                <Button variant="ghost" size="icon" onClick={() => handleEdit(project)}>
+                                                    <Pencil className="h-4 w-4" />
+                                                </Button>
+                                                <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                This action cannot be undone. This will permanently delete the project "{project.name}".
+                                                            </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                            <AlertDialogAction onClick={() => deleteProject && deleteProject(project.id)}>Delete</AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={3} className="h-24 text-center">
+                                        No projects found.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+
+            <ProjectDialog 
+                open={dialogOpen} 
+                onOpenChange={setDialogOpen} 
+                project={editingProject} 
+            />
+        </div>
+    );
+};
+
 
 const TimesheetView = () => {
   type TimeRange = 'Day' | 'Week';
@@ -503,6 +605,8 @@ export default function ClockifyPage() {
         );
       case 'Timesheet':
         return <TimesheetView />;
+      case 'Projects':
+        return <ProjectsView />;
       default:
         return <PlaceholderContent title={activeMenu} />;
     }
@@ -613,9 +717,3 @@ export default function ClockifyPage() {
     </SidebarProvider>
   );
 }
-
-    
-
-    
-
-    

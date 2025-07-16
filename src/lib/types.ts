@@ -1,5 +1,11 @@
 
 
+export interface Project {
+    id: string;
+    name: string;
+    color: string;
+}
+
 export interface TimeEntry {
     id: string;
     task: string;
@@ -72,6 +78,7 @@ export interface Profile {
   progressHistory?: ProgressPoint[];
   questionSessions?: QuestionSession[];
   timeEntries?: TimeEntry[];
+  projects?: Project[];
 }
 
 export interface AppUser {

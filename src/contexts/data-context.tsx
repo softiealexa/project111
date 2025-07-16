@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useMe
 import { usePathname } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import type { Subject, Profile, Chapter, Note, ImportantLink, Todo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry } from '@/lib/types';
+import type { Subject, Profile, Chapter, Note, ImportantLink, Todo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
 import { db } from '@/lib/firebase';
@@ -60,6 +60,9 @@ interface DataContextType {
   updateTimeEntry: (entry: TimeEntry) => void;
   deleteTimeEntry: (entryId: string) => void;
   setTimeEntries: (entries: TimeEntry[]) => void;
+  addProject: (name: string, color: string) => void;
+  updateProject: (project: Project) => void;
+  deleteProject: (projectId: string) => void;
   exportData: () => void;
   importData: (file: File) => void;
   signOutUser: () => Promise<void>;
@@ -110,6 +113,7 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
             progressHistory: profile.progressHistory || [],
             questionSessions: profile.questionSessions || [],
             timeEntries: profile.timeEntries || [],
+            projects: profile.projects || [],
         };
     });
 };
@@ -817,6 +821,45 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateProfiles(newProfiles, activeProfileName);
   }, [activeProfileName, profiles, updateProfiles]);
 
+  const addProject = useCallback((name: string, color: string) => {
+    if (!activeProfileName) return;
+    const newProject: Project = { id: crypto.randomUUID(), name, color };
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const updatedProjects = [...(p.projects || []), newProject];
+        return { ...p, projects: updatedProjects };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
+  const updateProject = useCallback((updatedProject: Project) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const updatedProjects = (p.projects || []).map(proj => proj.id === updatedProject.id ? updatedProject : proj);
+        return { ...p, projects: updatedProjects };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
+  const deleteProject = useCallback((projectId: string) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const updatedProjects = (p.projects || []).filter(proj => proj.id !== projectId);
+        return { ...p, projects: updatedProjects };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+    toast({ title: "Project Deleted", description: "The project has been successfully deleted.", variant: "destructive" });
+  }, [activeProfileName, profiles, updateProfiles, toast]);
+
+
   const exportData = useCallback(() => {
     if (typeof window === 'undefined' || profiles.length === 0) {
         toast({ title: "Export Failed", description: "No data to export.", variant: "destructive" });
@@ -873,6 +916,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
     addTodo, updateTodo, deleteTodo, setTodos,
     addQuestionSession, addTimeEntry, updateTimeEntry, deleteTimeEntry, setTimeEntries,
+    addProject, updateProject, deleteProject,
     exportData, importData, signOutUser, refreshUserDoc,
     theme, setTheme, mode, setMode, isThemeHydrated,
   }), [
@@ -882,6 +926,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
     addTodo, updateTodo, deleteTodo, setTodos,
     addQuestionSession, addTimeEntry, updateTimeEntry, deleteTimeEntry, setTimeEntries,
+    addProject, updateProject, deleteProject,
     exportData, importData, signOutUser, refreshUserDoc,
     theme, setTheme, mode, setMode, isThemeHydrated, setActiveSubjectName
   ]);
