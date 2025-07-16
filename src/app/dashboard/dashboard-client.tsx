@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import LiveClock from '@/components/live-clock';
 import { getIconComponent } from '@/lib/icons';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Pencil, Timer, ListTodo, CalendarDays, Link as LinkIcon, Keyboard, Target } from 'lucide-react';
+import { Pencil, Timer, ListTodo, CalendarDays, Link as LinkIcon, Keyboard, Target, Beaker, FlaskConical, Copy } from 'lucide-react';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { useSearchParams } from 'next/navigation';
 
@@ -41,6 +41,15 @@ const QuestionTimer = dynamic(() => import('@/components/question-timer'), {
 });
 const ExamCountdown = dynamic(() => import('@/components/exam-countdown'), {
     loading: () => <LoadingSpinner containerClassName="h-96" text="Loading Countdowns..." />
+});
+const FormulaSheet = dynamic(() => import('@/components/formula-sheet'), {
+    loading: () => <LoadingSpinner containerClassName="h-96" text="Loading Formulas..." />
+});
+const FlashcardMaker = dynamic(() => import('@/components/flashcard-maker'), {
+    loading: () => <LoadingSpinner containerClassName="h-96" text="Loading Flashcards..." />
+});
+const UnitConverter = dynamic(() => import('@/components/unit-converter'), {
+    loading: () => <LoadingSpinner containerClassName="h-96" text="Loading Converter..." />
 });
 
 
@@ -169,6 +178,18 @@ export default function DashboardClient() {
                               <Target className="h-5 w-5" />
                               Exam Countdown
                             </TabsTrigger>
+                            <TabsTrigger value="unit-converter" className="justify-start gap-2 py-2.5 text-base">
+                              <Beaker className="h-5 w-5" />
+                              Unit Converter
+                            </TabsTrigger>
+                            <TabsTrigger value="formula-sheet" className="justify-start gap-2 py-2.5 text-base">
+                                <FlaskConical className="h-5 w-5" />
+                                Formula Sheet
+                            </TabsTrigger>
+                            <TabsTrigger value="flashcards" className="justify-start gap-2 py-2.5 text-base">
+                                <Copy className="h-5 w-5" />
+                                Flashcards
+                            </TabsTrigger>
                       </TabsList>
                       <div className="md:col-start-2">
                           <TabsContent value="planner" className="mt-0">
@@ -191,6 +212,15 @@ export default function DashboardClient() {
                           </TabsContent>
                           <TabsContent value="countdown" className="mt-0">
                               <ExamCountdown />
+                          </TabsContent>
+                           <TabsContent value="unit-converter" className="mt-0">
+                              <UnitConverter />
+                          </TabsContent>
+                           <TabsContent value="formula-sheet" className="mt-0">
+                              <FormulaSheet />
+                          </TabsContent>
+                          <TabsContent value="flashcards" className="mt-0">
+                              <FlashcardMaker />
                           </TabsContent>
                       </div>
                   </div>
