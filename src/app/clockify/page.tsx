@@ -747,10 +747,10 @@ export default function ClockifyPage() {
             <SidebarContent>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="Dashboard">
+                        <SidebarMenuButton asChild tooltip="Back to Dashboard">
                           <Link href="/dashboard">
                             <LayoutGrid />
-                            <span>Dashboard</span>
+                            <span>Back to Dashboard</span>
                           </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
