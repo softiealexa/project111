@@ -48,7 +48,7 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useData } from '@/contexts/data-context';
 import type { TimeEntry } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { startOfWeek, endOfWeek, eachDayOfInterval, format, addDays, subDays, addMonths, subMonths, isSameMonth } from 'date-fns';
+import { startOfWeek, endOfWeek, eachDayOfInterval, format, addDays, subDays, addMonths, subMonths } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 interface TimeEntryGroup {
@@ -128,8 +128,6 @@ const TimesheetView = () => {
     if (timeRange === 'Today') {
         return [currentDate];
     }
-    // For both 'This Week' and 'This Month', we display a 7-day week view.
-    // The navigation logic will differ.
     const start = startOfWeek(currentDate, { weekStartsOn: 1 });
     const end = endOfWeek(currentDate, { weekStartsOn: 1 });
     return eachDayOfInterval({ start, end });
@@ -168,12 +166,7 @@ const TimesheetView = () => {
             setCurrentDate(addDays(currentDate, 7)); 
             break;
         case 'This Month':
-            const nextWeek = addDays(currentDate, 7);
-            if (isSameMonth(nextWeek, currentDate)) {
-                setCurrentDate(nextWeek);
-            } else {
-                setCurrentDate(addMonths(currentDate, 1));
-            }
+            setCurrentDate(addMonths(currentDate, 1));
             break;
     }
   };
@@ -186,12 +179,7 @@ const TimesheetView = () => {
             setCurrentDate(subDays(currentDate, 7)); 
             break;
         case 'This Month':
-            const prevWeek = subDays(currentDate, 7);
-            if (isSameMonth(prevWeek, currentDate)) {
-                setCurrentDate(prevWeek);
-            } else {
-                setCurrentDate(subMonths(currentDate, 1));
-            }
+            setCurrentDate(subMonths(currentDate, 1));
             break;
     }
   };
@@ -346,10 +334,10 @@ export default function ClockifyPage() {
     if (timerRef.current) {
         clearInterval(timerRef.current);
     }
-    setElapsedTime(0); 
     const now = Date.now();
     setStartTime(now);
     setTimerRunning(true);
+    setElapsedTime(0);
     
     timerRef.current = setInterval(() => {
         const currentElapsed = Math.round((Date.now() - now) / 1000);
@@ -381,9 +369,11 @@ export default function ClockifyPage() {
   
   const handleResumeEntry = (entryToResume: TimeEntry) => {
     if (timerRunning) {
+      // Allow seamless switching by stopping the current timer first
       stopTimer();
     }
     setTask(entryToResume.task);
+    // Use a small timeout to ensure state update completes before starting new timer
     setTimeout(() => {
       startTimer();
     }, 100);
