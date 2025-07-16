@@ -43,6 +43,7 @@ import {
   Save,
   Copy,
   Pencil,
+  Search,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -123,12 +124,58 @@ const PlaceholderContent = ({ title }: { title: string }) => (
     </Card>
 );
 
+const ProjectDetailsView = ({ project, onBack }: { project: Project, onBack: () => void }) => {
+    return (
+        <div className="p-4 sm:p-6 bg-muted/30 flex-1">
+            <div className="flex items-center gap-4 mb-4">
+                <Button variant="outline" size="icon" onClick={onBack}>
+                    <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <h1 className="text-2xl font-semibold flex items-center gap-3">
+                    <span 
+                        className="h-5 w-5 rounded-full block" 
+                        style={{ backgroundColor: project.color }}
+                    />
+                    {project.name}
+                </h1>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                 <Card>
+                    <CardHeader>
+                        <CardTitle>Time Entries</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <PlaceholderContent title="Time Tracker Records"/>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Timesheet Records</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <PlaceholderContent title="Timesheet Records"/>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
+};
+
+
 const ProjectsView = () => {
     const { activeProfile, deleteProject } = useData();
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingProject, setEditingProject] = useState<Project | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
     const projects = useMemo(() => activeProfile?.projects || [], [activeProfile]);
+    
+    const filteredProjects = useMemo(() => {
+        if (!searchTerm) return projects;
+        return projects.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    }, [projects, searchTerm]);
 
     const handleEdit = (project: Project) => {
         setEditingProject(project);
@@ -140,10 +187,22 @@ const ProjectsView = () => {
         setDialogOpen(true);
     };
 
+    if (selectedProject) {
+        return <ProjectDetailsView project={selectedProject} onBack={() => setSelectedProject(null)} />
+    }
+
     return (
         <div className="p-4 sm:p-6 bg-muted/30 flex-1">
             <div className="flex flex-wrap items-center justify-between mb-4 gap-4">
-                <h1 className="text-2xl font-semibold">Projects</h1>
+                <div className="relative flex-1 min-w-[200px]">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                        placeholder="Search projects..." 
+                        className="pl-10"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
                 <Button onClick={handleAddNew}>
                     <Plus className="mr-2 h-4 w-4" /> Add New Project
                 </Button>
@@ -160,8 +219,8 @@ const ProjectsView = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {projects.length > 0 ? (
-                                projects.map((project) => (
+                            {filteredProjects.length > 0 ? (
+                                filteredProjects.map((project) => (
                                     <TableRow key={project.id}>
                                         <TableCell>
                                             <span 
@@ -169,7 +228,14 @@ const ProjectsView = () => {
                                                 style={{ backgroundColor: project.color }}
                                             />
                                         </TableCell>
-                                        <TableCell className="font-medium">{project.name}</TableCell>
+                                        <TableCell>
+                                            <button 
+                                                className="font-medium hover:underline"
+                                                onClick={() => setSelectedProject(project)}
+                                            >
+                                                {project.name}
+                                            </button>
+                                        </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex items-center justify-end gap-1">
                                                 <Button variant="ghost" size="icon" onClick={() => handleEdit(project)}>
@@ -226,17 +292,17 @@ const TimesheetView = () => {
   const [timeRange, setTimeRange] = useState<TimeRange>('Week');
 
   const [timesheetData, setTimesheetData] = useState([
-    { project: 'Project Y', color: 'bg-blue-500', times: { '2024-02-11': 28800 } },
-    { project: 'Project X', color: 'bg-pink-500', times: { '2024-02-12': 14400, '2024-02-13': 14400 } },
-    { project: 'Office', color: 'bg-orange-500', times: { '2024-02-13': 9000, '2024-02-14': 21600 } },
-    { project: 'Break', color: 'bg-gray-500', times: { '2024-02-11': 1800, '2024-02-12': 1800, '2024-02-13': 1800, '2024-02-14': 1800 } },
+    { project: 'Project Y', color: 'bg-blue-500', times: { '2024-07-14': 28800 } },
+    { project: 'Project X', color: 'bg-pink-500', times: { '2024-07-15': 14400, '2024-07-16': 14400 } },
+    { project: 'Office', color: 'bg-orange-500', times: { '2024-07-16': 9000, '2024-07-17': 21600 } },
+    { project: 'Break', color: 'bg-gray-500', times: { '2024-07-14': 1800, '2024-07-15': 1800, '2024-07-16': 1800, '2024-07-17': 1800 } },
   ]);
 
   const daysToDisplay = useMemo(() => {
     if (timeRange === 'Day') {
         return [currentDate];
     }
-    const start = startOfWeek(currentDate, { weekStartsOn: 1 });
+    const start = startOfWeek(currentDate, { weekStartsOn: 1 }); // Monday
     const end = endOfWeek(currentDate, { weekStartsOn: 1 });
     return eachDayOfInterval({ start, end });
   }, [currentDate, timeRange]);
@@ -432,7 +498,7 @@ export default function ClockifyPage() {
         addTimeEntry({
             task: task || 'Unspecified Task',
             project: 'Office',
-            projectColor: 'text-blue-500',
+            projectColor: '#3f51b5',
             tags: [],
             billable: true,
             startTime: startTime,
@@ -571,7 +637,7 @@ export default function ClockifyPage() {
                                       <div className="flex items-center gap-3">
                                           <div className="flex-1">
                                               <span>{item.task}</span>
-                                              {item.project && <span className={cn('ml-2 font-semibold', item.projectColor)}>• {item.project}</span>}
+                                              {item.project && <span className={'ml-2 font-semibold'} style={{color: item.projectColor}}>• {item.project}</span>}
                                           </div>
                                           <div className="hidden sm:flex items-center gap-2">
                                               {item.tags?.map(tag => <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>)}
