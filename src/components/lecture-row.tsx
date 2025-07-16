@@ -124,7 +124,7 @@ export function LectureRow({ lectureNum, chapter, subject, checkedState, onCheck
                 >
                     <Tooltip>
                         <TooltipTrigger asChild>
-                             <button className="group/lecture-btn flex items-center gap-1.5 text-left text-sm text-muted-foreground rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+                            <button className="group/lecture-btn flex items-center gap-1.5 text-left text-sm text-muted-foreground rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
                                 <span className="truncate max-w-40">{customLectureName || 'Set Lecture Name'}</span>
                                 <Pencil className="h-3 w-3 opacity-0 group-hover/lecture-btn:opacity-100 transition-opacity" />
                             </button>
