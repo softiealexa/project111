@@ -44,6 +44,8 @@ import {
   Copy,
   Pencil,
   Search,
+  Check,
+  X,
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
@@ -56,6 +58,7 @@ import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ProjectDialog } from '@/components/project-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandSeparator } from '@/components/ui/popover';
 
 
 interface TimeEntryGroup {
@@ -624,8 +627,8 @@ export default function ClockifyPage() {
                                         value={project.name}
                                         onSelect={() => {
                                             setSelectedProjectId(project.id);
-                                            const popoverTrigger = document.querySelector('[aria-controls="radix-:R3mmkq:"]');
-                                            if (popoverTrigger instanceof HTMLElement) popoverTrigger.click();
+                                            // Manually close popover,shadcn bug
+                                            document.body.click();
                                         }}
                                     >
                                         <Check className={cn("mr-2 h-4 w-4", selectedProjectId === project.id ? "opacity-100" : "opacity-0")} />
