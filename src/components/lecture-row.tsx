@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { useData } from '@/contexts/data-context';
 import type { Chapter, Subject } from '@/lib/types';
 import { LectureNotesDialog } from './lecture-notes-dialog';
+import { DialogTrigger } from './ui/dialog';
 
 interface LectureRowProps {
   lectureNum: number;
@@ -76,12 +77,14 @@ export function LectureRow({ lectureNum, chapter, subject, checkedState, onCheck
                 >
                     <Tooltip>
                         <TooltipTrigger asChild>
-                             <Button
-                                variant="link"
-                                className="p-0 h-auto font-medium text-foreground no-underline hover:underline focus-visible:ring-offset-background"
-                            >
-                                L-{lectureNum}
-                            </Button>
+                             <DialogTrigger asChild>
+                                <Button
+                                    variant="link"
+                                    className="p-0 h-auto font-medium text-foreground no-underline hover:underline focus-visible:ring-offset-background"
+                                >
+                                    L-{lectureNum}
+                                </Button>
+                             </DialogTrigger>
                         </TooltipTrigger>
                         <TooltipContent>
                             <p>Edit name and notes</p>

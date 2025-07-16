@@ -10,7 +10,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -43,7 +42,7 @@ export function LectureNotesDialog({ lectureNum, currentNote, currentLectureName
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      {children}
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Edit Details for Lecture {lectureNum}</DialogTitle>
