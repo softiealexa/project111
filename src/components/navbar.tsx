@@ -18,7 +18,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { CustomizationSheet } from './customization-sheet';
 import Image from 'next/image';
-import { Sheet } from './ui/sheet';
+import { Sheet, SheetTrigger } from './ui/sheet';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
 export default function Navbar() {
@@ -42,7 +42,6 @@ export default function Navbar() {
 
   return (
     <>
-    <Sheet open={isCustomizationOpen} onOpenChange={handleCustomizationStateChange}>
       <header suppressHydrationWarning className="bg-background/80 border-b border-border/50 backdrop-blur-sm sticky top-0 z-50">
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -55,71 +54,76 @@ export default function Navbar() {
             <div className="flex items-center gap-1 sm:gap-2">
               {user ? (
                 <>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                       <Button asChild variant="ghost" size="icon">
-                        <Link href="/clockify">
-                          <Clock className="h-5 w-5" />
-                          <span className="sr-only">Clockify</span>
-                        </Link>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Clockify</p>
-                    </TooltipContent>
-                  </Tooltip>
+                  <Sheet open={isCustomizationOpen} onOpenChange={handleCustomizationStateChange}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                         <Button asChild variant="ghost" size="icon">
+                          <Link href="/clockify">
+                            <Clock className="h-5 w-5" />
+                            <span className="sr-only">Clockify</span>
+                          </Link>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Clockify</p>
+                      </TooltipContent>
+                    </Tooltip>
 
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" onClick={() => setIsCustomizationOpen(true)} disabled={!activeProfile}>
-                        <SlidersHorizontal className="h-5 w-5" />
-                        <span className="sr-only">Customization</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Customization</p>
-                    </TooltipContent>
-                  </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <SheetTrigger asChild>
+                          <Button variant="ghost" size="icon" disabled={!activeProfile}>
+                            <SlidersHorizontal className="h-5 w-5" />
+                            <span className="sr-only">Customization</span>
+                          </Button>
+                        </SheetTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Customization</p>
+                      </TooltipContent>
+                    </Tooltip>
 
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                        <Avatar className="h-10 w-10">
-                           {user.photoURL ? (
-                            <Image src={user.photoURL} alt={user.displayName || 'user'} width={40} height={40} />
-                          ) : (
-                            <AvatarFallback>{user.displayName?.charAt(0).toUpperCase()}</AvatarFallback>
-                          )}
-                        </Avatar>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56" align="end" forceMount>
-                      <DropdownMenuLabel className="font-normal">
-                        <div className="flex flex-col space-y-1">
-                          <p className="text-sm font-semibold leading-none text-foreground">{user.displayName}</p>
-                          <p className="text-xs leading-none text-muted-foreground">Student Profile</p>
-                        </div>
-                      </DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                       <DropdownMenuItem onSelect={() => router.push('/clockify')}>
-                        <Clock className="mr-2 h-4 w-4" />
-                        <span>Clockify</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => setIsCustomizationOpen(true)} disabled={!activeProfile}>
-                        <SlidersHorizontal className="mr-2 h-4 w-4" />
-                        <span>Customization</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => router.push('/settings')}>
-                        <Settings className="mr-2 h-4 w-4" />
-                        <span>Settings</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onSelect={handleSignOut} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
-                        <LogOut className="mr-2 h-4 w-4" />
-                        <span>Logout</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                          <Avatar className="h-10 w-10">
+                             {user.photoURL ? (
+                              <Image src={user.photoURL} alt={user.displayName || 'user'} width={40} height={40} />
+                            ) : (
+                              <AvatarFallback>{user.displayName?.charAt(0).toUpperCase()}</AvatarFallback>
+                            )}
+                          </Avatar>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="w-56" align="end" forceMount>
+                        <DropdownMenuLabel className="font-normal">
+                          <div className="flex flex-col space-y-1">
+                            <p className="text-sm font-semibold leading-none text-foreground">{user.displayName}</p>
+                            <p className="text-xs leading-none text-muted-foreground">Student Profile</p>
+                          </div>
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                         <DropdownMenuItem onSelect={() => router.push('/clockify')}>
+                          <Clock className="mr-2 h-4 w-4" />
+                          <span>Clockify</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => setIsCustomizationOpen(true)} disabled={!activeProfile}>
+                          <SlidersHorizontal className="mr-2 h-4 w-4" />
+                          <span>Customization</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => router.push('/settings')}>
+                          <Settings className="mr-2 h-4 w-4" />
+                          <span>Settings</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onSelect={handleSignOut} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
+                          <LogOut className="mr-2 h-4 w-4" />
+                          <span>Logout</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                     <CustomizationSheet />
+                  </Sheet>
                 </>
               ) : (
                 <div className="flex items-center gap-2">
@@ -135,8 +139,6 @@ export default function Navbar() {
           </div>
         </nav>
       </header>
-      <CustomizationSheet />
-    </Sheet>
     </>
   );
 }
