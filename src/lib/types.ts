@@ -2,6 +2,15 @@
 
 export type TaskStatus = 'unchecked' | 'checked' | 'checked-red';
 
+export interface SmartTodo {
+  id: string;
+  text: string;
+  forDate: string; // YYYY-MM-DD
+  status: 'pending' | 'completed';
+  completedAt?: number; // timestamp
+  createdAt: number; // timestamp
+  rolledOver?: boolean;
+}
 
 export interface TimesheetEntry {
   [date: string]: number; // date is 'YYYY-MM-DD', value is seconds
@@ -94,7 +103,7 @@ export interface Profile {
   plannerNotes?: Record<string, string>;
   notes?: Note[];
   importantLinks?: ImportantLink[];
-  todos?: Todo[];
+  todos?: SmartTodo[];
   progressHistory?: ProgressPoint[];
   questionSessions?: QuestionSession[];
   examCountdowns?: ExamCountdown[];

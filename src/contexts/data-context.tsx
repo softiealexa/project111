@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useMe
 import { usePathname } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import type { Subject, Profile, Chapter, Note, ImportantLink, Todo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus, ExamCountdown } from '@/lib/types';
+import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus, ExamCountdown } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
 import { db } from '@/lib/firebase';
@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { format } from 'date-fns';
+import { format, subDays, startOfDay, subHours } from 'date-fns';
 
 // --- Local Storage Keys ---
 const LOCAL_PROFILE_KEY_PREFIX = 'trackacademic_profile_';
@@ -21,6 +21,18 @@ const THEME_KEY = 'trackacademic_theme';
 const MODE_KEY = 'trackacademic_mode';
 const SIDEBAR_WIDTH_KEY = 'trackacademic_sidebar_width';
 const DEFAULT_SIDEBAR_WIDTH = 448; // Corresponds to md (28rem)
+
+// --- Smart Todo Logic ---
+const DAY_BOUNDARY_HOUR = 4; // Day ends at 4 AM
+
+const getLogicalDate = (date: Date = new Date()): Date => {
+  return subHours(date, DAY_BOUNDARY_HOUR);
+};
+
+const getLogicalDateString = (date?: Date): string => {
+  return format(getLogicalDate(date), 'yyyy-MM-dd');
+};
+
 
 interface DataContextType {
   user: FirebaseUser | null;
@@ -54,10 +66,10 @@ interface DataContextType {
   updateLink: (link: ImportantLink) => void;
   deleteLink: (linkId: string) => void;
   setLinks: (links: ImportantLink[]) => void;
-  addTodo: (text: string, dueDate: Date | undefined, priority: Priority) => void;
-  updateTodo: (todo: Todo) => void;
+  addTodo: (text: string, forDate: string) => void;
+  updateTodo: (todo: SmartTodo) => void;
   deleteTodo: (todoId: string) => void;
-  setTodos: (todos: Todo[]) => void;
+  setTodos: (todos: SmartTodo[]) => void;
   addQuestionSession: (session: QuestionSession) => void;
   addTimeEntry: (entry: Omit<TimeEntry, 'id'>) => TimeEntry | undefined;
   updateTimeEntry: (entry: TimeEntry) => void;
@@ -381,6 +393,40 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
     }
   }, [user]);
+
+  // --- Smart Todo Rollover Logic ---
+  useEffect(() => {
+    if (!activeProfile) return;
+
+    let todos = activeProfile.todos || [];
+    let updated = false;
+
+    // The date for which we need to check for incomplete tasks
+    const yesterday = subDays(getLogicalDate(), 1); 
+    const yesterdayString = format(yesterday, 'yyyy-MM-dd');
+
+    // Find tasks from yesterday that are still pending
+    const incompleteFromYesterday = todos.filter(t => t.forDate === yesterdayString && t.status === 'pending');
+
+    if (incompleteFromYesterday.length > 0) {
+        const todayString = getLogicalDateString();
+        const rolledOverTasks = incompleteFromYesterday.map(task => ({
+            ...task,
+            id: crypto.randomUUID(), // Give it a new ID for the new day
+            forDate: todayString,
+            rolledOver: true,
+            createdAt: Date.now()
+        }));
+
+        todos = [...todos, ...rolledOverTasks];
+        updated = true;
+    }
+
+    if (updated) {
+        setTodos(todos);
+    }
+}, [activeProfile?.name]); // Re-run when profile changes or app loads
+
 
   const addProfile = useCallback((name: string) => {
     const newProfile: Profile = { name, subjects: [], todos: [] };
@@ -767,14 +813,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateProfiles(newProfiles, activeProfileName);
   }, [activeProfileName, profiles, updateProfiles]);
 
-  const addTodo = useCallback((text: string, dueDate: Date | undefined, priority: Priority) => {
+  const addTodo = useCallback((text: string, forDate: string) => {
     if (!activeProfileName) return;
-    const newTodo: Todo = {
+    const newTodo: SmartTodo = {
       id: crypto.randomUUID(),
       text,
-      completed: false,
-      dueDate: dueDate?.getTime(),
-      priority,
+      forDate,
+      status: 'pending',
+      createdAt: Date.now(),
     };
     const newProfiles = profiles.map(p => {
       if (p.name === activeProfileName) {
@@ -786,7 +832,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateProfiles(newProfiles, activeProfileName);
   }, [activeProfileName, profiles, updateProfiles]);
 
-  const updateTodo = useCallback((updatedTodo: Todo) => {
+  const updateTodo = useCallback((updatedTodo: SmartTodo) => {
     if (!activeProfileName) return;
     const newProfiles = profiles.map(p => {
       if (p.name === activeProfileName) {
@@ -810,7 +856,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateProfiles(newProfiles, activeProfileName);
   }, [activeProfileName, profiles, updateProfiles]);
 
-  const setTodos = useCallback((todos: Todo[]) => {
+  const setTodos = useCallback((todos: SmartTodo[]) => {
     if (!activeProfileName) return;
     const newProfiles = profiles.map(p => {
       if (p.name === activeProfileName) {

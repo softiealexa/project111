@@ -24,7 +24,7 @@ const ProgressSummary = dynamic(() => import("@/components/progress-summary"), {
 const StudyPlanner = dynamic(() => import("@/components/study-planner"), {
   loading: () => <LoadingSpinner containerClassName="h-96" text="Loading Planner..." />
 });
-const TodoList = dynamic(() => import("@/components/todo-list"), {
+const SmartTodoList = dynamic(() => import("@/components/smart-todo-list"), {
   loading: () => <LoadingSpinner containerClassName="h-96" text="Loading To-Do List..." />
 });
 const NotesWriter = dynamic(() => import("@/components/notes-writer"), {
@@ -150,7 +150,7 @@ export default function DashboardClient() {
                           </TabsTrigger>
                           <TabsTrigger value="todo" className="justify-start gap-2 py-2.5 text-base">
                               <ListTodo className="h-5 w-5" />
-                              To-Do List
+                              Smart To-Do
                           </TabsTrigger>
                           <TabsTrigger value="notes" className="justify-start gap-2 py-2.5 text-base">
                               <Pencil className="h-5 w-5" />
@@ -182,7 +182,7 @@ export default function DashboardClient() {
                               <StudyPlanner />
                           </TabsContent>
                           <TabsContent value="todo" className="mt-0">
-                              <TodoList />
+                              <SmartTodoList />
                           </TabsContent>
                           <TabsContent value="notes" className="mt-0">
                               <NotesWriter />

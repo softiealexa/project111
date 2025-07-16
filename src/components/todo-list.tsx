@@ -126,7 +126,7 @@ export default function TodoList() {
   const { activeProfile, addTodo, updateTodo, deleteTodo: deleteTodoFromContext, setTodos } = useData();
   const { toast } = useToast();
   
-  const tasks = activeProfile?.todos || [];
+  const tasks: Todo[] = []; // This component is now deprecated, return empty array.
 
   const [inputText, setInputText] = useState("");
   const [dueDate, setDueDate] = useState<Date | undefined>();
@@ -143,134 +143,33 @@ export default function TodoList() {
   );
 
   const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (over && active.id !== over.id) {
-      const oldIndex = tasks.findIndex((task) => task.id === active.id);
-      const newIndex = tasks.findIndex((task) => task.id === over.id);
-      if (oldIndex !== -1 && newIndex !== -1) {
-        setTodos(arrayMove(tasks, oldIndex, newIndex));
-      }
-    }
+    // This logic is deprecated
   };
 
   const handleAddTask = () => {
-    if (!inputText.trim()) {
-      toast({
-        title: "Error",
-        description: "Task cannot be empty.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    addTodo(inputText.trim(), dueDate, priority);
-
-    setInputText("");
-    setDueDate(undefined);
-    setPriority("Medium");
-    toast({
-        title: 'Task Added',
-        description: `"${inputText.trim()}" has been added to your list.`,
-    });
+    // This logic is deprecated
   };
 
   const toggleTaskCompletion = (id: string) => {
-    const task = tasks.find(t => t.id === id);
-    if (task) {
-        updateTodo({ ...task, completed: !task.completed });
-    }
+    // This logic is deprecated
   };
 
   const deleteTask = (id: string) => {
-    deleteTodoFromContext(id);
-    toast({
-        title: 'Task Removed',
-        description: `The task has been removed from your list.`,
-        variant: "destructive"
-    });
+    // This logic is deprecated
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>To-Do List</CardTitle>
+        <CardTitle>Legacy To-Do List</CardTitle>
         <CardDescription>
-          Organize your tasks, set deadlines, and track your progress.
+          This component has been replaced by the new Smart To-Do List. Please use the new tool.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col sm:flex-row gap-2 mb-4">
-          <Input
-            placeholder="Add a new task..."
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
-            className="flex-grow"
-          />
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant={"outline"}
-                className={cn(
-                  "w-full sm:w-[200px] justify-start text-left font-normal",
-                  !dueDate && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {dueDate ? format(dueDate, "PPP") : <span>Pick a date</span>}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
-              <Calendar
-                mode="single"
-                selected={dueDate}
-                onSelect={setDueDate}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-          <Select value={priority} onValueChange={(v) => setPriority(v as Priority)}>
-            <SelectTrigger className="w-full sm:w-[120px]">
-              <SelectValue placeholder="Priority" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="High">High</SelectItem>
-              <SelectItem value="Medium">Medium</SelectItem>
-              <SelectItem value="Low">Low</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button onClick={handleAddTask} className="w-full sm:w-auto">
-            <Plus className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">Add</span>
-          </Button>
-        </div>
-
-        <Separator className="my-4" />
-
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-            <div className="space-y-3">
-              {tasks.length > 0 ? (
-                tasks.map((task) => (
-                  <SortableTaskItem
-                    key={task.id}
-                    task={task}
-                    toggleTaskCompletion={toggleTaskCompletion}
-                    deleteTask={deleteTask}
-                  />
-                ))
-              ) : (
-                <p className="text-center text-muted-foreground py-4">
-                  Your to-do list is empty. Add a task to get started!
-                </p>
-              )}
-            </div>
-          </SortableContext>
-        </DndContext>
+        <p className="text-center text-muted-foreground py-4">
+          This feature is no longer active.
+        </p>
       </CardContent>
     </Card>
   );
