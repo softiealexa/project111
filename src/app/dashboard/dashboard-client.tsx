@@ -105,7 +105,7 @@ export default function DashboardClient() {
                   <ScrollArea className="flex-1 whitespace-nowrap rounded-md pb-2.5">
                     <TabsList className={cn(
                       "bg-muted h-auto transition-all duration-300",
-                      hasMoreThanFourSubjects ? 'justify-start' : 'grid w-full grid-cols-4 sm:justify-center'
+                      hasMoreThanFourSubjects ? 'justify-start' : 'grid w-full sm:grid-cols-4 sm:justify-center'
                     )}>
                       {activeProfile.subjects.map((subject) => {
                         const Icon = getIconComponent(subject.icon);
