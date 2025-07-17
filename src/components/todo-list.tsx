@@ -28,7 +28,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { format } from 'date-fns';
+import { format, isBefore, isToday, startOfToday } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Calendar } from './ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
@@ -38,6 +38,12 @@ const priorityColors: Record<Priority, string> = {
   High: 'bg-red-500/10 text-red-500 border-red-500/20',
   Medium: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
   Low: 'bg-green-500/10 text-green-500 border-green-500/20',
+};
+
+const deadlineColors = {
+    overdue: 'bg-red-500/10 text-red-500 border-red-500/20',
+    approaching: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
+    default: '',
 };
 
 function SortableTodoItem({ todo, onToggle, onDelete }: { todo: SimpleTodo; onToggle: (id: string, completed: boolean) => void; onDelete: (id: string) => void; }) {
@@ -55,6 +61,15 @@ function SortableTodoItem({ todo, onToggle, onDelete }: { todo: SimpleTodo; onTo
     transition,
     zIndex: isDragging ? 10 : 'auto',
   };
+
+  const deadlineStatus = useMemo(() => {
+    if (!todo.deadline || todo.completed) return 'default';
+    const deadlineDate = new Date(todo.deadline);
+    const today = startOfToday();
+    if (isBefore(deadlineDate, today)) return 'overdue';
+    if (isToday(deadlineDate)) return 'approaching';
+    return 'default';
+  }, [todo.deadline, todo.completed]);
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} className={cn("group flex items-center gap-3 p-2 rounded-md transition-colors hover:bg-muted/50", isDragging && "shadow-lg bg-card")}>
@@ -74,7 +89,7 @@ function SortableTodoItem({ todo, onToggle, onDelete }: { todo: SimpleTodo; onTo
       
       <div className="flex items-center gap-3 ml-auto">
         {todo.deadline && (
-            <span className="text-xs text-muted-foreground">{format(new Date(todo.deadline), 'MMM dd')}</span>
+            <Badge variant="outline" className={cn("text-xs", deadlineColors[deadlineStatus])}>{format(new Date(todo.deadline), 'MMM dd')}</Badge>
         )}
         {todo.priority && (
             <Badge variant="outline" className={cn("text-xs", priorityColors[todo.priority])}>{todo.priority}</Badge>
@@ -188,6 +203,7 @@ export default function SimpleTodoList() {
                     selected={deadline}
                     onSelect={setDeadline}
                     initialFocus
+                    disabled={{ before: new Date() }}
                 />
             </PopoverContent>
           </Popover>
@@ -231,3 +247,4 @@ export default function SimpleTodoList() {
     </Card>
   );
 }
+
