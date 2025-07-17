@@ -81,21 +81,23 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
   const handleMarkSelectedComplete = () => {
     if (tasksToComplete.length === 0) return;
 
-    const newCheckedState: Record<string, TaskStatus> = { ...checkedState };
+    const newCheckedStateForThisChapter: Record<string, TaskStatus> = { ...checkedState };
     for (let i = 1; i <= chapter.lectureCount; i++) {
         tasksToComplete.forEach(task => {
             const checkboxId = `${subject.name}-${chapter.name}-Lecture-${i}-${task}`;
-            newCheckedState[checkboxId] = 'checked';
+            newCheckedStateForThisChapter[checkboxId] = 'checked';
         });
     }
-    setCheckedState(newCheckedState);
+    setCheckedState(newCheckedStateForThisChapter);
 
     if (!activeProfile) return;
+    
     const newSubjects = activeProfile.subjects.map(s => {
       if (s.name === subject.name) {
         const newChapters = s.chapters.map((c, i) => {
           if (i === index) {
-            return { ...c, checkedState: newCheckedState };
+            // Only update the checked state for the current chapter
+            return { ...c, checkedState: newCheckedStateForThisChapter };
           }
           return c;
         });
@@ -103,6 +105,7 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
       }
       return s;
     });
+
     updateSubjects(newSubjects);
     setTasksToComplete([]);
   };
