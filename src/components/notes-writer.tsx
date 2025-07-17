@@ -61,7 +61,7 @@ function SortableNoteItemComponent({ note, selectNote, handleDelete }: { note: N
                 </button>
                 <div className="flex-1 py-3 pr-10 min-w-0 cursor-pointer" onClick={() => selectNote(note)}>
                     <CardTitle className="text-lg truncate">{note.title || 'Untitled'}</CardTitle>
-                    <p className="text-sm text-muted-foreground line-clamp-2 mt-1 pr-2">{note.content}</p>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap mt-1 pr-2">{note.content}</p>
                 </div>
                 <Button
                     variant="ghost"
