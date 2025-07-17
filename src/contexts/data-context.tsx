@@ -99,12 +99,12 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
     return profiles.map(profile => {
         const migratedSubjects = (profile.subjects || []).map((subject: any) => {
             const migratedChapters = (subject.chapters || []).map((chapter: any) => {
-                 // Definitive fix: create a fresh checkedState object
                 const newCheckedState: Record<string, TaskStatus> = {};
+                // This function now explicitly checks for old 'true' booleans and converts them,
+                // while preserving any existing valid string states.
                 if (chapter.checkedState && typeof chapter.checkedState === 'object') {
                     Object.keys(chapter.checkedState).forEach(key => {
                         const value = chapter.checkedState[key];
-                        // Only carry over valid string statuses, converting booleans on the fly
                         if (value === true) {
                             newCheckedState[key] = 'checked';
                         } else if (['unchecked', 'checked', 'checked-red'].includes(value)) {
@@ -234,14 +234,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (loading) return;
 
     const today = new Date();
-    // Check if it's Sunday (0)
-    if (today.getDay() === 0) {
-        const currentWeekId = `${getYear(today)}-${getISOWeek(today)}`;
-        const lastPromptWeekId = localStorage.getItem(PROGRESS_DOWNLOAD_PROMPT_KEY);
+    // Use ISO week to uniquely identify the week of the year
+    const currentWeekId = `${getYear(today)}-${getISOWeek(today)}`;
+    const lastPromptWeekId = localStorage.getItem(PROGRESS_DOWNLOAD_PROMPT_KEY);
 
-        if (currentWeekId !== lastPromptWeekId) {
-            setShowProgressDownloadPrompt(true);
-        }
+    if (currentWeekId !== lastPromptWeekId) {
+        setShowProgressDownloadPrompt(true);
     }
   }, [loading]);
 
@@ -1157,9 +1155,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addQuestionSession, addTimeEntry, updateTimeEntry, deleteTimeEntry, setTimeEntries,
     addProject, updateProject, deleteProject, updateTimesheetEntry, setTimesheetData,
     addExamCountdown, updateExamCountdown, deleteExamCountdown, setExamCountdowns,
-showProgressDownloadPrompt, setShowProgressDownloadPrompt,
     exportData, importData, signOutUser, refreshUserDoc,
-    theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth, setActiveSubjectName
+    theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth, setActiveSubjectName,
+    showProgressDownloadPrompt
   ]);
   
   const shouldShowCreateProfile = useMemo(() => {

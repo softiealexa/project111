@@ -41,7 +41,7 @@ export default function ProgressDownloadDialog() {
                 <PartyPopper className="h-9 w-9 text-primary" />
             </div>
           </div>
-          <AlertDialogTitle className="text-center text-2xl">Happy Sunday!</AlertDialogTitle>
+          <AlertDialogTitle className="text-center text-2xl">Weekly Progress Check-in!</AlertDialogTitle>
           <AlertDialogDescription className="text-center">
             You've made it through another week. It's a great time to back up your progress.
           </AlertDialogDescription>
