@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { format, subDays, startOfDay, subHours } from 'date-fns';
+import { format } from 'date-fns';
 
 // --- Local Storage Keys ---
 const LOCAL_PROFILE_KEY_PREFIX = 'trackacademic_profile_';
@@ -93,49 +93,38 @@ const getLocalKey = (username: string | null) => {
 }
 
 const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
-    if (!profiles) return [];
+    if (!profiles || !Array.isArray(profiles)) return [];
+    
     return profiles.map(profile => {
         const migratedSubjects = (profile.subjects || []).map((subject: any) => {
-            let iconName = subject.icon;
-            if (typeof iconName !== 'string') {
-                // Legacy data, icon property is missing or not a string.
-                // We'll assign one based on name for common subjects.
-                switch (subject.name) {
-                    case 'Physics': iconName = 'Zap'; break;
-                    case 'Chemistry': iconName = 'FlaskConical'; break;
-                    case 'Maths': iconName = 'Sigma'; break;
-                    default: iconName = 'Book';
-                }
-            }
             const migratedChapters = (subject.chapters || []).map((chapter: any) => {
                 const newCheckedState: Record<string, TaskStatus> = {};
-                if (chapter.checkedState) {
+                if (chapter.checkedState && typeof chapter.checkedState === 'object') {
                     Object.keys(chapter.checkedState).forEach(key => {
                         const value = chapter.checkedState[key];
-                        // This is the migration logic.
-                        // If value is a boolean `true`, convert it to the string `'checked'`.
                         if (typeof value === 'boolean') {
-                            if (value) {
+                            if (value === true) {
                                 newCheckedState[key] = 'checked';
                             }
-                            // We don't need to store 'unchecked' booleans, so we just skip `false`.
                         } else if (['unchecked', 'checked', 'checked-red'].includes(value)) {
-                            // If it's already in the new format, keep it.
                             newCheckedState[key] = value;
                         }
                     });
                 }
-                return { ...chapter, checkedState: newCheckedState };
+                return { 
+                    ...chapter, 
+                    checkedState: newCheckedState,
+                };
             });
 
             return {
                 ...subject,
-                icon: iconName,
-                // Ensure tasks are there for backwards compatibility
+                icon: subject.icon || 'Book',
                 tasks: subject.tasks || ['Lecture', 'DPP', 'Module', 'Class Qs'],
                 chapters: migratedChapters,
             };
         });
+        
         return {
             ...profile,
             subjects: migratedSubjects,
