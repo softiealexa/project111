@@ -4,11 +4,9 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus, ExamCountdown } from '@/lib/types';
+import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus, ExamCountdown } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
-import { db } from '@/lib/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -98,11 +96,20 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
     return profiles.map(profile => {
         const migratedSubjects = (profile.subjects || []).map((subject: any) => {
             const migratedChapters = (subject.chapters || []).map((chapter: any) => {
-                // This function now resets the progress for all users to fix data inconsistencies.
-                // It ensures that the checkedState is an empty object, effectively setting progress to 0.
+                const newCheckedState: Record<string, TaskStatus> = {};
+                if (chapter.checkedState && typeof chapter.checkedState === 'object') {
+                    Object.keys(chapter.checkedState).forEach(key => {
+                        const value = chapter.checkedState[key];
+                        if (value === true) {
+                            newCheckedState[key] = 'checked';
+                        } else if (['unchecked', 'checked', 'checked-red'].includes(value)) {
+                            newCheckedState[key] = value;
+                        }
+                    });
+                }
                 return { 
                     ...chapter, 
-                    checkedState: {},
+                    checkedState: newCheckedState,
                 };
             });
 
@@ -1048,19 +1055,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
         toast({ title: "Export Failed", description: "No data to export.", variant: "destructive" });
         return;
     };
-    const dataToStore = { profiles, activeProfileName };
+    const dataToStore = {
+        profiles,
+        activeProfileName,
+        settings: {
+            theme,
+            mode,
+            sidebarWidth
+        }
+    };
     const dataStr = JSON.stringify(dataToStore, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
-    link.href = url;
     link.download = `trackacademic_data_${user ? user.displayName : 'guest'}.json`;
+    link.href = url;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     toast({ title: "Export Successful", description: "Your data has been downloaded." });
-  }, [profiles, activeProfileName, user, toast]);
+  }, [profiles, activeProfileName, user, theme, mode, sidebarWidth, toast]);
 
   const importData = useCallback((file: File) => {
       const reader = new FileReader();
@@ -1072,6 +1087,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
                   setProfiles(processed);
                   setActiveProfileName(data.activeProfileName);
                   setActiveSubjectName(null);
+                  
+                  if (data.settings) {
+                      setTheme(data.settings.theme || 'default');
+                      setMode(data.settings.mode || 'dark');
+                      setSidebarWidth(data.settings.sidebarWidth || DEFAULT_SIDEBAR_WIDTH);
+                  }
+
                   saveData(processed, data.activeProfileName);
                   toast({ title: "Import Successful", description: "Your data has been restored." });
               } else {
@@ -1082,7 +1104,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           }
       };
       reader.readAsText(file);
-  }, [saveData, toast]);
+  }, [saveData, toast, setTheme, setMode, setSidebarWidth]);
   
   const signOutUser = useCallback(async () => {
     await signOut();
