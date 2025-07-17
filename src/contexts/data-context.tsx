@@ -11,13 +11,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { format } from 'date-fns';
+import { format, getISOWeek, getYear } from 'date-fns';
 
 // --- Local Storage Keys ---
 const LOCAL_PROFILE_KEY_PREFIX = 'trackacademic_profile_';
 const THEME_KEY = 'trackacademic_theme';
 const MODE_KEY = 'trackacademic_mode';
 const SIDEBAR_WIDTH_KEY = 'trackacademic_sidebar_width';
+const PROGRESS_DOWNLOAD_PROMPT_KEY = 'trackacademic_progress_prompt';
 const DEFAULT_SIDEBAR_WIDTH = 448; // Corresponds to md (28rem)
 
 interface DataContextType {
@@ -81,6 +82,8 @@ interface DataContextType {
   isThemeHydrated: boolean;
   sidebarWidth: number;
   setSidebarWidth: (width: number) => void;
+  showProgressDownloadPrompt: boolean;
+  setShowProgressDownloadPrompt: (show: boolean) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -96,10 +99,12 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
     return profiles.map(profile => {
         const migratedSubjects = (profile.subjects || []).map((subject: any) => {
             const migratedChapters = (subject.chapters || []).map((chapter: any) => {
+                 // Definitive fix: create a fresh checkedState object
                 const newCheckedState: Record<string, TaskStatus> = {};
                 if (chapter.checkedState && typeof chapter.checkedState === 'object') {
                     Object.keys(chapter.checkedState).forEach(key => {
                         const value = chapter.checkedState[key];
+                        // Only carry over valid string statuses, converting booleans on the fly
                         if (value === true) {
                             newCheckedState[key] = 'checked';
                         } else if (['unchecked', 'checked', 'checked-red'].includes(value)) {
@@ -184,6 +189,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [mode, setModeState] = useState<'light' | 'dark'>('dark');
   const [sidebarWidth, setSidebarWidthState] = useState<number>(DEFAULT_SIDEBAR_WIDTH);
   const [isThemeHydrated, setIsThemeHydrated] = useState(false);
+  const [showProgressDownloadPrompt, setShowProgressDownloadPrompt] = useState(false);
+
 
   const setSidebarWidth = useCallback((width: number) => {
     setSidebarWidthState(width);
@@ -222,6 +229,21 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     setIsThemeHydrated(true);
   }, [setTheme, setMode, setSidebarWidth]);
+
+  useEffect(() => {
+    if (loading) return;
+
+    const today = new Date();
+    // Check if it's Sunday (0)
+    if (today.getDay() === 0) {
+        const currentWeekId = `${getYear(today)}-${getISOWeek(today)}`;
+        const lastPromptWeekId = localStorage.getItem(PROGRESS_DOWNLOAD_PROMPT_KEY);
+
+        if (currentWeekId !== lastPromptWeekId) {
+            setShowProgressDownloadPrompt(true);
+        }
+    }
+  }, [loading]);
 
   const saveData = useCallback(async (profilesToSave: Profile[], activeNameToSave: string | null) => {
     if (typeof window === 'undefined') return;
@@ -1125,6 +1147,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addExamCountdown, updateExamCountdown, deleteExamCountdown, setExamCountdowns,
     exportData, importData, signOutUser, refreshUserDoc,
     theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth,
+    showProgressDownloadPrompt, setShowProgressDownloadPrompt,
   }), [
     user, userDoc, loading, profiles, activeProfile, activeSubjectName,
     addProfile, removeProfile, renameProfile, switchProfile, updateSubjects, addSubject, removeSubject, renameSubject,
@@ -1134,6 +1157,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addQuestionSession, addTimeEntry, updateTimeEntry, deleteTimeEntry, setTimeEntries,
     addProject, updateProject, deleteProject, updateTimesheetEntry, setTimesheetData,
     addExamCountdown, updateExamCountdown, deleteExamCountdown, setExamCountdowns,
+showProgressDownloadPrompt, setShowProgressDownloadPrompt,
     exportData, importData, signOutUser, refreshUserDoc,
     theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth, setActiveSubjectName
   ]);

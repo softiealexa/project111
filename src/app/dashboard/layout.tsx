@@ -2,7 +2,9 @@
 'use client';
 
 import Navbar from '@/components/navbar';
+import ProgressDownloadDialog from '@/components/progress-download-dialog';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { Suspense } from 'react';
 
 export default function DashboardLayout({
   children,
@@ -22,6 +24,9 @@ export default function DashboardLayout({
             <main id="main-content" className="flex-1 flex">
                 {children}
             </main>
+            <Suspense>
+              <ProgressDownloadDialog />
+            </Suspense>
         </div>
     </TooltipProvider>
   );
