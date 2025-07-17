@@ -107,7 +107,7 @@ export function LectureRow({ lectureNum, chapter, subject, checkedState, onCheck
                 </LectureNotesDialog>
 
                  {customLectureName && (
-                    <span className="text-sm text-muted-foreground truncate max-w-40">{customLectureName}</span>
+                    <span className="text-sm text-muted-foreground truncate max-w-[200px]">{customLectureName}</span>
                  )}
             </div>
             
