@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useMe
 import { usePathname } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus } from '@/lib/types';
+import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus, ExamCountdown } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
 import { db } from '@/lib/firebase';
@@ -99,15 +99,14 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
         const migratedSubjects = (profile.subjects || []).map((subject: any) => {
             const migratedChapters = (subject.chapters || []).map((chapter: any) => {
                 const newCheckedState: Record<string, TaskStatus> = {};
+                // This function now explicitly checks for old 'true' booleans and converts them,
+                // while preserving any existing valid string states.
                 if (chapter.checkedState && typeof chapter.checkedState === 'object') {
                     Object.keys(chapter.checkedState).forEach(key => {
                         const value = chapter.checkedState[key];
-                        // **This is the critical fix**: It explicitly checks for the old `true` boolean
-                        // and converts it to the new `'checked'` string format.
                         if (value === true) {
                             newCheckedState[key] = 'checked';
                         } else if (['unchecked', 'checked', 'checked-red'].includes(value)) {
-                            // It also preserves the correct new format if it already exists.
                             newCheckedState[key] = value;
                         }
                     });
@@ -1128,7 +1127,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
     theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth, setActiveSubjectName
   ]);
   
-  if (!loading && (pathname.startsWith('/dashboard') || pathname.startsWith('/settings')) && profiles.length === 0) {
+  if (loading) {
+      return null; // Or a loading spinner
+  }
+
+  if ((pathname.startsWith('/dashboard') || pathname.startsWith('/settings')) && profiles.length === 0) {
       return (
         <DataContext.Provider value={value}>
             <CreateProfileScreen onProfileCreate={addProfile} />
