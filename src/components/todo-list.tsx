@@ -174,12 +174,12 @@ export default function SimpleTodoList() {
                 <Button
                     variant={"outline"}
                     className={cn(
-                        "w-[180px] justify-start text-left font-normal",
+                        "w-[120px] justify-start text-left font-normal",
                         !deadline && "text-muted-foreground"
                     )}
                 >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {deadline ? format(deadline, "PPP") : <span>Pick a date</span>}
+                    {deadline ? format(deadline, "MMM d") : <span>Deadline</span>}
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0">
