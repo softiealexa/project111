@@ -100,8 +100,6 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
         const migratedSubjects = (profile.subjects || []).map((subject: any) => {
             const migratedChapters = (subject.chapters || []).map((chapter: any) => {
                 const newCheckedState: Record<string, TaskStatus> = {};
-                // This function now explicitly checks for old 'true' booleans and converts them,
-                // while preserving any existing valid string states.
                 if (chapter.checkedState && typeof chapter.checkedState === 'object') {
                     Object.keys(chapter.checkedState).forEach(key => {
                         const value = chapter.checkedState[key];
@@ -234,7 +232,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (loading) return;
 
     const today = new Date();
-    // Use ISO week to uniquely identify the week of the year
     const currentWeekId = `${getYear(today)}-${getISOWeek(today)}`;
     const lastPromptWeekId = localStorage.getItem(PROGRESS_DOWNLOAD_PROMPT_KEY);
 
@@ -401,7 +398,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     const lastRolloverDate = localStorage.getItem(lastRolloverKey);
 
-    // Only run rollover logic once per day
     if (lastRolloverDate === todayStr) {
         return;
     }
@@ -409,7 +405,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     let todos = activeProfile.todos || [];
     let updated = false;
 
-    // Check all past dates for incomplete tasks
     const uniquePastDates = [...new Set(todos.map(t => t.forDate).filter(d => d < todayStr))];
     
     uniquePastDates.forEach(dateStr => {
@@ -424,7 +419,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 createdAt: Date.now()
             }));
 
-            // Add the new rolled-over tasks
             todos = [...todos, ...rolledOverTasks];
             updated = true;
         }
@@ -435,7 +429,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
         updateProfiles(newProfiles, activeProfileName);
     }
     
-    // Mark today as the last rollover date
     localStorage.setItem(lastRolloverKey, todayStr);
   }, [activeProfile, loading, profiles, activeProfileName, updateProfiles]);
 
@@ -723,7 +716,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const newProfiles = profiles.map(p => {
         if (p.name === activeProfileName) {
             const currentNotes = p.notes || [];
-            // New notes are now added to the beginning of the array.
             const updatedNotes = [newNote, ...currentNotes];
             return { ...p, notes: updatedNotes };
         }
@@ -884,7 +876,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const newProfiles = profiles.map(p => {
       if (p.name === activeProfileName) {
         const currentSessions = p.questionSessions || [];
-        // Add new session to the beginning and limit history to 50
         const updatedSessions = [session, ...currentSessions].slice(0, 50);
         return { ...p, questionSessions: updatedSessions };
       }
@@ -1088,7 +1079,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
-    link.download = `trackacademic_data_${user ? user.displayName : 'guest'}.json`;
+    const dateStr = format(new Date(), 'dd-MM-yy');
+    const username = user?.displayName || 'guest';
+    link.download = `trackacademic_data_${username}_${dateStr}.json`;
     link.href = url;
     document.body.appendChild(link);
     link.click();
@@ -1131,7 +1124,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setProfiles([]);
     setActiveProfileName(null);
     setActiveSubjectName(null);
-    localStorage.removeItem(getLocalKey(null)); // Clear guest data on logout
+    localStorage.removeItem(getLocalKey(null));
   }, []);
 
   const value = useMemo(() => ({
@@ -1161,12 +1154,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
   ]);
   
   const shouldShowCreateProfile = useMemo(() => {
-    const publicPages = ['/', '/login', '/register'];
     const protectedPages = ['/dashboard', '/settings', '/clockify', '/admin'];
     
     if (loading) return false;
     
-    // If on a protected page and there are no profiles, show create screen
     if (protectedPages.some(p => pathname.startsWith(p)) && profiles.length === 0) {
       return true;
     }
@@ -1193,3 +1184,5 @@ export function useData() {
   }
   return context;
 }
+
+    
