@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
-import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, SimpleTodo, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus, ExamCountdown } from '@/lib/types';
+import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, SimpleTodo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus, ExamCountdown } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -57,7 +57,7 @@ interface DataContextType {
   updateTodo: (todo: SmartTodo) => void;
   deleteTodo: (todoId: string) => void;
   setTodos: (todos: SmartTodo[]) => void;
-  addSimpleTodo: (text: string) => void;
+  addSimpleTodo: (text: string, priority: Priority, deadline?: number) => void;
   updateSimpleTodo: (todo: SimpleTodo) => void;
   deleteSimpleTodo: (todoId: string) => void;
   setSimpleTodos: (todos: SimpleTodo[]) => void;
@@ -103,10 +103,22 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
     return profiles.map(profile => {
         const migratedSubjects = (profile.subjects || []).map((subject: any) => {
             const migratedChapters = (subject.chapters || []).map((chapter: any) => {
-                // This resets the checkedState to an empty object, effectively resetting progress.
+                const newCheckedState: Record<string, TaskStatus> = {};
+                // This function now explicitly checks for old 'true' booleans and converts them,
+                // while preserving any existing valid string states.
+                if (chapter.checkedState && typeof chapter.checkedState === 'object') {
+                    Object.keys(chapter.checkedState).forEach(key => {
+                        const value = chapter.checkedState[key];
+                        if (value === true) {
+                            newCheckedState[key] = 'checked';
+                        } else if (['unchecked', 'checked', 'checked-red'].includes(value)) {
+                            newCheckedState[key] = value;
+                        }
+                    });
+                }
                 return { 
                     ...chapter, 
-                    checkedState: {},
+                    checkedState: newCheckedState,
                 };
             });
 
@@ -711,7 +723,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const newProfiles = profiles.map(p => {
         if (p.name === activeProfileName) {
             const currentNotes = p.notes || [];
-            // New notes are now added to the beginning of the array.
             const updatedNotes = [newNote, ...currentNotes];
             return { ...p, notes: updatedNotes };
         }
@@ -867,17 +878,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateProfiles(newProfiles, activeProfileName);
   }, [activeProfileName, profiles, updateProfiles]);
 
-  const addSimpleTodo = useCallback((text: string) => {
+  const addSimpleTodo = useCallback((text: string, priority: Priority, deadline?: number) => {
     if (!activeProfileName) return;
     const newTodo: SimpleTodo = {
       id: crypto.randomUUID(),
       text,
       completed: false,
       createdAt: Date.now(),
+      priority,
+      deadline,
     };
     const newProfiles = profiles.map(p => {
       if (p.name === activeProfileName) {
-        const updatedTodos = [newTodo, ...(p.simpleTodos || [])];
+        const updatedTodos = [...(p.simpleTodos || []), newTodo];
         return { ...p, simpleTodos: updatedTodos };
       }
       return p;

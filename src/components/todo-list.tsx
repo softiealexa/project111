@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo } from 'react';
-import { Plus, Trash2, Edit } from 'lucide-react';
+import { Plus, Trash2, Calendar as CalendarIcon } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -20,7 +20,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useData } from "@/contexts/data-context";
-import type { SimpleTodo } from "@/lib/types";
+import type { SimpleTodo, Priority } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -28,8 +28,19 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { format } from 'date-fns';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { Calendar } from './ui/calendar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Badge } from './ui/badge';
 
-function SortableTodoItem({ todo, onToggle, onEdit, onDelete }: { todo: SimpleTodo; onToggle: (id: string, completed: boolean) => void; onEdit: (task: SimpleTodo) => void; onDelete: (id: string) => void; }) {
+const priorityColors: Record<Priority, string> = {
+  High: 'bg-red-500/10 text-red-500 border-red-500/20',
+  Medium: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
+  Low: 'bg-green-500/10 text-green-500 border-green-500/20',
+};
+
+function SortableTodoItem({ todo, onToggle, onDelete }: { todo: SimpleTodo; onToggle: (id: string, completed: boolean) => void; onDelete: (id: string) => void; }) {
   const {
     attributes,
     listeners,
@@ -53,17 +64,22 @@ function SortableTodoItem({ todo, onToggle, onEdit, onDelete }: { todo: SimpleTo
       <Checkbox
         id={`task-${todo.id}`}
         checked={todo.completed ? 'checked' : 'unchecked'}
-        onCheckedChange={(status) => onToggle(todo.id, status === 'checked')}
+        onCheckedChange={(status) => onToggle(todo.id, status === 'checked' || status === 'checked-red')}
         aria-label={`Mark task as ${todo.completed ? 'incomplete' : 'complete'}`}
+        className="h-5 w-5 rounded-full"
       />
       <Label htmlFor={`task-${todo.id}`} className={cn("flex-grow cursor-pointer", todo.completed && "line-through text-muted-foreground")}>
         {todo.text}
       </Label>
-      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(todo)}>
-          <Edit className="h-4 w-4" />
-        </Button>
-        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => onDelete(todo.id)}>
+      
+      <div className="flex items-center gap-3 ml-auto">
+        {todo.deadline && (
+            <span className="text-xs text-muted-foreground">{format(new Date(todo.deadline), 'MMM dd')}</span>
+        )}
+        {todo.priority && (
+            <Badge variant="outline" className={cn("text-xs", priorityColors[todo.priority])}>{todo.priority}</Badge>
+        )}
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => onDelete(todo.id)}>
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>
@@ -78,7 +94,8 @@ export default function SimpleTodoList() {
   const allTasks = useMemo(() => activeProfile?.simpleTodos || [], [activeProfile]);
   
   const [inputText, setInputText] = useState("");
-  const [editingTask, setEditingTask] = useState<SimpleTodo | null>(null);
+  const [deadline, setDeadline] = useState<Date | undefined>();
+  const [priority, setPriority] = useState<Priority>('Medium');
 
   const sortedTasks = useMemo(() => {
     return [...allTasks].sort((a, b) => {
@@ -94,16 +111,12 @@ export default function SimpleTodoList() {
       toast({ title: "Error", description: "Task cannot be empty.", variant: "destructive" });
       return;
     }
-
-    if (editingTask) {
-      updateSimpleTodo({ ...editingTask, text });
-      toast({ title: 'Task Updated', description: `"${text}" has been updated.` });
-      setEditingTask(null);
-    } else {
-      addSimpleTodo(text);
-      toast({ title: 'Task Added', description: `"${text}" has been added.` });
-    }
+    
+    addSimpleTodo(text, priority, deadline?.getTime());
+    
     setInputText("");
+    setDeadline(undefined);
+    setPriority('Medium');
   };
 
   const handleToggleTask = (taskId: string, completed: boolean) => {
@@ -116,12 +129,6 @@ export default function SimpleTodoList() {
   const handleDeleteTask = (taskId: string) => {
     deleteSimpleTodo(taskId);
     toast({ title: 'Task Removed', variant: "destructive" });
-  };
-
-  const handleEdit = (task: SimpleTodo) => {
-    setEditingTask(task);
-    setInputText(task.text);
-    document.getElementById('simple-task-input')?.focus();
   };
 
   const sensors = useSensors(
@@ -153,22 +160,54 @@ export default function SimpleTodoList() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Input
             id="simple-task-input"
             placeholder="Add a new task..."
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
-            className="flex-1"
+            className="flex-1 min-w-[200px]"
           />
+          <Popover>
+            <PopoverTrigger asChild>
+                <Button
+                    variant={"outline"}
+                    className={cn(
+                        "w-[180px] justify-start text-left font-normal",
+                        !deadline && "text-muted-foreground"
+                    )}
+                >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {deadline ? format(deadline, "PPP") : <span>Pick a date</span>}
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+                <Calendar
+                    mode="single"
+                    selected={deadline}
+                    onSelect={setDeadline}
+                    initialFocus
+                />
+            </PopoverContent>
+          </Popover>
+          <Select value={priority} onValueChange={(v: Priority) => setPriority(v)}>
+            <SelectTrigger className="w-[120px]">
+                <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value="Low">Low</SelectItem>
+                <SelectItem value="Medium">Medium</SelectItem>
+                <SelectItem value="High">High</SelectItem>
+            </SelectContent>
+          </Select>
           <Button onClick={handleAddTask}>
-            {editingTask ? 'Save' : <Plus className="h-4 w-4 md:mr-2" />}
-            <span className="hidden md:inline">{editingTask ? 'Save Task' : 'Add Task'}</span>
+            <Plus className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">Add</span>
           </Button>
         </div>
 
-        <div className="space-y-2 h-[350px] overflow-y-auto pr-2">
+        <div className="space-y-2 h-[350px] overflow-y-auto pr-2 border-t pt-4">
           {sortedTasks.length > 0 ? (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={sortedTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
@@ -177,7 +216,6 @@ export default function SimpleTodoList() {
                     key={task.id}
                     todo={task}
                     onToggle={handleToggleTask}
-                    onEdit={handleEdit}
                     onDelete={handleDeleteTask}
                   />
                 ))}

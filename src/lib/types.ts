@@ -1,12 +1,15 @@
 
 
 export type TaskStatus = 'unchecked' | 'checked' | 'checked-red';
+export type Priority = 'Low' | 'Medium' | 'High';
 
 export interface SimpleTodo {
   id: string;
   text: string;
   completed: boolean;
   createdAt: number;
+  deadline?: number; // Optional timestamp
+  priority?: Priority; // Optional priority
 }
 
 export interface SmartTodo {
