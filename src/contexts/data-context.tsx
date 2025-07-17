@@ -100,15 +100,18 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
             const migratedChapters = (subject.chapters || []).map((chapter: any) => {
                 const newCheckedState: Record<string, TaskStatus> = {};
                 if (chapter.checkedState && typeof chapter.checkedState === 'object') {
-                    Object.keys(chapter.checkedState).forEach(key => {
-                        const value = chapter.checkedState[key];
-                        if (typeof value === 'boolean') {
-                            if (value === true) {
-                                newCheckedState[key] = 'checked';
-                            }
-                        } else if (['unchecked', 'checked', 'checked-red'].includes(value)) {
+                    Object.entries(chapter.checkedState).forEach(([key, value]) => {
+                        // This robust check ensures only valid TaskStatus strings are kept.
+                        if (value === 'checked' || value === 'checked-red' || value === 'unchecked') {
                             newCheckedState[key] = value;
+                        } 
+                        // **This is the critical fix**: It explicitly checks for the old `true` boolean
+                        // and converts it to the new `'checked'` string format.
+                        else if (value === true) {
+                            newCheckedState[key] = 'checked';
                         }
+                        // Any other value (like false, or other invalid data) is simply ignored and not
+                        // carried over, effectively cleaning the data.
                     });
                 }
                 return { 
