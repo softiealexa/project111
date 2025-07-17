@@ -1,0 +1,1150 @@
+
+'use client';
+
+import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
+import type { User as FirebaseUser } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus } from '@/lib/types';
+import { useToast } from "@/hooks/use-toast";
+import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
+import { db } from '@/lib/firebase';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { format } from 'date-fns';
+
+// --- Local Storage Keys ---
+const LOCAL_PROFILE_KEY_PREFIX = 'trackacademic_profile_';
+const THEME_KEY = 'trackacademic_theme';
+const MODE_KEY = 'trackacademic_mode';
+const SIDEBAR_WIDTH_KEY = 'trackacademic_sidebar_width';
+const DEFAULT_SIDEBAR_WIDTH = 448; // Corresponds to md (28rem)
+
+interface DataContextType {
+  user: FirebaseUser | null;
+  userDoc: AppUser | null;
+  loading: boolean;
+  profiles: Profile[];
+  activeProfile: Profile | undefined;
+  activeSubjectName: string | null;
+  setActiveSubjectName: (name: string | null) => void;
+  addProfile: (name: string) => void;
+  removeProfile: (name: string) => void;
+  renameProfile: (oldName: string, newName: string) => void;
+  switchProfile: (name: string) => void;
+  updateSubjects: (newSubjects: Subject[]) => void;
+  addSubject: (subjectName: string, iconName: string) => void;
+  removeSubject: (subjectNameToRemove: string) => void;
+  renameSubject: (oldName: string, newName: string) => void;
+  addChapter: (subjectName: string, newChapter: Chapter) => void;
+  removeChapter: (subjectName: string, chapterNameToRemove: string) => void;
+  updateChapter: (subjectName: string, chapterName: string, newLectureCount: number) => void;
+  renameChapter: (subjectName: string, oldName: string, newName: string) => void;
+  updateChapterDeadline: (subjectName: string, chapterName: string, deadline: number | null) => void;
+  updateTasks: (subjectName: string, newTasks: string[]) => void;
+  renameTask: (subjectName: string, oldName: string, newName: string) => void;
+  updatePlannerNote: (dateKey: string, note: string) => void;
+  addNote: (title: string, content: string) => Note | undefined;
+  updateNote: (note: Note) => void;
+  deleteNote: (noteId: string) => void;
+  setNotes: (notes: Note[]) => void;
+  addLink: (title: string, url: string) => void;
+  updateLink: (link: ImportantLink) => void;
+  deleteLink: (linkId: string) => void;
+  setLinks: (links: ImportantLink[]) => void;
+  addTodo: (text: string, forDate: string) => void;
+  updateTodo: (todo: SmartTodo) => void;
+  deleteTodo: (todoId: string) => void;
+  setTodos: (todos: SmartTodo[]) => void;
+  addQuestionSession: (session: QuestionSession) => void;
+  addTimeEntry: (entry: Omit<TimeEntry, 'id'>) => TimeEntry | undefined;
+  updateTimeEntry: (entry: TimeEntry) => void;
+  deleteTimeEntry: (entryId: string) => void;
+  setTimeEntries: (entries: TimeEntry[]) => void;
+  addProject: (name: string, color: string) => void;
+  updateProject: (project: Project) => void;
+  deleteProject: (projectId: string) => void;
+  updateTimesheetEntry: (projectId: string, date: string, seconds: number) => void;
+  setTimesheetData: (data: TimesheetData) => void;
+  addExamCountdown: (title: string, date: Date) => void;
+  updateExamCountdown: (countdown: ExamCountdown) => void;
+  deleteExamCountdown: (countdownId: string) => void;
+  setExamCountdowns: (countdowns: ExamCountdown[]) => void;
+  exportData: () => void;
+  importData: (file: File) => void;
+  signOutUser: () => Promise<void>;
+  refreshUserDoc: () => Promise<void>;
+  theme: string;
+  setTheme: (theme: string) => void;
+  mode: 'light' | 'dark';
+  setMode: (mode: 'light' | 'dark') => void;
+  isThemeHydrated: boolean;
+  sidebarWidth: number;
+  setSidebarWidth: (width: number) => void;
+}
+
+const DataContext = createContext<DataContextType | undefined>(undefined);
+
+// --- Helper Functions ---
+const getLocalKey = (username: string | null) => {
+    return username ? `${LOCAL_PROFILE_KEY_PREFIX}${username}` : LOCAL_PROFILE_KEY_PREFIX + 'guest';
+}
+
+const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
+    if (!profiles || !Array.isArray(profiles)) return [];
+    
+    return profiles.map(profile => {
+        const migratedSubjects = (profile.subjects || []).map((subject: any) => {
+            const migratedChapters = (subject.chapters || []).map((chapter: any) => {
+                const newCheckedState: Record<string, TaskStatus> = {};
+                if (chapter.checkedState && typeof chapter.checkedState === 'object') {
+                    Object.keys(chapter.checkedState).forEach(key => {
+                        const value = chapter.checkedState[key];
+                        // **This is the critical fix**: It explicitly checks for the old `true` boolean
+                        // and converts it to the new `'checked'` string format.
+                        if (value === true) {
+                            newCheckedState[key] = 'checked';
+                        } else if (['unchecked', 'checked', 'checked-red'].includes(value)) {
+                            // It also preserves the correct new format if it already exists.
+                            newCheckedState[key] = value;
+                        }
+                    });
+                }
+                return { 
+                    ...chapter, 
+                    checkedState: newCheckedState,
+                };
+            });
+
+            return {
+                ...subject,
+                icon: subject.icon || 'Book',
+                tasks: subject.tasks || ['Lecture', 'DPP', 'Module', 'Class Qs'],
+                chapters: migratedChapters,
+            };
+        });
+        
+        return {
+            ...profile,
+            subjects: migratedSubjects,
+            plannerNotes: profile.plannerNotes || {},
+            notes: profile.notes || [],
+            importantLinks: profile.importantLinks || [],
+            todos: profile.todos || [],
+            progressHistory: profile.progressHistory || [],
+            questionSessions: profile.questionSessions || [],
+            examCountdowns: profile.examCountdowns || [],
+            timeEntries: profile.timeEntries || [],
+            projects: profile.projects || [],
+            timesheetData: profile.timesheetData || {},
+        };
+    });
+};
+
+
+// --- Create Profile Screen ---
+function CreateProfileScreen({ onProfileCreate }: { onProfileCreate: (name: string) => void }) {
+    const [name, setName] = useState('');
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (name.trim()) onProfileCreate(name.trim());
+    };
+
+    return (
+        <div className="flex items-center justify-center min-h-screen bg-background p-4">
+            <Card className="w-full max-w-sm">
+                <CardHeader className="text-center">
+                    <CardTitle className="text-2xl">Welcome to TrackAcademic!</CardTitle>
+                    <CardDescription>Create a profile to get started.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleSubmit} className="grid gap-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="profile-name">Profile Name</Label>
+                            <Input id="profile-name" type="text" placeholder="e.g., JEE Prep" required value={name} onChange={(e) => setName(e.target.value)} />
+                        </div>
+                        <Button type="submit" className="w-full">Create Profile</Button>
+                    </form>
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
+
+
+// --- Data Provider ---
+export function DataProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [userDoc, setUserDoc] = useState<AppUser | null>(null);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [activeProfileName, setActiveProfileName] = useState<string | null>(null);
+  const [activeSubjectName, setActiveSubjectName] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+  const pathname = usePathname();
+
+  const [theme, setThemeState] = useState<string>('default');
+  const [mode, setModeState] = useState<'light' | 'dark'>('dark');
+  const [sidebarWidth, setSidebarWidthState] = useState<number>(DEFAULT_SIDEBAR_WIDTH);
+  const [isThemeHydrated, setIsThemeHydrated] = useState(false);
+
+  const setSidebarWidth = useCallback((width: number) => {
+    setSidebarWidthState(width);
+    localStorage.setItem(SIDEBAR_WIDTH_KEY, String(width));
+  }, []);
+
+  const setMode = useCallback((newMode: 'light' | 'dark') => {
+    setModeState(newMode);
+    localStorage.setItem(MODE_KEY, newMode);
+    document.documentElement.classList.toggle('dark', newMode === 'dark');
+  }, []);
+
+  const setTheme = useCallback((newTheme: string) => {
+    setThemeState(newTheme);
+    localStorage.setItem(THEME_KEY, newTheme);
+     const root = window.document.documentElement;
+     root.className.split(' ').forEach(c => {
+        if (c.startsWith('theme-')) {
+            root.classList.remove(c);
+        }
+    });
+    if (newTheme !== 'default') {
+        root.classList.add(`theme-${newTheme}`);
+    }
+  }, []);
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem(THEME_KEY) || 'default';
+    const savedMode = (localStorage.getItem(MODE_KEY) || 'dark') as 'light' | 'dark';
+    const savedWidthStr = localStorage.getItem(SIDEBAR_WIDTH_KEY);
+    const savedWidth = savedWidthStr ? parseInt(savedWidthStr, 10) : DEFAULT_SIDEBAR_WIDTH;
+    
+    setTheme(savedTheme);
+    setMode(savedMode);
+    setSidebarWidth(savedWidth);
+
+    setIsThemeHydrated(true);
+  }, [setTheme, setMode, setSidebarWidth]);
+
+  const saveData = useCallback(async (profilesToSave: Profile[], activeNameToSave: string | null) => {
+    if (typeof window === 'undefined') return;
+
+    const localKey = getLocalKey(user?.displayName || null);
+    const dataToStore = { profiles: profilesToSave, activeProfileName: activeNameToSave };
+    localStorage.setItem(localKey, JSON.stringify(dataToStore));
+
+    if (user) {
+        try {
+            await saveUserData(user.uid, profilesToSave, activeNameToSave);
+        } catch (error) {
+            console.error("Failed to save data to Firestore", error);
+            toast({ title: "Sync Error", description: "Could not save progress to the cloud.", variant: "destructive" });
+        }
+    }
+  }, [user, toast]);
+
+  const activeProfile = useMemo(() => {
+    return profiles.find(p => p.name === activeProfileName);
+  }, [profiles, activeProfileName]);
+
+  const calculateOverallProgress = useCallback((profile: Profile): number => {
+    if (!profile || profile.subjects.length === 0) return 0;
+    
+    const subjectProgressions = profile.subjects.map(subject => {
+        const tasksPerLecture = subject.tasks?.length || 0;
+        if (tasksPerLecture === 0) return 0;
+
+        let totalTasks = 0;
+        let completedTasks = 0;
+        subject.chapters.forEach(chapter => {
+            totalTasks += chapter.lectureCount * tasksPerLecture;
+            completedTasks += Object.values(chapter.checkedState || {}).filter(status => status === 'checked' || status === 'checked-red').length;
+        });
+
+        return totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+    });
+
+    const totalProgressSum = subjectProgressions.reduce((acc, curr) => acc + curr, 0);
+
+    return profile.subjects.length > 0 ? Math.round(totalProgressSum / profile.subjects.length) : 0;
+  }, []);
+
+  const updateProfileWithProgress = useCallback((profile: Profile): Profile => {
+    const currentProgress = calculateOverallProgress(profile);
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    let history = [...(profile.progressHistory || [])];
+    const todayIndex = history.findIndex(h => h.date === todayStr);
+
+    if (todayIndex > -1) {
+        history[todayIndex] = { ...history[todayIndex], progress: currentProgress };
+    } else {
+        history.push({ date: todayStr, progress: currentProgress });
+    }
+
+    if (history.length > 90) {
+      history = history.slice(history.length - 90);
+    }
+    
+    return { ...profile, progressHistory: history };
+  }, [calculateOverallProgress]);
+
+  const updateProfiles = useCallback((newProfiles: Profile[], newActiveProfileName: string | null) => {
+    const profileToUpdate = newProfiles.find(p => p.name === newActiveProfileName);
+    let profilesToSave = newProfiles;
+
+    if (profileToUpdate) {
+        const updatedProfile = updateProfileWithProgress(profileToUpdate);
+        profilesToSave = newProfiles.map(p => p.name === newActiveProfileName ? updatedProfile : p);
+    }
+    
+    setProfiles(profilesToSave);
+    saveData(profilesToSave, newActiveProfileName);
+  }, [saveData, updateProfileWithProgress]);
+
+
+  useEffect(() => {
+    if (activeProfile && !loading) {
+      const todayStr = format(new Date(), 'yyyy-MM-dd');
+      const history = activeProfile.progressHistory || [];
+      const hasTodayEntry = history.some(p => p.date === todayStr);
+
+      if (!hasTodayEntry) {
+        updateProfiles(profiles, activeProfileName);
+      }
+    }
+  }, [activeProfile, loading, profiles, activeProfileName, updateProfiles]);
+
+
+  useEffect(() => {
+    const unsubscribe = onAuthChanged(async (firebaseUser) => {
+      setLoading(true);
+      setUser(firebaseUser);
+      setUserDoc(null);
+      setActiveSubjectName(null); 
+
+      if (firebaseUser) {
+          try {
+              const firestoreData = await getUserData(firebaseUser.uid);
+              if (firestoreData && firestoreData.profiles && firestoreData.profiles.length > 0) {
+                  const processed = migrateAndHydrateProfiles(firestoreData.profiles);
+                  setProfiles(processed);
+                  setActiveProfileName(firestoreData.activeProfileName);
+                  setUserDoc(firestoreData.userDocument);
+              } else {
+                  setProfiles([]);
+                  setActiveProfileName(null);
+                  setUserDoc(null);
+              }
+          } catch (error) {
+              console.error("Failed to fetch user data:", error);
+              setProfiles([]);
+              setActiveProfileName(null);
+              setUserDoc(null);
+              toast({ title: "Error", description: "Could not fetch your data from the cloud.", variant: "destructive" });
+          }
+      } else {
+          const localKey = getLocalKey(null);
+          const storedData = localStorage.getItem(localKey);
+          if (storedData) {
+              try {
+                const parsed = JSON.parse(storedData);
+                const processed = migrateAndHydrateProfiles(parsed.profiles);
+                setProfiles(processed);
+                setActiveProfileName(parsed.activeProfileName);
+              } catch {
+                setProfiles([]);
+                setActiveProfileName(null);
+                localStorage.removeItem(localKey);
+              }
+          } else {
+              setProfiles([]);
+              setActiveProfileName(null);
+          }
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [toast]);
+  
+  const refreshUserDoc = useCallback(async () => {
+    if (user) {
+        const data = await getUserData(user.uid);
+        if (data) {
+            setUserDoc(data.userDocument);
+        }
+    }
+  }, [user]);
+
+  // --- Smart Todo Rollover Logic ---
+  useEffect(() => {
+    if (!activeProfile || loading) return;
+
+    const lastRolloverKey = `lastRollover_${activeProfile.name}`;
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const lastRolloverDate = localStorage.getItem(lastRolloverKey);
+
+    // Only run rollover logic once per day
+    if (lastRolloverDate === todayStr) {
+        return;
+    }
+
+    let todos = activeProfile.todos || [];
+    let updated = false;
+
+    // Check all past dates for incomplete tasks
+    const uniquePastDates = [...new Set(todos.map(t => t.forDate).filter(d => d < todayStr))];
+    
+    uniquePastDates.forEach(dateStr => {
+        const incompleteTasks = todos.filter(t => t.forDate === dateStr && t.status === 'pending');
+
+        if (incompleteTasks.length > 0) {
+            const rolledOverTasks = incompleteTasks.map(task => ({
+                ...task,
+                id: crypto.randomUUID(),
+                forDate: todayStr,
+                rolledOver: true,
+                createdAt: Date.now()
+            }));
+
+            // Add the new rolled-over tasks
+            todos = [...todos, ...rolledOverTasks];
+            updated = true;
+        }
+    });
+
+    if (updated) {
+        const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, todos } : p);
+        updateProfiles(newProfiles, activeProfileName);
+    }
+    
+    // Mark today as the last rollover date
+    localStorage.setItem(lastRolloverKey, todayStr);
+  }, [activeProfile, loading, profiles, activeProfileName, updateProfiles]);
+
+
+  const addProfile = useCallback((name: string) => {
+    const newProfile: Profile = { name, subjects: [], todos: [] };
+    const newProfiles = [...profiles, newProfile];
+    updateProfiles(newProfiles, name);
+    window.location.reload();
+  }, [profiles, updateProfiles]);
+  
+  const removeProfile = useCallback((name: string) => {
+    if (profiles.length <= 1) {
+        toast({ title: "Cannot Remove", description: "You must have at least one profile.", variant: "destructive" });
+        return;
+    }
+    const newProfiles = profiles.filter(p => p.name !== name);
+    let newActiveProfileName = activeProfileName;
+    if (activeProfileName === name) {
+        newActiveProfileName = newProfiles[0].name;
+    }
+    setActiveProfileName(newActiveProfileName);
+    updateProfiles(newProfiles, newActiveProfileName);
+    toast({ title: "Profile Removed", description: `Profile "${name}" has been removed.`});
+  }, [profiles, activeProfileName, updateProfiles, toast]);
+
+  const renameProfile = useCallback((oldName: string, newName: string) => {
+    const trimmedNewName = newName.trim();
+    if (profiles.some(p => p.name.toLowerCase() === trimmedNewName.toLowerCase())) {
+        toast({ title: "Error", description: "A profile with this name already exists.", variant: "destructive" });
+        return;
+    }
+    const newProfiles = profiles.map(p => p.name === oldName ? { ...p, name: trimmedNewName } : p);
+    let newActiveProfileName = activeProfileName;
+    if (activeProfileName === oldName) {
+        newActiveProfileName = trimmedNewName;
+    }
+    setActiveProfileName(newActiveProfileName);
+    updateProfiles(newProfiles, newActiveProfileName);
+    toast({ title: "Profile Renamed", description: `"${oldName}" is now "${trimmedNewName}".`});
+  }, [profiles, activeProfileName, updateProfiles, toast]);
+
+  const switchProfile = useCallback((name: string) => {
+    setActiveProfileName(name);
+    setActiveSubjectName(null);
+    saveData(profiles, name);
+  }, [profiles, saveData]);
+
+  const updateSubjects = useCallback((newSubjects: Subject[]) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, subjects: newSubjects } : p);
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
+  const addSubject = useCallback((subjectName: string, iconName: string) => {
+    if (!activeProfile) return;
+    const newSubject: Subject = { 
+        name: subjectName, 
+        icon: iconName, 
+        chapters: [],
+        tasks: ['Lecture', 'DPP', 'Module', 'Class Qs'],
+    };
+    const updatedSubjects = [...activeProfile.subjects, newSubject];
+    updateSubjects(updatedSubjects);
+    setActiveSubjectName(subjectName);
+  }, [activeProfile, updateSubjects]);
+  
+  const removeSubject = useCallback((subjectNameToRemove: string) => {
+    if (!activeProfile) return;
+    const updatedSubjects = activeProfile.subjects.filter(s => s.name !== subjectNameToRemove);
+    updateSubjects(updatedSubjects);
+    if (activeSubjectName === subjectNameToRemove) {
+        setActiveSubjectName(updatedSubjects[0]?.name || null);
+    }
+  }, [activeProfile, activeSubjectName, updateSubjects]);
+
+  const renameSubject = useCallback((oldName: string, newName: string) => {
+    if (!activeProfile) return;
+    const newSubjects = activeProfile.subjects.map(s => {
+        if (s.name === oldName) {
+            const newChapters = s.chapters.map(c => {
+                const newCheckedState: Record<string, TaskStatus> = {};
+                if (c.checkedState) {
+                    Object.keys(c.checkedState).forEach(key => {
+                        const newKey = key.replace(`${oldName}-`, `${newName}-`);
+                        newCheckedState[newKey] = c.checkedState![key];
+                    });
+                }
+                return { ...c, checkedState: newCheckedState };
+            });
+            return { ...s, name: newName, chapters: newChapters };
+        }
+        return s;
+    });
+
+    updateSubjects(newSubjects);
+    if (activeSubjectName === oldName) {
+        setActiveSubjectName(newName);
+    }
+    toast({ title: "Subject Renamed", description: `"${oldName}" is now "${newName}".` });
+  }, [activeProfile, updateSubjects, activeSubjectName, toast]);
+
+  const addChapter = useCallback((subjectName: string, newChapter: Chapter) => {
+    if (!activeProfile) return;
+    const newSubjects = activeProfile.subjects.map(s => {
+        if (s.name === subjectName) {
+            return { ...s, chapters: [...s.chapters, newChapter] };
+        }
+        return s;
+    });
+    updateSubjects(newSubjects);
+  }, [activeProfile, updateSubjects]);
+
+  const removeChapter = useCallback((subjectName: string, chapterNameToRemove: string) => {
+    if (!activeProfile) return;
+    const newSubjects = activeProfile.subjects.map(s => {
+        if (s.name === subjectName) {
+            const updatedChapters = s.chapters.filter(c => c.name !== chapterNameToRemove);
+            return { ...s, chapters: updatedChapters };
+        }
+        return s;
+    });
+    updateSubjects(newSubjects);
+  }, [activeProfile, updateSubjects]);
+
+  const updateChapter = useCallback((subjectName: string, chapterName: string, newLectureCount: number) => {
+    if (!activeProfile) return;
+    const newSubjects = activeProfile.subjects.map(s => {
+      if (s.name === subjectName) {
+        const newChapters = s.chapters.map(c => {
+          if (c.name === chapterName) {
+            return { ...c, lectureCount: newLectureCount };
+          }
+          return c;
+        });
+        return { ...s, chapters: newChapters };
+      }
+      return s;
+    });
+    updateSubjects(newSubjects);
+  }, [activeProfile, updateSubjects]);
+
+  const renameChapter = useCallback((subjectName: string, oldName: string, newName: string) => {
+    if (!activeProfile) return;
+    const newSubjects = activeProfile.subjects.map(s => {
+        if (s.name === subjectName) {
+            const newChapters = s.chapters.map(c => {
+                if (c.name === oldName) {
+                     const newCheckedState: Record<string, TaskStatus> = {};
+                     if (c.checkedState) {
+                        Object.keys(c.checkedState).forEach(key => {
+                            const newKey = key.replace(`-${oldName}-`, `-${newName}-`);
+                            newCheckedState[newKey] = c.checkedState![key];
+                        });
+                    }
+                    return { ...c, name: newName, checkedState: newCheckedState };
+                }
+                return c;
+            });
+            return { ...s, chapters: newChapters };
+        }
+        return s;
+    });
+    updateSubjects(newSubjects);
+    toast({ title: "Chapter Renamed", description: `"${oldName}" is now "${newName}".` });
+  }, [activeProfile, updateSubjects, toast]);
+
+  const updateChapterDeadline = useCallback((subjectName: string, chapterName: string, deadline: number | null) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+        if (p.name === activeProfileName) {
+            const newSubjects = p.subjects.map(s => {
+                if (s.name === subjectName) {
+                    const newChapters = s.chapters.map(c => {
+                        if (c.name === chapterName) {
+                            const newChapter = { ...c };
+                            if (deadline) {
+                                newChapter.deadline = deadline;
+                            } else {
+                                delete newChapter.deadline;
+                            }
+                            return newChapter;
+                        }
+                        return c;
+                    });
+                    return { ...s, chapters: newChapters };
+                }
+                return s;
+            });
+            return { ...p, subjects: newSubjects };
+        }
+        return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
+  const updateTasks = useCallback((subjectName: string, newTasks: string[]) => {
+    if (!activeProfile) return;
+    const originalSubject = activeProfile.subjects.find(s => s.name === subjectName);
+    if (!originalSubject) return;
+
+    const oldTasks = originalSubject.tasks || [];
+    const removedTasks = oldTasks.filter(t => !newTasks.includes(t));
+
+    const newSubjects = activeProfile.subjects.map(subject => {
+      if (subject.name === subjectName) {
+        let updatedChapters = subject.chapters;
+
+        if (removedTasks.length > 0) {
+          updatedChapters = subject.chapters.map(chapter => {
+            const oldCheckedState = chapter.checkedState || {};
+            const newCheckedState: Record<string, TaskStatus> = {};
+            Object.keys(oldCheckedState).forEach(key => {
+              const wasRemoved = removedTasks.some(removedTask => key.endsWith(`-${removedTask}`));
+              if (!wasRemoved) {
+                newCheckedState[key] = oldCheckedState[key];
+              }
+            });
+            return { ...chapter, checkedState: newCheckedState };
+          });
+        }
+        
+        return { ...subject, tasks: newTasks, chapters: updatedChapters };
+      }
+      return subject;
+    });
+    updateSubjects(newSubjects);
+  }, [activeProfile, updateSubjects]);
+
+  const renameTask = useCallback((subjectName: string, oldName: string, newName: string) => {
+    if (!activeProfile) return;
+    const subject = activeProfile.subjects.find(s => s.name === subjectName);
+    if (!subject) return;
+
+    const newSubjects = activeProfile.subjects.map(s => {
+        if (s.name === subjectName) {
+            const newTasks = s.tasks.map(t => t === oldName ? newName : t);
+            const newChapters = s.chapters.map(c => {
+                const newCheckedState: Record<string, TaskStatus> = {};
+                if (c.checkedState) {
+                    Object.keys(c.checkedState).forEach(key => {
+                        if (key.endsWith(`-${oldName}`)) {
+                            const newKey = key.replace(`-${oldName}`, `-${newName}`);
+                            newCheckedState[newKey] = c.checkedState![key];
+                        } else {
+                            newCheckedState[key] = c.checkedState![key];
+                        }
+                    });
+                }
+                return { ...c, checkedState: newCheckedState };
+            });
+            return { ...s, tasks: newTasks, chapters: newChapters };
+        }
+        return s;
+    });
+    updateSubjects(newSubjects);
+    toast({ title: "Task Renamed", description: `"${oldName}" is now "${newName}".`});
+  }, [activeProfile, updateSubjects, toast]);
+
+  const updatePlannerNote = useCallback((dateKey: string, note: string) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+        if (p.name === activeProfileName) {
+            const newPlannerNotes = { ...(p.plannerNotes || {}) };
+            if (note) {
+                newPlannerNotes[dateKey] = note;
+            } else {
+                delete newPlannerNotes[dateKey];
+            }
+            return { ...p, plannerNotes: newPlannerNotes };
+        }
+        return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
+  const addNote = useCallback((title: string, content: string): Note | undefined => {
+    if (!activeProfileName) return;
+    const newNote: Note = {
+        id: crypto.randomUUID(),
+        title,
+        content,
+        createdAt: Date.now(),
+    };
+    const newProfiles = profiles.map(p => {
+        if (p.name === activeProfileName) {
+            const currentNotes = p.notes || [];
+            // New notes are now added to the beginning of the array.
+            const updatedNotes = [newNote, ...currentNotes];
+            return { ...p, notes: updatedNotes };
+        }
+        return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+    toast({
+        title: 'Note Saved',
+        description: `Your note "${title || 'Untitled'}" has been saved.`,
+    });
+    return newNote;
+  }, [activeProfileName, profiles, updateProfiles, toast]);
+
+  const updateNote = useCallback((updatedNote: Note) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+        if (p.name === activeProfileName) {
+            const updatedNotes = (p.notes || []).map(n => n.id === updatedNote.id ? updatedNote : n);
+            return { ...p, notes: updatedNotes };
+        }
+        return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
+  const deleteNote = useCallback((noteId: string) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+        if (p.name === activeProfileName) {
+            const updatedNotes = (p.notes || []).filter(n => n.id !== noteId);
+            return { ...p, notes: updatedNotes };
+        }
+        return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
+  const setNotes = useCallback((notes: Note[]) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+        if (p.name === activeProfileName) {
+            return { ...p, notes: notes };
+        }
+        return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+  
+
+  const addLink = useCallback((title: string, url: string) => {
+    if (!activeProfileName) return;
+    const newLink: ImportantLink = {
+      id: crypto.randomUUID(),
+      title,
+      url,
+    };
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const updatedLinks = [...(p.importantLinks || []), newLink];
+        return { ...p, importantLinks: updatedLinks };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
+  const updateLink = useCallback((updatedLink: ImportantLink) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const updatedLinks = (p.importantLinks || []).map(l => l.id === updatedLink.id ? updatedLink : l);
+        return { ...p, importantLinks: updatedLinks };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
+  const deleteLink = useCallback((linkId: string) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const updatedLinks = (p.importantLinks || []).filter(l => l.id !== linkId);
+        return { ...p, importantLinks: updatedLinks };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+  
+  const setLinks = useCallback((links: ImportantLink[]) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+        if (p.name === activeProfileName) {
+            return { ...p, importantLinks: links };
+        }
+        return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
+  const addTodo = useCallback((text: string, forDate: string) => {
+    if (!activeProfileName) return;
+    const newTodo: SmartTodo = {
+      id: crypto.randomUUID(),
+      text,
+      forDate,
+      status: 'pending',
+      createdAt: Date.now(),
+    };
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const updatedTodos = [newTodo, ...(p.todos || [])];
+        return { ...p, todos: updatedTodos };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
+  const updateTodo = useCallback((updatedTodo: SmartTodo) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const updatedTodos = (p.todos || []).map(t => t.id === updatedTodo.id ? updatedTodo : t);
+        return { ...p, todos: updatedTodos };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
+  const deleteTodo = useCallback((todoId: string) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const updatedTodos = (p.todos || []).filter(t => t.id !== todoId);
+        return { ...p, todos: updatedTodos };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
+  const setTodos = useCallback((todos: SmartTodo[]) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        return { ...p, todos: todos };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+  
+  const addQuestionSession = useCallback((session: QuestionSession) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const currentSessions = p.questionSessions || [];
+        // Add new session to the beginning and limit history to 50
+        const updatedSessions = [session, ...currentSessions].slice(0, 50);
+        return { ...p, questionSessions: updatedSessions };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
+  const addTimeEntry = useCallback((entry: Omit<TimeEntry, 'id'>): TimeEntry | undefined => {
+    if (!activeProfileName) return;
+    const newEntry: TimeEntry = {
+        id: crypto.randomUUID(),
+        ...entry
+    };
+    const newProfiles = profiles.map(p => {
+        if (p.name === activeProfileName) {
+            const updatedEntries = [newEntry, ...(p.timeEntries || [])];
+            return { ...p, timeEntries: updatedEntries };
+        }
+        return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+    return newEntry;
+  }, [activeProfileName, profiles, updateProfiles]);
+
+  const updateTimeEntry = useCallback((updatedEntry: TimeEntry) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+        if (p.name === activeProfileName) {
+            const updatedEntries = (p.timeEntries || []).map(entry => entry.id === updatedEntry.id ? updatedEntry : entry);
+            return { ...p, timeEntries: updatedEntries };
+        }
+        return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
+  const deleteTimeEntry = useCallback((entryId: string) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+        if (p.name === activeProfileName) {
+            const updatedEntries = (p.timeEntries || []).filter(entry => entry.id !== entryId);
+            return { ...p, timeEntries: updatedEntries };
+        }
+        return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
+  const setTimeEntries = useCallback((entries: TimeEntry[]) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+        if (p.name === activeProfileName) {
+            return { ...p, timeEntries: entries };
+        }
+        return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
+  const addProject = useCallback((name: string, color: string) => {
+    if (!activeProfileName) return;
+    const newProject: Project = { id: crypto.randomUUID(), name, color };
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const updatedProjects = [...(p.projects || []), newProject];
+        return { ...p, projects: updatedProjects };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
+  const updateProject = useCallback((updatedProject: Project) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const updatedProjects = (p.projects || []).map(proj => proj.id === updatedProject.id ? updatedProject : proj);
+        return { ...p, projects: updatedProjects };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
+  const deleteProject = useCallback((projectId: string) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const updatedProjects = (p.projects || []).filter(proj => proj.id !== projectId);
+        return { ...p, projects: updatedProjects };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+    toast({ title: "Project Deleted", description: "The project has been successfully deleted.", variant: "destructive" });
+  }, [activeProfileName, profiles, updateProfiles, toast]);
+
+  const updateTimesheetEntry = useCallback((projectId: string, date: string, seconds: number) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const newTimesheetData = { ...(p.timesheetData || {}) };
+        if (!newTimesheetData[projectId]) {
+          newTimesheetData[projectId] = {};
+        }
+        if (seconds > 0) {
+            newTimesheetData[projectId][date] = seconds;
+        } else {
+            delete newTimesheetData[projectId][date];
+        }
+        
+        return { ...p, timesheetData: newTimesheetData };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+  
+  const setTimesheetData = useCallback((data: TimesheetData) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        return { ...p, timesheetData: data };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
+  const addExamCountdown = useCallback((title: string, date: Date) => {
+    if (!activeProfileName) return;
+    const newCountdown: ExamCountdown = {
+        id: crypto.randomUUID(),
+        title,
+        date: date.getTime(),
+    };
+    const newProfiles = profiles.map(p => {
+        if (p.name === activeProfileName) {
+            const updatedCountdowns = [...(p.examCountdowns || []), newCountdown];
+            return { ...p, examCountdowns: updatedCountdowns };
+        }
+        return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+    toast({ title: "Countdown Added", description: `"${title}" has been added.` });
+  }, [activeProfileName, profiles, updateProfiles, toast]);
+
+  const updateExamCountdown = useCallback((updatedCountdown: ExamCountdown) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const updatedCountdowns = (p.examCountdowns || []).map(cd => cd.id === updatedCountdown.id ? updatedCountdown : cd);
+        return { ...p, examCountdowns: updatedCountdowns };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+    toast({ title: "Countdown Updated", description: `"${updatedCountdown.title}" has been updated.` });
+  }, [activeProfileName, profiles, updateProfiles, toast]);
+
+  const deleteExamCountdown = useCallback((countdownId: string) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const updatedCountdowns = (p.examCountdowns || []).filter(cd => cd.id !== countdownId);
+        return { ...p, examCountdowns: updatedCountdowns };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+  
+  const setExamCountdowns = useCallback((countdowns: ExamCountdown[]) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        return { ...p, examCountdowns: countdowns };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
+
+  const exportData = useCallback(() => {
+    if (typeof window === 'undefined' || profiles.length === 0) {
+        toast({ title: "Export Failed", description: "No data to export.", variant: "destructive" });
+        return;
+    };
+    const dataToStore = { profiles, activeProfileName };
+    const dataStr = JSON.stringify(dataToStore, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `trackacademic_data_${user ? user.displayName : 'guest'}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast({ title: "Export Successful", description: "Your data has been downloaded." });
+  }, [profiles, activeProfileName, user, toast]);
+
+  const importData = useCallback((file: File) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+          try {
+              const data = JSON.parse(e.target?.result as string);
+              if (data.profiles && Array.isArray(data.profiles) && 'activeProfileName' in data) {
+                  const processed = migrateAndHydrateProfiles(data.profiles);
+                  setProfiles(processed);
+                  setActiveProfileName(data.activeProfileName);
+                  setActiveSubjectName(null);
+                  saveData(processed, data.activeProfileName);
+                  toast({ title: "Import Successful", description: "Your data has been restored." });
+              } else {
+                  throw new Error("Invalid file format.");
+              }
+          } catch (error) {
+              toast({ title: "Import Failed", description: "The selected file is not valid.", variant: "destructive" });
+          }
+      };
+      reader.readAsText(file);
+  }, [saveData, toast]);
+  
+  const signOutUser = useCallback(async () => {
+    await signOut();
+    setProfiles([]);
+    setActiveProfileName(null);
+    setActiveSubjectName(null);
+    localStorage.removeItem(getLocalKey(null)); // Clear guest data on logout
+  }, []);
+
+  const value = useMemo(() => ({
+    user, userDoc, loading, profiles, activeProfile, activeSubjectName, setActiveSubjectName,
+    addProfile, removeProfile, renameProfile, switchProfile, updateSubjects, addSubject, removeSubject, renameSubject,
+    addChapter, removeChapter, updateChapter, renameChapter, updateChapterDeadline, updateTasks, renameTask,
+    updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
+    addTodo, updateTodo, deleteTodo, setTodos,
+    addQuestionSession, addTimeEntry, updateTimeEntry, deleteTimeEntry, setTimeEntries,
+    addProject, updateProject, deleteProject, updateTimesheetEntry, setTimesheetData,
+    addExamCountdown, updateExamCountdown, deleteExamCountdown, setExamCountdowns,
+    exportData, importData, signOutUser, refreshUserDoc,
+    theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth,
+  }), [
+    user, userDoc, loading, profiles, activeProfile, activeSubjectName,
+    addProfile, removeProfile, renameProfile, switchProfile, updateSubjects, addSubject, removeSubject, renameSubject,
+    addChapter, removeChapter, updateChapter, renameChapter, updateChapterDeadline, updateTasks, renameTask,
+    updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
+    addTodo, updateTodo, deleteTodo, setTodos,
+    addQuestionSession, addTimeEntry, updateTimeEntry, deleteTimeEntry, setTimeEntries,
+    addProject, updateProject, deleteProject, updateTimesheetEntry, setTimesheetData,
+    addExamCountdown, updateExamCountdown, deleteExamCountdown, setExamCountdowns,
+    exportData, importData, signOutUser, refreshUserDoc,
+    theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth, setActiveSubjectName
+  ]);
+  
+  if (!loading && (pathname.startsWith('/dashboard') || pathname.startsWith('/settings')) && profiles.length === 0) {
+      return (
+        <DataContext.Provider value={value}>
+            <CreateProfileScreen onProfileCreate={addProfile} />
+        </DataContext.Provider>
+      );
+  }
+
+  return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
+}
+
+export function useData() {
+  const context = useContext(DataContext);
+  if (context === undefined) {
+    throw new Error('useData must be used within a DataProvider');
+  }
+  return context;
+}
+
+    
