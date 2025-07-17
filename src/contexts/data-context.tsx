@@ -1116,7 +1116,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
     theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth, setActiveSubjectName
   ]);
   
-  if (!loading && (pathname.startsWith('/dashboard') || pathname.startsWith('/settings') || pathname.startsWith('/clockify') || pathname.startsWith('/admin')) && profiles.length === 0) {
+  const shouldShowCreateProfile = useMemo(() => {
+    const publicPages = ['/', '/login', '/register'];
+    const protectedPages = ['/dashboard', '/settings', '/clockify', '/admin'];
+    
+    if (loading) return false;
+    
+    // If on a protected page and there are no profiles, show create screen
+    if (protectedPages.some(p => pathname.startsWith(p)) && profiles.length === 0) {
+      return true;
+    }
+    
+    return false;
+  }, [loading, pathname, profiles.length]);
+
+
+  if (shouldShowCreateProfile) {
       return (
         <DataContext.Provider value={value}>
             <CreateProfileScreen onProfileCreate={addProfile} />
@@ -1134,5 +1149,3 @@ export function useData() {
   }
   return context;
 }
-
-    
