@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useMe
 import { usePathname } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus, ExamCountdown } from '@/lib/types';
+import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
 import { db } from '@/lib/firebase';
@@ -112,9 +112,15 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
                 if (chapter.checkedState) {
                     Object.keys(chapter.checkedState).forEach(key => {
                         const value = chapter.checkedState[key];
+                        // This is the migration logic.
+                        // If value is a boolean `true`, convert it to the string `'checked'`.
                         if (typeof value === 'boolean') {
-                            newCheckedState[key] = value ? 'checked' : 'unchecked';
+                            if (value) {
+                                newCheckedState[key] = 'checked';
+                            }
+                            // We don't need to store 'unchecked' booleans, so we just skip `false`.
                         } else if (['unchecked', 'checked', 'checked-red'].includes(value)) {
+                            // If it's already in the new format, keep it.
                             newCheckedState[key] = value;
                         }
                     });
