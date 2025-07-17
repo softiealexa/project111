@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import LiveClock from '@/components/live-clock';
 import { getIconComponent } from '@/lib/icons';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Pencil, Timer, ListTodo, CalendarDays, Link as LinkIcon, Keyboard, Target, Beaker } from 'lucide-react';
+import { Pencil, Timer, ListTodo, CalendarDays, Link as LinkIcon, Keyboard, Target, Beaker, CheckSquare } from 'lucide-react';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { useSearchParams } from 'next/navigation';
 
@@ -25,6 +25,9 @@ const StudyPlanner = dynamic(() => import("@/components/study-planner"), {
   loading: () => <LoadingSpinner containerClassName="h-96" text="Loading Planner..." />
 });
 const SmartTodoList = dynamic(() => import("@/components/smart-todo-list"), {
+  loading: () => <LoadingSpinner containerClassName="h-96" text="Loading To-Do List..." />
+});
+const SimpleTodoList = dynamic(() => import("@/components/todo-list"), {
   loading: () => <LoadingSpinner containerClassName="h-96" text="Loading To-Do List..." />
 });
 const NotesWriter = dynamic(() => import("@/components/notes-writer"), {
@@ -148,6 +151,10 @@ export default function DashboardClient() {
                               <ListTodo className="h-5 w-5" />
                               Smart To-Do
                           </TabsTrigger>
+                           <TabsTrigger value="simple-todo" className="justify-start gap-2 py-2.5 text-base">
+                              <CheckSquare className="h-5 w-5" />
+                              Simple To-Do
+                          </TabsTrigger>
                           <TabsTrigger value="unit-converter" className="justify-start gap-2 py-2.5 text-base">
                               <Beaker className="h-5 w-5" />
                               Unit Converter
@@ -180,6 +187,9 @@ export default function DashboardClient() {
                       <div className="md:col-start-2">
                           <TabsContent value="todo" className="mt-0">
                               <SmartTodoList />
+                          </TabsContent>
+                          <TabsContent value="simple-todo" className="mt-0">
+                              <SimpleTodoList />
                           </TabsContent>
                           <TabsContent value="unit-converter" className="mt-0">
                               <UnitConverter />

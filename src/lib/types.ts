@@ -2,6 +2,13 @@
 
 export type TaskStatus = 'unchecked' | 'checked' | 'checked-red';
 
+export interface SimpleTodo {
+  id: string;
+  text: string;
+  completed: boolean;
+  createdAt: number;
+}
+
 export interface SmartTodo {
   id: string;
   text: string;
@@ -50,16 +57,6 @@ export interface ImportantLink {
   url: string;
 }
 
-export type Priority = "High" | "Medium" | "Low";
-
-export interface Todo {
-  id: string;
-  text: string;
-  completed: boolean;
-  dueDate?: number; // Using number (timestamp) for easier serialization
-  priority: Priority;
-}
-
 export interface Chapter {
   name: string;
   lectureCount: number;
@@ -104,6 +101,7 @@ export interface Profile {
   notes?: Note[];
   importantLinks?: ImportantLink[];
   todos?: SmartTodo[];
+  simpleTodos?: SimpleTodo[];
   progressHistory?: ProgressPoint[];
   questionSessions?: QuestionSession[];
   examCountdowns?: ExamCountdown[];

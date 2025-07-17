@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
-import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus, ExamCountdown } from '@/lib/types';
+import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, SimpleTodo, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus, ExamCountdown } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -57,6 +57,10 @@ interface DataContextType {
   updateTodo: (todo: SmartTodo) => void;
   deleteTodo: (todoId: string) => void;
   setTodos: (todos: SmartTodo[]) => void;
+  addSimpleTodo: (text: string) => void;
+  updateSimpleTodo: (todo: SimpleTodo) => void;
+  deleteSimpleTodo: (todoId: string) => void;
+  setSimpleTodos: (todos: SimpleTodo[]) => void;
   addQuestionSession: (session: QuestionSession) => void;
   addTimeEntry: (entry: Omit<TimeEntry, 'id'>) => TimeEntry | undefined;
   updateTimeEntry: (entry: TimeEntry) => void;
@@ -99,20 +103,10 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
     return profiles.map(profile => {
         const migratedSubjects = (profile.subjects || []).map((subject: any) => {
             const migratedChapters = (subject.chapters || []).map((chapter: any) => {
-                const newCheckedState: Record<string, TaskStatus> = {};
-                if (chapter.checkedState && typeof chapter.checkedState === 'object') {
-                    Object.keys(chapter.checkedState).forEach(key => {
-                        const value = chapter.checkedState[key];
-                        if (value === true) {
-                            newCheckedState[key] = 'checked';
-                        } else if (['unchecked', 'checked', 'checked-red'].includes(value)) {
-                            newCheckedState[key] = value;
-                        }
-                    });
-                }
+                // This resets the checkedState to an empty object, effectively resetting progress.
                 return { 
                     ...chapter, 
-                    checkedState: newCheckedState,
+                    checkedState: {},
                 };
             });
 
@@ -131,6 +125,7 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
             notes: profile.notes || [],
             importantLinks: profile.importantLinks || [],
             todos: profile.todos || [],
+            simpleTodos: profile.simpleTodos || [],
             progressHistory: profile.progressHistory || [],
             questionSessions: profile.questionSessions || [],
             examCountdowns: profile.examCountdowns || [],
@@ -716,6 +711,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const newProfiles = profiles.map(p => {
         if (p.name === activeProfileName) {
             const currentNotes = p.notes || [];
+            // New notes are now added to the beginning of the array.
             const updatedNotes = [newNote, ...currentNotes];
             return { ...p, notes: updatedNotes };
         }
@@ -865,6 +861,59 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const newProfiles = profiles.map(p => {
       if (p.name === activeProfileName) {
         return { ...p, todos: todos };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
+  const addSimpleTodo = useCallback((text: string) => {
+    if (!activeProfileName) return;
+    const newTodo: SimpleTodo = {
+      id: crypto.randomUUID(),
+      text,
+      completed: false,
+      createdAt: Date.now(),
+    };
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const updatedTodos = [newTodo, ...(p.simpleTodos || [])];
+        return { ...p, simpleTodos: updatedTodos };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
+  const updateSimpleTodo = useCallback((updatedTodo: SimpleTodo) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const updatedTodos = (p.simpleTodos || []).map(t => t.id === updatedTodo.id ? updatedTodo : t);
+        return { ...p, simpleTodos: updatedTodos };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
+  const deleteSimpleTodo = useCallback((todoId: string) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const updatedTodos = (p.simpleTodos || []).filter(t => t.id !== todoId);
+        return { ...p, simpleTodos: updatedTodos };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+  
+  const setSimpleTodos = useCallback((todos: SimpleTodo[]) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        return { ...p, simpleTodos: todos };
       }
       return p;
     });
@@ -1133,6 +1182,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addChapter, removeChapter, updateChapter, renameChapter, updateChapterDeadline, updateTasks, renameTask,
     updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
     addTodo, updateTodo, deleteTodo, setTodos,
+    addSimpleTodo, updateSimpleTodo, deleteSimpleTodo, setSimpleTodos,
     addQuestionSession, addTimeEntry, updateTimeEntry, deleteTimeEntry, setTimeEntries,
     addProject, updateProject, deleteProject, updateTimesheetEntry, setTimesheetData,
     addExamCountdown, updateExamCountdown, deleteExamCountdown, setExamCountdowns,
@@ -1145,6 +1195,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addChapter, removeChapter, updateChapter, renameChapter, updateChapterDeadline, updateTasks, renameTask,
     updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
     addTodo, updateTodo, deleteTodo, setTodos,
+    addSimpleTodo, updateSimpleTodo, deleteSimpleTodo, setSimpleTodos,
     addQuestionSession, addTimeEntry, updateTimeEntry, deleteTimeEntry, setTimeEntries,
     addProject, updateProject, deleteProject, updateTimesheetEntry, setTimesheetData,
     addExamCountdown, updateExamCountdown, deleteExamCountdown, setExamCountdowns,
@@ -1184,5 +1235,3 @@ export function useData() {
   }
   return context;
 }
-
-    
