@@ -100,15 +100,15 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
             const migratedChapters = (subject.chapters || []).map((chapter: any) => {
                 const newCheckedState: Record<string, TaskStatus> = {};
                 if (chapter.checkedState && typeof chapter.checkedState === 'object') {
-                    Object.entries(chapter.checkedState).forEach(([key, value]) => {
-                        // This robust check ensures only valid TaskStatus strings are kept.
-                        if (value === 'checked' || value === 'checked-red' || value === 'unchecked') {
-                            newCheckedState[key] = value;
-                        } 
+                    Object.keys(chapter.checkedState).forEach(key => {
+                        const value = chapter.checkedState[key];
                         // **This is the critical fix**: It explicitly checks for the old `true` boolean
                         // and converts it to the new `'checked'` string format.
-                        else if (value === true) {
+                        if (value === true) {
                             newCheckedState[key] = 'checked';
+                        } else if (['unchecked', 'checked', 'checked-red'].includes(value)) {
+                            // It also preserves the correct new format if it already exists.
+                            newCheckedState[key] = value;
                         }
                         // Any other value (like false, or other invalid data) is simply ignored and not
                         // carried over, effectively cleaning the data.
@@ -1130,7 +1130,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth, setActiveSubjectName
   ]);
   
-  if (!loading && (pathname.startsWith('/dashboard') || pathname.startsWith('/settings')) && profiles.length === 0) {
+  if (!loading && (pathname.startsWith('/dashboard') || pathname.startsWith('/settings') || pathname.startsWith('/clockify') || pathname.startsWith('/admin')) && profiles.length === 0) {
       return (
         <DataContext.Provider value={value}>
             <CreateProfileScreen onProfileCreate={addProfile} />
