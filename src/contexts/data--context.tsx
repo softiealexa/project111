@@ -4,22 +4,21 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus, ExamCountdown } from '@/lib/types';
+import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, SimpleTodo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus, CheckedState, ExamCountdown } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
-import { db } from '@/lib/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { format } from 'date-fns';
+import { format, getISOWeek, getYear } from 'date-fns';
 
 // --- Local Storage Keys ---
 const LOCAL_PROFILE_KEY_PREFIX = 'trackacademic_profile_';
 const THEME_KEY = 'trackacademic_theme';
 const MODE_KEY = 'trackacademic_mode';
 const SIDEBAR_WIDTH_KEY = 'trackacademic_sidebar_width';
+const PROGRESS_DOWNLOAD_PROMPT_KEY = 'trackacademic_progress_prompt';
 const DEFAULT_SIDEBAR_WIDTH = 448; // Corresponds to md (28rem)
 
 interface DataContextType {
@@ -58,6 +57,10 @@ interface DataContextType {
   updateTodo: (todo: SmartTodo) => void;
   deleteTodo: (todoId: string) => void;
   setTodos: (todos: SmartTodo[]) => void;
+  addSimpleTodo: (text: string, priority: Priority, deadline?: number) => void;
+  updateSimpleTodo: (todo: SimpleTodo) => void;
+  deleteSimpleTodo: (todoId: string) => void;
+  setSimpleTodos: (todos: SimpleTodo[]) => void;
   addQuestionSession: (session: QuestionSession) => void;
   addTimeEntry: (entry: Omit<TimeEntry, 'id'>) => TimeEntry | undefined;
   updateTimeEntry: (entry: TimeEntry) => void;
@@ -83,6 +86,8 @@ interface DataContextType {
   isThemeHydrated: boolean;
   sidebarWidth: number;
   setSidebarWidth: (width: number) => void;
+  showProgressDownloadPrompt: boolean;
+  setShowProgressDownloadPrompt: (show: boolean) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -98,15 +103,17 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
     return profiles.map(profile => {
         const migratedSubjects = (profile.subjects || []).map((subject: any) => {
             const migratedChapters = (subject.chapters || []).map((chapter: any) => {
-                const newCheckedState: Record<string, TaskStatus> = {};
+                const newCheckedState: Record<string, CheckedState> = {};
                 // This function now explicitly checks for old 'true' booleans and converts them,
                 // while preserving any existing valid string states.
                 if (chapter.checkedState && typeof chapter.checkedState === 'object') {
                     Object.keys(chapter.checkedState).forEach(key => {
                         const value = chapter.checkedState[key];
-                        if (value === true) {
-                            newCheckedState[key] = 'checked';
-                        } else if (['unchecked', 'checked', 'checked-red'].includes(value)) {
+                        if (value === true || value === 'checked') {
+                            newCheckedState[key] = { status: 'checked' };
+                        } else if (value === 'checked-red') {
+                             newCheckedState[key] = { status: 'checked-red' };
+                        } else if (typeof value === 'object' && value.status) {
                             newCheckedState[key] = value;
                         }
                     });
@@ -125,9 +132,21 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
             };
         });
         
+        const migratedSimpleTodos = (profile.simpleTodos || []).map((todo: any) => {
+            if (typeof todo.status === 'boolean') {
+                return {
+                    ...todo,
+                    status: todo.status ? 'checked' : 'unchecked',
+                    completedAt: todo.status ? todo.completedAt || Date.now() : undefined,
+                };
+            }
+            return todo;
+        });
+
         return {
             ...profile,
             subjects: migratedSubjects,
+            simpleTodos: migratedSimpleTodos,
             plannerNotes: profile.plannerNotes || {},
             notes: profile.notes || [],
             importantLinks: profile.importantLinks || [],
@@ -188,6 +207,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [mode, setModeState] = useState<'light' | 'dark'>('dark');
   const [sidebarWidth, setSidebarWidthState] = useState<number>(DEFAULT_SIDEBAR_WIDTH);
   const [isThemeHydrated, setIsThemeHydrated] = useState(false);
+  const [showProgressDownloadPrompt, setShowProgressDownloadPrompt] = useState(false);
+
 
   const setSidebarWidth = useCallback((width: number) => {
     setSidebarWidthState(width);
@@ -227,6 +248,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setIsThemeHydrated(true);
   }, [setTheme, setMode, setSidebarWidth]);
 
+  useEffect(() => {
+    if (loading) return;
+
+    const today = new Date();
+    const currentWeekId = `${getYear(today)}-${getISOWeek(today)}`;
+    const lastPromptWeekId = localStorage.getItem(PROGRESS_DOWNLOAD_PROMPT_KEY);
+
+    if (currentWeekId !== lastPromptWeekId) {
+        setShowProgressDownloadPrompt(true);
+    }
+  }, [loading]);
+
   const saveData = useCallback(async (profilesToSave: Profile[], activeNameToSave: string | null) => {
     if (typeof window === 'undefined') return;
 
@@ -259,7 +292,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         let completedTasks = 0;
         subject.chapters.forEach(chapter => {
             totalTasks += chapter.lectureCount * tasksPerLecture;
-            completedTasks += Object.values(chapter.checkedState || {}).filter(status => status === 'checked' || status === 'checked-red').length;
+            completedTasks += Object.values(chapter.checkedState || {}).filter(item => item.status === 'checked' || item.status === 'checked-red').length;
         });
 
         return totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
@@ -385,7 +418,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     const lastRolloverDate = localStorage.getItem(lastRolloverKey);
 
-    // Only run rollover logic once per day
     if (lastRolloverDate === todayStr) {
         return;
     }
@@ -393,7 +425,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     let todos = activeProfile.todos || [];
     let updated = false;
 
-    // Check all past dates for incomplete tasks
     const uniquePastDates = [...new Set(todos.map(t => t.forDate).filter(d => d < todayStr))];
     
     uniquePastDates.forEach(dateStr => {
@@ -408,7 +439,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
                 createdAt: Date.now()
             }));
 
-            // Add the new rolled-over tasks
             todos = [...todos, ...rolledOverTasks];
             updated = true;
         }
@@ -419,7 +449,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
         updateProfiles(newProfiles, activeProfileName);
     }
     
-    // Mark today as the last rollover date
     localStorage.setItem(lastRolloverKey, todayStr);
   }, [activeProfile, loading, profiles, activeProfileName, updateProfiles]);
 
@@ -501,7 +530,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const newSubjects = activeProfile.subjects.map(s => {
         if (s.name === oldName) {
             const newChapters = s.chapters.map(c => {
-                const newCheckedState: Record<string, TaskStatus> = {};
+                const newCheckedState: Record<string, CheckedState> = {};
                 if (c.checkedState) {
                     Object.keys(c.checkedState).forEach(key => {
                         const newKey = key.replace(`${oldName}-`, `${newName}-`);
@@ -568,7 +597,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (s.name === subjectName) {
             const newChapters = s.chapters.map(c => {
                 if (c.name === oldName) {
-                     const newCheckedState: Record<string, TaskStatus> = {};
+                     const newCheckedState: Record<string, CheckedState> = {};
                      if (c.checkedState) {
                         Object.keys(c.checkedState).forEach(key => {
                             const newKey = key.replace(`-${oldName}-`, `-${newName}-`);
@@ -631,7 +660,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (removedTasks.length > 0) {
           updatedChapters = subject.chapters.map(chapter => {
             const oldCheckedState = chapter.checkedState || {};
-            const newCheckedState: Record<string, TaskStatus> = {};
+            const newCheckedState: Record<string, CheckedState> = {};
             Object.keys(oldCheckedState).forEach(key => {
               const wasRemoved = removedTasks.some(removedTask => key.endsWith(`-${removedTask}`));
               if (!wasRemoved) {
@@ -658,7 +687,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (s.name === subjectName) {
             const newTasks = s.tasks.map(t => t === oldName ? newName : t);
             const newChapters = s.chapters.map(c => {
-                const newCheckedState: Record<string, TaskStatus> = {};
+                const newCheckedState: Record<string, CheckedState> = {};
                 if (c.checkedState) {
                     Object.keys(c.checkedState).forEach(key => {
                         if (key.endsWith(`-${oldName}`)) {
@@ -707,7 +736,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const newProfiles = profiles.map(p => {
         if (p.name === activeProfileName) {
             const currentNotes = p.notes || [];
-            // New notes are now added to the beginning of the array.
             const updatedNotes = [newNote, ...currentNotes];
             return { ...p, notes: updatedNotes };
         }
@@ -862,13 +890,67 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
     updateProfiles(newProfiles, activeProfileName);
   }, [activeProfileName, profiles, updateProfiles]);
+
+  const addSimpleTodo = useCallback((text: string, priority: Priority, deadline?: number) => {
+    if (!activeProfileName) return;
+    const newTodo: SimpleTodo = {
+      id: crypto.randomUUID(),
+      text,
+      status: 'unchecked',
+      createdAt: Date.now(),
+      priority,
+      deadline,
+    };
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const updatedTodos = [...(p.simpleTodos || []), newTodo];
+        return { ...p, simpleTodos: updatedTodos };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
+  const updateSimpleTodo = useCallback((updatedTodo: SimpleTodo) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const updatedTodos = (p.simpleTodos || []).map(t => t.id === updatedTodo.id ? updatedTodo : t);
+        return { ...p, simpleTodos: updatedTodos };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+
+  const deleteSimpleTodo = useCallback((todoId: string) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        const updatedTodos = (p.simpleTodos || []).filter(t => t.id !== todoId);
+        return { ...p, simpleTodos: updatedTodos };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
+  
+  const setSimpleTodos = useCallback((todos: SimpleTodo[]) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => {
+      if (p.name === activeProfileName) {
+        return { ...p, simpleTodos: todos };
+      }
+      return p;
+    });
+    updateProfiles(newProfiles, activeProfileName);
+  }, [activeProfileName, profiles, updateProfiles]);
   
   const addQuestionSession = useCallback((session: QuestionSession) => {
     if (!activeProfileName) return;
     const newProfiles = profiles.map(p => {
       if (p.name === activeProfileName) {
         const currentSessions = p.questionSessions || [];
-        // Add new session to the beginning and limit history to 50
         const updatedSessions = [session, ...currentSessions].slice(0, 50);
         return { ...p, questionSessions: updatedSessions };
       }
@@ -1059,19 +1141,29 @@ export function DataProvider({ children }: { children: ReactNode }) {
         toast({ title: "Export Failed", description: "No data to export.", variant: "destructive" });
         return;
     };
-    const dataToStore = { profiles, activeProfileName };
+    const dataToStore = {
+        profiles,
+        activeProfileName,
+        settings: {
+            theme,
+            mode,
+            sidebarWidth
+        }
+    };
     const dataStr = JSON.stringify(dataToStore, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
+    const dateStr = format(new Date(), 'dd-MM-yy');
+    const username = user?.displayName || 'guest';
+    link.download = `trackacademic_data_${username}_${dateStr}.json`;
     link.href = url;
-    link.download = `trackacademic_data_${user ? user.displayName : 'guest'}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     toast({ title: "Export Successful", description: "Your data has been downloaded." });
-  }, [profiles, activeProfileName, user, toast]);
+  }, [profiles, activeProfileName, user, theme, mode, sidebarWidth, toast]);
 
   const importData = useCallback((file: File) => {
       const reader = new FileReader();
@@ -1083,6 +1175,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
                   setProfiles(processed);
                   setActiveProfileName(data.activeProfileName);
                   setActiveSubjectName(null);
+                  
+                  if (data.settings) {
+                      setTheme(data.settings.theme || 'default');
+                      setMode(data.settings.mode || 'dark');
+                      setSidebarWidth(data.settings.sidebarWidth || DEFAULT_SIDEBAR_WIDTH);
+                  }
+
                   saveData(processed, data.activeProfileName);
                   toast({ title: "Import Successful", description: "Your data has been restored." });
               } else {
@@ -1093,14 +1192,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
           }
       };
       reader.readAsText(file);
-  }, [saveData, toast]);
+  }, [saveData, toast, setTheme, setMode, setSidebarWidth]);
   
   const signOutUser = useCallback(async () => {
     await signOut();
     setProfiles([]);
     setActiveProfileName(null);
     setActiveSubjectName(null);
-    localStorage.removeItem(getLocalKey(null)); // Clear guest data on logout
+    localStorage.removeItem(getLocalKey(null));
   }, []);
 
   const value = useMemo(() => ({
@@ -1109,29 +1208,42 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addChapter, removeChapter, updateChapter, renameChapter, updateChapterDeadline, updateTasks, renameTask,
     updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
     addTodo, updateTodo, deleteTodo, setTodos,
+    addSimpleTodo, updateSimpleTodo, deleteSimpleTodo, setSimpleTodos,
     addQuestionSession, addTimeEntry, updateTimeEntry, deleteTimeEntry, setTimeEntries,
     addProject, updateProject, deleteProject, updateTimesheetEntry, setTimesheetData,
     addExamCountdown, updateExamCountdown, deleteExamCountdown, setExamCountdowns,
     exportData, importData, signOutUser, refreshUserDoc,
     theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth,
+    showProgressDownloadPrompt, setShowProgressDownloadPrompt,
   }), [
     user, userDoc, loading, profiles, activeProfile, activeSubjectName,
     addProfile, removeProfile, renameProfile, switchProfile, updateSubjects, addSubject, removeSubject, renameSubject,
     addChapter, removeChapter, updateChapter, renameChapter, updateChapterDeadline, updateTasks, renameTask,
     updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
     addTodo, updateTodo, deleteTodo, setTodos,
+    addSimpleTodo, updateSimpleTodo, deleteSimpleTodo, setSimpleTodos,
     addQuestionSession, addTimeEntry, updateTimeEntry, deleteTimeEntry, setTimeEntries,
     addProject, updateProject, deleteProject, updateTimesheetEntry, setTimesheetData,
     addExamCountdown, updateExamCountdown, deleteExamCountdown, setExamCountdowns,
     exportData, importData, signOutUser, refreshUserDoc,
-    theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth, setActiveSubjectName
+    theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth, setActiveSubjectName,
+    showProgressDownloadPrompt
   ]);
   
-  if (loading) {
-      return null; // Or a loading spinner
-  }
+  const shouldShowCreateProfile = useMemo(() => {
+    const protectedPages = ['/dashboard', '/settings', '/clockify', '/admin'];
+    
+    if (loading) return false;
+    
+    if (protectedPages.some(p => pathname.startsWith(p)) && profiles.length === 0) {
+      return true;
+    }
+    
+    return false;
+  }, [loading, pathname, profiles.length]);
 
-  if ((pathname.startsWith('/dashboard') || pathname.startsWith('/settings')) && profiles.length === 0) {
+
+  if (shouldShowCreateProfile) {
       return (
         <DataContext.Provider value={value}>
             <CreateProfileScreen onProfileCreate={addProfile} />
@@ -1149,5 +1261,3 @@ export function useData() {
   }
   return context;
 }
-
-    
