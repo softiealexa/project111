@@ -6,27 +6,27 @@ import * as CheckboxPrimitive from "@radix-ui/react-checkbox"
 import { Check } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import type { TaskStatus } from "@/lib/types";
+import type { CheckedState } from "@/lib/types";
 
 const Checkbox = React.forwardRef<
   React.ElementRef<typeof CheckboxPrimitive.Root>,
   Omit<React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root>, 'checked' | 'onCheckedChange'> & {
-    checked: TaskStatus;
-    onCheckedChange: (status: TaskStatus) => void;
+    checked: CheckedState;
+    onCheckedChange: (status: CheckedState) => void;
   }
 >(({ className, checked, onCheckedChange, ...props }, ref) => {
   
   const handleStateChange = () => {
-    if (checked === 'checked') {
-      onCheckedChange('checked-red');
-    } else if (checked === 'checked-red') {
-      onCheckedChange('unchecked');
+    if (checked.status === 'checked') {
+      onCheckedChange({ status: 'checked-red', completedAt: checked.completedAt || Date.now() });
+    } else if (checked.status === 'checked-red') {
+      onCheckedChange({ status: 'unchecked' });
     } else { // 'unchecked'
-      onCheckedChange('checked');
+      onCheckedChange({ status: 'checked', completedAt: Date.now() });
     }
   };
 
-  const isChecked = checked === 'checked' || checked === 'checked-red';
+  const isChecked = checked.status === 'checked' || checked.status === 'checked-red';
 
   return (
     <CheckboxPrimitive.Root
@@ -36,8 +36,8 @@ const Checkbox = React.forwardRef<
       className={cn(
         "peer h-4 w-4 shrink-0 rounded-full border ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
         "data-[state=checked]:text-primary-foreground",
-        checked === 'checked' ? "bg-primary border-primary" :
-        checked === 'checked-red' ? "bg-destructive border-destructive" :
+        checked.status === 'checked' ? "bg-primary border-primary" :
+        checked.status === 'checked-red' ? "bg-destructive border-destructive" :
         "border-primary",
         className
       )}

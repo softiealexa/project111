@@ -3,6 +3,11 @@
 export type TaskStatus = 'unchecked' | 'checked' | 'checked-red';
 export type Priority = 'Low' | 'Medium' | 'High';
 
+export interface CheckedState {
+    status: TaskStatus;
+    completedAt?: number; // Timestamp
+}
+
 export interface SimpleTodo {
   id: string;
   text: string;
@@ -63,7 +68,7 @@ export interface ImportantLink {
 export interface Chapter {
   name: string;
   lectureCount: number;
-  checkedState?: Record<string, TaskStatus>;
+  checkedState?: Record<string, CheckedState>;
   notes?: Record<string, string>;
   lectureNames?: Record<string, string>;
   deadline?: number;

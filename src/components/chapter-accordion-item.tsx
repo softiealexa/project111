@@ -7,7 +7,7 @@ import { AccordionContent, AccordionItem } from "@/components/ui/accordion";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import type { Chapter, Subject, TaskStatus } from "@/lib/types";
+import type { Chapter, Subject, CheckedState } from "@/lib/types";
 import { Progress } from "@/components/ui/progress";
 import { GripVertical, ChevronDown, CheckCircle, Pencil, CalendarClock } from 'lucide-react';
 import { useData } from '@/contexts/data-context';
@@ -29,7 +29,7 @@ interface ChapterAccordionItemProps {
 
 export default function ChapterAccordionItem({ chapter, subject, index, id }: ChapterAccordionItemProps) {
   const { activeProfile, updateSubjects } = useData();
-  const [checkedState, setCheckedState] = useState<Record<string, TaskStatus>>(chapter.checkedState || {});
+  const [checkedState, setCheckedState] = useState<Record<string, CheckedState>>(chapter.checkedState || {});
   
   const [tasksToComplete, setTasksToComplete] = useState<string[]>([]);
 
@@ -50,16 +50,16 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
   
   const tasks = subject.tasks || [];
   const totalTasks = chapter.lectureCount * tasks.length;
-  const completedTasks = Object.values(checkedState).filter(status => status === 'checked' || status === 'checked-red').length;
+  const completedTasks = Object.values(checkedState).filter(item => item.status === 'checked' || item.status === 'checked-red').length;
   
-  const handleCheckboxChange = (checkboxId: string, status: TaskStatus) => {
-    const newCheckedState: Record<string, TaskStatus> = { ...checkedState };
-    if (status === 'unchecked') {
-      delete newCheckedState[checkboxId];
+  const handleCheckboxChange = (checkboxId: string, newCheckedState: CheckedState) => {
+    const updatedState: Record<string, CheckedState> = { ...checkedState };
+    if (newCheckedState.status === 'unchecked') {
+      delete updatedState[checkboxId];
     } else {
-      newCheckedState[checkboxId] = status;
+      updatedState[checkboxId] = newCheckedState;
     }
-    setCheckedState(newCheckedState);
+    setCheckedState(updatedState);
     
     if (!activeProfile) return;
 
@@ -67,7 +67,7 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
       if (s.name === subject.name) {
         const newChapters = s.chapters.map((c, i) => {
           if (i === index) {
-            return { ...c, checkedState: newCheckedState };
+            return { ...c, checkedState: updatedState };
           }
           return c;
         });
@@ -81,11 +81,13 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
   const handleMarkSelectedComplete = () => {
     if (tasksToComplete.length === 0) return;
 
-    const newCheckedStateForThisChapter: Record<string, TaskStatus> = { ...checkedState };
+    const newCheckedStateForThisChapter: Record<string, CheckedState> = { ...checkedState };
     for (let i = 1; i <= chapter.lectureCount; i++) {
         tasksToComplete.forEach(task => {
             const checkboxId = `${subject.name}-${chapter.name}-Lecture-${i}-${task}`;
-            newCheckedStateForThisChapter[checkboxId] = 'checked';
+            if (newCheckedStateForThisChapter[checkboxId]?.status !== 'checked') {
+                newCheckedStateForThisChapter[checkboxId] = { status: 'checked', completedAt: Date.now() };
+            }
         });
     }
     setCheckedState(newCheckedStateForThisChapter);
@@ -96,7 +98,6 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
       if (s.name === subject.name) {
         const newChapters = s.chapters.map((c, i) => {
           if (i === index) {
-            // Only update the checked state for the current chapter
             return { ...c, checkedState: newCheckedStateForThisChapter };
           }
           return c;
@@ -148,7 +149,7 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
             <button {...listeners} aria-label="Drag to reorder chapter" className="cursor-grab pl-3 pr-2 py-4 text-muted-foreground hover:text-foreground touch-none">
               <GripVertical className="h-5 w-5" />
             </button>
-            <AccordionPrimitive.Trigger className="flex flex-1 flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4 py-3 pr-3 text-left hover:no-underline [&[data-state=open]>svg.accordion-chevron]:rotate-180">
+            <AccordionPrimitive.Trigger className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-y-1 gap-x-4 py-3 pr-3 text-left hover:no-underline flex-1 min-w-0 [&[data-state=open]>svg.accordion-chevron]:rotate-180">
               <div className="min-w-0 flex-1">
                 <h3 className="truncate font-headline text-lg font-medium text-foreground">
                   {chapter.name}
@@ -165,7 +166,7 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
                   )}
                 </div>
               </div>
-              <div className="flex shrink-0 items-center gap-4 w-full sm:w-[260px]">
+              <div className="flex w-full sm:w-auto shrink-0 items-center gap-4 sm:w-[260px]">
                  <div className="flex w-full items-center gap-2 text-sm text-muted-foreground">
                     <span className="font-medium tabular-nums whitespace-nowrap w-12 text-center">{completedTasks}/{totalTasks}</span>
                     <Progress value={progress} indicatorClassName={progressColorClass} className="flex-1" />
@@ -209,15 +210,17 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
                         <div key={task} className="flex items-center space-x-2 rounded-md border p-3 hover:bg-accent/50 transition-colors">
                           <Checkbox
                             id={`complete-${task}`}
-                            checked={'unchecked'} // This checkbox is for selection, not status
-                            onCheckedChange={(checked) => {
-                              const isNowChecked = checked === 'checked'; // The component itself doesn't cycle, so we check the new state
-                              setTasksToComplete(prev =>
-                                isNowChecked ? [...prev, task] : prev.filter(t => t !== task)
-                              );
+                            checked={{ status: 'unchecked' }}
+                            onCheckedChange={() => {
+                                setTasksToComplete(prev =>
+                                    prev.includes(task) ? prev.filter(t => t !== task) : [...prev, task]
+                                );
                             }}
                           />
-                          <Label htmlFor={`complete-${task}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-1 cursor-pointer">
+                          <Label
+                            htmlFor={`complete-${task}`}
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-1 cursor-pointer"
+                          >
                             {task}
                           </Label>
                         </div>

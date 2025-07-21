@@ -7,7 +7,7 @@ import { Checkbox } from './ui/checkbox';
 import { Label } from './ui/label';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { useData } from '@/contexts/data-context';
-import type { Chapter, Subject, TaskStatus } from '@/lib/types';
+import type { Chapter, Subject, CheckedState } from '@/lib/types';
 import { LectureNotesDialog } from './lecture-notes-dialog';
 import { Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -17,8 +17,8 @@ interface LectureRowProps {
   lectureNum: number;
   chapter: Chapter;
   subject: Subject;
-  checkedState: Record<string, TaskStatus>;
-  onCheckboxChange: (checkboxId: string, status: TaskStatus) => void;
+  checkedState: Record<string, CheckedState>;
+  onCheckboxChange: (checkboxId: string, newState: CheckedState) => void;
 }
 
 export function LectureRow({ lectureNum, chapter, subject, checkedState, onCheckboxChange }: LectureRowProps) {
@@ -107,7 +107,7 @@ export function LectureRow({ lectureNum, chapter, subject, checkedState, onCheck
                 </LectureNotesDialog>
 
                  {customLectureName && (
-                    <span className="text-sm text-muted-foreground truncate max-w-[200px]">{customLectureName}</span>
+                    <span className="text-sm text-muted-foreground truncate max-w-[240px]">{customLectureName}</span>
                  )}
             </div>
             
@@ -118,7 +118,7 @@ export function LectureRow({ lectureNum, chapter, subject, checkedState, onCheck
                         <div key={task} className="flex items-center space-x-2">
                             <Checkbox 
                                 id={checkboxId} 
-                                checked={checkedState[checkboxId] || 'unchecked'} 
+                                checked={checkedState[checkboxId] || { status: 'unchecked' }} 
                                 onCheckedChange={(status) => onCheckboxChange(checkboxId, status)} 
                             />
                             <Label htmlFor={checkboxId} className="text-sm font-normal text-muted-foreground cursor-pointer">

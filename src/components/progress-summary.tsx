@@ -1,7 +1,7 @@
 
 "use client"
 
-import type { Profile, Subject, Chapter, TaskStatus } from "@/lib/types";
+import type { Profile, Subject, Chapter, CheckedState } from "@/lib/types";
 import { useMemo, useState, useCallback } from "react";
 import { Bar, BarChart, Pie, PieChart, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Legend, Tooltip as RechartsTooltip, LabelList, ReferenceLine, LineChart, Line, Label as RechartsLabel } from "recharts";
 import { CheckCircle, BookOpen, TrendingUp, Target, Filter, History, Clock, BarChart as BarChartIcon, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
@@ -51,7 +51,7 @@ const getProgress = (chapters: Chapter[], tasksPerLecture: number) => {
     let completedTasks = 0;
     chapters.forEach((chapter) => {
       totalTasks += chapter.lectureCount * tasksPerLecture;
-      completedTasks += Object.values(chapter.checkedState || {}).filter(status => status === 'checked' || status === 'checked-red').length;
+      completedTasks += Object.values(chapter.checkedState || {}).filter(item => item.status === 'checked' || item.status === 'checked-red').length;
     });
     return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 };
@@ -71,70 +71,84 @@ function WeeklyProgressDashboard({ profile }: { profile: Profile }) {
         const start = startOfWeek(currentDate, { weekStartsOn: 1 });
         const end = endOfWeek(currentDate, { weekStartsOn: 1 });
 
-        const data = profile.subjects.map(subject => {
-            const chaptersInWeek = subject.chapters.filter(chapter => 
-                chapter.deadline && isWithinInterval(new Date(chapter.deadline), { start, end })
-            );
-
-            if (chaptersInWeek.length === 0) return null;
-
-            return {
-                subjectName: subject.name,
-                subjectIcon: subject.icon,
-                tasks: subject.tasks || [],
-                chapters: chaptersInWeek.map(chapter => {
-                    const tasksPerLecture = subject.tasks.length;
-                    const totalTasks = chapter.lectureCount * tasksPerLecture;
-                    const completedTasks = Object.values(chapter.checkedState || {}).filter(status => status === 'checked' || status === 'checked-red').length;
-                    const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-                    return {
-                        ...chapter,
-                        progress,
-                        completedTasks,
-                        totalTasks,
-                    };
-                })
-            };
-        }).filter(Boolean);
-
-        return {
-            weekRange: { start, end },
-            weeklyData: data as any[]
-        };
-    }, [currentDate, profile]);
-
-    const weeklyStats = useMemo(() => {
-        let totalChapters = 0;
-        let totalLectures = 0;
-        const taskStats: Record<string, { completed: number, total: number }> = {};
-
-        weeklyData.forEach(subject => {
-            totalChapters += subject.chapters.length;
-            subject.chapters.forEach((chapter: any) => {
-                totalLectures += chapter.lectureCount;
-
-                subject.tasks.forEach((task: string) => {
-                    if (!taskStats[task]) {
-                        taskStats[task] = { completed: 0, total: 0 };
-                    }
-                    taskStats[task].total += chapter.lectureCount;
-                    
-                    for (let i = 1; i <= chapter.lectureCount; i++) {
-                        const checkboxId = `${subject.subjectName}-${chapter.name}-Lecture-${i}-${task}`;
-                        if (chapter.checkedState?.[checkboxId] === 'checked' || chapter.checkedState?.[checkboxId] === 'checked-red') {
-                            taskStats[task].completed += 1;
+        const chaptersInWeek: Record<string, { subject: Subject, chapter: Chapter, completedTasks: CheckedState }> = {};
+        
+        profile.subjects.forEach(subject => {
+            subject.chapters.forEach(chapter => {
+                const checkedState = chapter.checkedState || {};
+                Object.entries(checkedState).forEach(([key, value]) => {
+                    if (value.completedAt && isWithinInterval(new Date(value.completedAt), { start, end })) {
+                        const chapterId = `${subject.name}-${chapter.name}`;
+                        if (!chaptersInWeek[chapterId]) {
+                            chaptersInWeek[chapterId] = {
+                                subject,
+                                chapter,
+                                completedTasks: {}
+                            };
                         }
+                        chaptersInWeek[chapterId].completedTasks[key] = value;
                     }
                 });
             });
         });
+
+        const data = Object.values(chaptersInWeek).map(({ subject, chapter, completedTasks }) => {
+            const tasksPerLecture = subject.tasks.length;
+            const totalTasksInChapter = chapter.lectureCount * tasksPerLecture;
+            const chapterProgress = totalTasksInChapter > 0 ? Math.round((Object.keys(chapter.checkedState || {}).length / totalTasksInChapter) * 100) : 0;
+            
+            return {
+                subjectName: subject.name,
+                subjectIcon: subject.icon,
+                tasks: subject.tasks,
+                chapter: {
+                    ...chapter,
+                    progress: chapterProgress,
+                },
+                weeklyCompletedTasks: completedTasks,
+            };
+        });
         
+        return {
+            weekRange: { start, end },
+            weeklyData: data,
+        };
+    }, [currentDate, profile]);
+    
+    const weeklyStats = useMemo(() => {
+        let totalLecturesWorkedOn = 0;
+        const lecturesWorkedOn = new Set();
+        const taskStats: Record<string, number> = {};
+        const chaptersWorkedOn = new Set();
+
+        weeklyData.forEach(item => {
+            chaptersWorkedOn.add(item.chapter.name);
+
+            item.tasks.forEach(task => {
+                if (!taskStats[task]) {
+                    taskStats[task] = 0;
+                }
+            });
+
+            Object.keys(item.weeklyCompletedTasks).forEach(key => {
+                const parts = key.split('-');
+                const taskName = parts[parts.length - 1];
+                const lectureNum = parts[parts.length - 2];
+                
+                if (taskStats[taskName] !== undefined) {
+                    taskStats[taskName]++;
+                }
+                
+                lecturesWorkedOn.add(`${item.subjectName}-${item.chapter.name}-${lectureNum}`);
+            });
+        });
+
+        totalLecturesWorkedOn = lecturesWorkedOn.size;
         const taskBreakdown = Object.entries(taskStats)
-            .map(([name, stats]) => ({ name, ...stats }))
+            .map(([name, completed]) => ({ name, completed }))
             .sort((a,b) => a.name.localeCompare(b.name));
 
-
-        return { totalChapters, totalLectures, taskBreakdown };
+        return { totalChapters: chaptersWorkedOn.size, totalLectures: totalLecturesWorkedOn, taskBreakdown };
     }, [weeklyData]);
 
     return (
@@ -154,8 +168,8 @@ function WeeklyProgressDashboard({ profile }: { profile: Profile }) {
             {weeklyData.length === 0 ? (
                 <div className="flex flex-col items-center justify-center rounded-md border-2 border-dashed py-12 text-center">
                     <CalendarDays className="h-10 w-10 text-muted-foreground mb-4"/>
-                    <h3 className="text-lg font-medium text-muted-foreground">No Chapters Due This Week</h3>
-                    <p className="text-sm text-muted-foreground">Set some deadlines in the Customization panel to see them here.</p>
+                    <h3 className="text-lg font-medium text-muted-foreground">No Activity This Week</h3>
+                    <p className="text-sm text-muted-foreground">Complete some tasks to see your progress here.</p>
                 </div>
             ) : (
                 <>
@@ -166,11 +180,11 @@ function WeeklyProgressDashboard({ profile }: { profile: Profile }) {
                         </CardHeader>
                         <CardContent className="grid grid-cols-2 gap-4">
                             <div className="rounded-lg border p-4">
-                                <p className="text-sm font-medium text-muted-foreground">Chapters Due</p>
+                                <p className="text-sm font-medium text-muted-foreground">Chapters Worked On</p>
                                 <p className="text-3xl font-bold">{weeklyStats.totalChapters}</p>
                             </div>
                              <div className="rounded-lg border p-4">
-                                <p className="text-sm font-medium text-muted-foreground">Total Lectures</p>
+                                <p className="text-sm font-medium text-muted-foreground">Lectures Touched</p>
                                 <p className="text-3xl font-bold">{weeklyStats.totalLectures}</p>
                             </div>
                         </CardContent>
@@ -184,9 +198,8 @@ function WeeklyProgressDashboard({ profile }: { profile: Profile }) {
                                 <div key={task.name}>
                                     <div className="flex justify-between items-center mb-1 text-sm">
                                         <span className="font-medium text-muted-foreground">{task.name}</span>
-                                        <span>{task.completed} / {task.total}</span>
+                                        <span className="font-bold">{task.completed} completed</span>
                                     </div>
-                                    <Progress value={task.total > 0 ? (task.completed / task.total) * 100 : 0} />
                                 </div>
                             ))}
                         </CardContent>
@@ -194,53 +207,53 @@ function WeeklyProgressDashboard({ profile }: { profile: Profile }) {
                  </div>
 
                 <Accordion type="multiple" className="w-full space-y-4">
-                    {weeklyData.map(subject => {
-                        const Icon = getIconComponent(subject.subjectIcon);
+                    {weeklyData.map(item => {
+                        const Icon = getIconComponent(item.subjectIcon);
                         return (
-                             <Card key={subject.subjectName} className="overflow-hidden">
+                             <Card key={`${item.subjectName}-${item.chapter.name}`} className="overflow-hidden">
                                  <div className="p-4 border-b bg-muted/30">
                                     <h4 className="text-lg font-semibold flex items-center gap-2">
                                         <Icon className="h-5 w-5"/>
-                                        {subject.subjectName}
+                                        {item.subjectName}
                                     </h4>
                                  </div>
-                                {subject.chapters.map((chapter: any) => (
-                                    <AccordionItem key={chapter.name} value={`${subject.subjectName}-${chapter.name}`} className="border-b last:border-b-0">
-                                        <AccordionTrigger className="px-4 py-3 text-base hover:bg-muted/50 hover:no-underline [&[data-state=open]>svg]:rotate-180">
-                                            <div className="flex-1 text-left min-w-0">
-                                                <p className="font-medium truncate">{chapter.name}</p>
-                                                <p className="text-sm text-muted-foreground">Due: {format(new Date(chapter.deadline), 'EEEE, MMM d')}</p>
+                                <AccordionItem value={`${item.subjectName}-${item.chapter.name}`} className="border-b last:border-b-0">
+                                    <AccordionTrigger className="px-4 py-3 text-base hover:bg-muted/50 hover:no-underline [&[data-state=open]>svg]:rotate-180">
+                                        <div className="flex-1 text-left min-w-0">
+                                            <p className="font-medium truncate">{item.chapter.name}</p>
+                                             <p className="text-sm text-muted-foreground">
+                                                {Object.keys(item.weeklyCompletedTasks).length} tasks completed this week
+                                            </p>
+                                        </div>
+                                            <div className="flex shrink-0 items-center gap-4 w-full sm:w-[220px]">
+                                            <div className="flex w-full items-center gap-2 text-sm text-muted-foreground">
+                                                <Progress value={item.chapter.progress} className="flex-1" />
+                                                <span className="font-bold tabular-nums text-foreground whitespace-nowrap w-12 text-right">{item.chapter.progress}%</span>
                                             </div>
-                                             <div className="flex shrink-0 items-center gap-4 w-full sm:w-[220px]">
-                                                <div className="flex w-full items-center gap-2 text-sm text-muted-foreground">
-                                                    <Progress value={chapter.progress} className="flex-1" />
-                                                    <span className="font-bold tabular-nums text-foreground whitespace-nowrap w-12 text-right">{chapter.progress}%</span>
-                                                </div>
-                                            </div>
-                                        </AccordionTrigger>
-                                        <AccordionContent className="px-4 pb-4">
-                                            <div className="space-y-3 rounded-md border p-3">
-                                                {Array.from({ length: chapter.lectureCount }, (_, i) => i + 1).map((lectureNum) => (
-                                                    <div key={lectureNum} className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-md bg-background p-2">
-                                                        <p className="font-semibold text-sm">Lecture {lectureNum}</p>
-                                                        <div className="flex items-center gap-x-4 gap-y-1">
-                                                            {subject.tasks.map((task: string) => {
-                                                                const checkboxId = `${subject.subjectName}-${chapter.name}-Lecture-${lectureNum}-${task}`;
-                                                                const isChecked = chapter.checkedState?.[checkboxId] === 'checked' || chapter.checkedState?.[checkboxId] === 'checked-red';
-                                                                return (
-                                                                    <div key={task} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                                                        <CheckCircle className={cn("h-3.5 w-3.5", isChecked ? "text-green-500" : "text-muted-foreground/50")} />
-                                                                        <span>{task}</span>
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>
+                                        </div>
+                                    </AccordionTrigger>
+                                    <AccordionContent className="px-4 pb-4">
+                                        <div className="space-y-3 rounded-md border p-3">
+                                            {Array.from({ length: item.chapter.lectureCount }, (_, i) => i + 1).map((lectureNum) => (
+                                                <div key={lectureNum} className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-md bg-background p-2">
+                                                    <p className="font-semibold text-sm">Lecture {lectureNum}</p>
+                                                    <div className="flex items-center gap-x-4 gap-y-1">
+                                                        {item.tasks.map((task: string) => {
+                                                            const checkboxId = `${item.subjectName}-${item.chapter.name}-Lecture-${lectureNum}-${task}`;
+                                                            const isCheckedThisWeek = item.weeklyCompletedTasks[checkboxId] !== undefined;
+                                                            return (
+                                                                <div key={task} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                                                    <CheckCircle className={cn("h-3.5 w-3.5", isCheckedThisWeek ? "text-green-500" : "text-muted-foreground/50")} />
+                                                                    <span>{task}</span>
+                                                                </div>
+                                                            );
+                                                        })}
                                                     </div>
-                                                ))}
-                                            </div>
-                                        </AccordionContent>
-                                    </AccordionItem>
-                                ))}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </AccordionContent>
+                                </AccordionItem>
                             </Card>
                         )
                     })}
