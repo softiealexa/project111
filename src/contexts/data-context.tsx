@@ -1,17 +1,17 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback, Suspense, lazy } from 'react';
 import { usePathname } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
 import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, SimpleTodo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus, CheckedState, ExamCountdown } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { format, getISOWeek, getYear } from 'date-fns';
+import { LoadingSpinner } from '@/components/loading-spinner';
+
+// Lazily load the create profile screen
+const CreateProfileScreen = lazy(() => import('@/components/create-profile-screen'));
 
 // --- Local Storage Keys ---
 const LOCAL_PROFILE_KEY_PREFIX = 'trackacademic_profile_';
@@ -133,17 +133,12 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
         });
         
         const migratedSimpleTodos = (profile.simpleTodos || []).map((todo: any) => {
-            if (typeof todo.completed === 'boolean') {
-                const { completed, ...rest } = todo;
-                const newTodo: SimpleTodo = {
-                    ...rest,
-                    status: completed ? 'checked' : 'unchecked',
-                    createdAt: todo.createdAt || Date.now()
+            if (typeof todo.status === 'boolean') {
+                return {
+                    ...todo,
+                    status: todo.status ? 'checked' : 'unchecked',
+                    completedAt: todo.status ? todo.completedAt || Date.now() : undefined,
                 };
-                if (completed) {
-                    newTodo.completedAt = todo.completedAt || Date.now();
-                }
-                return newTodo;
             }
             return todo;
         });
@@ -165,37 +160,6 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
         };
     });
 };
-
-
-// --- Create Profile Screen ---
-function CreateProfileScreen({ onProfileCreate }: { onProfileCreate: (name: string) => void }) {
-    const [name, setName] = useState('');
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (name.trim()) onProfileCreate(name.trim());
-    };
-
-    return (
-        <div className="flex items-center justify-center min-h-screen bg-background p-4">
-            <Card className="w-full max-w-sm">
-                <CardHeader className="text-center">
-                    <CardTitle className="text-2xl">Welcome to TrackAcademic!</CardTitle>
-                    <CardDescription>Create a profile to get started.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleSubmit} className="grid gap-4">
-                        <div className="grid gap-2">
-                            <Label htmlFor="profile-name">Profile Name</Label>
-                            <Input id="profile-name" type="text" placeholder="e.g., JEE Prep" required value={name} onChange={(e) => setName(e.target.value)} />
-                        </div>
-                        <Button type="submit" className="w-full">Create Profile</Button>
-                    </form>
-                </CardContent>
-            </Card>
-        </div>
-    );
-}
-
 
 // --- Data Provider ---
 export function DataProvider({ children }: { children: ReactNode }) {
@@ -1251,7 +1215,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
   if (shouldShowCreateProfile) {
       return (
         <DataContext.Provider value={value}>
-            <CreateProfileScreen onProfileCreate={addProfile} />
+            <Suspense fallback={<LoadingSpinner containerClassName="min-h-screen" text="Loading..." />}>
+                <CreateProfileScreen onProfileCreate={addProfile} />
+            </Suspense>
         </DataContext.Provider>
       );
   }
