@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import type { Profile, Subject, Chapter, CheckedState } from "@/lib/types";
@@ -71,7 +72,7 @@ function WeeklyProgressDashboard({ profile }: { profile: Profile }) {
         const start = startOfWeek(currentDate, { weekStartsOn: 1 });
         const end = endOfWeek(currentDate, { weekStartsOn: 1 });
 
-        const chaptersInWeek: Record<string, { subject: Subject, chapter: Chapter, completedTasks: CheckedState }> = {};
+        const chaptersInWeek: Record<string, { subject: Subject, chapter: Chapter, completedTasks: Record<string, CheckedState> }> = {};
         
         profile.subjects.forEach(subject => {
             subject.chapters.forEach(chapter => {
@@ -94,8 +95,10 @@ function WeeklyProgressDashboard({ profile }: { profile: Profile }) {
 
         const data = Object.values(chaptersInWeek).map(({ subject, chapter, completedTasks }) => {
             const tasksPerLecture = subject.tasks.length;
-            const totalTasksInChapter = chapter.lectureCount * tasksPerLecture;
-            const chapterProgress = totalTasksInChapter > 0 ? Math.round((Object.keys(chapter.checkedState || {}).length / totalTasksInChapter) * 100) : 0;
+            
+            const totalTasksInChapter = Object.keys(chapter.checkedState || {}).length;
+            const totalPossibleTasks = chapter.lectureCount * tasksPerLecture;
+            const chapterProgress = totalPossibleTasks > 0 ? Math.round((totalTasksInChapter / totalPossibleTasks) * 100) : 0;
             
             return {
                 subjectName: subject.name,
@@ -173,7 +176,7 @@ function WeeklyProgressDashboard({ profile }: { profile: Profile }) {
                 </div>
             ) : (
                 <>
-                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                      <Card>
                         <CardHeader>
                             <CardTitle className="text-lg">Week at a Glance</CardTitle>
@@ -235,9 +238,9 @@ function WeeklyProgressDashboard({ profile }: { profile: Profile }) {
                                     <AccordionContent className="px-4 pb-4">
                                         <div className="space-y-3 rounded-md border p-3">
                                             {Array.from({ length: item.chapter.lectureCount }, (_, i) => i + 1).map((lectureNum) => (
-                                                <div key={lectureNum} className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-md bg-background p-2">
+                                                <div key={lectureNum} className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-x-6 gap-y-2 rounded-md bg-background p-2">
                                                     <p className="font-semibold text-sm">Lecture {lectureNum}</p>
-                                                    <div className="flex items-center gap-x-4 gap-y-1">
+                                                    <div className="flex items-center flex-wrap gap-x-4 gap-y-1">
                                                         {item.tasks.map((task: string) => {
                                                             const checkboxId = `${item.subjectName}-${item.chapter.name}-Lecture-${lectureNum}-${task}`;
                                                             const isCheckedThisWeek = item.weeklyCompletedTasks[checkboxId] !== undefined;
