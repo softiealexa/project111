@@ -354,15 +354,15 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
         sessions: []
       };
     }
-  
-    // Initialize all variables that will be returned
-    const localChartConfig: ChartConfig = {};
+
+    const colors = ["hsl(180, 80%, 55%)", "hsl(221, 83%, 65%)", "hsl(262, 85%, 68%)", "hsl(24, 96%, 63%)", "hsl(142, 76%, 46%)"];
+    
     let totalChaptersCompleted = 0;
     let totalProgressSum = 0;
     let totalChaptersCount = 0;
-  
-    const colors = ["hsl(180, 80%, 55%)", "hsl(221, 83%, 65%)", "hsl(262, 85%, 68%)", "hsl(24, 96%, 63%)", "hsl(142, 76%, 46%)"];
-  
+    
+    const localChartConfig: ChartConfig = {};
+
     const localChartData = profile.subjects.map((subject, index) => {
       totalChaptersCount += subject.chapters.length;
       const subjectFilter = selectedChapters[subject.name];
@@ -489,17 +489,17 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
         .sort((a, b) => a.name.localeCompare(b.name)),
     };
   
-    return {
-      overallStats: localOverallStats,
-      chartData: localChartData,
-      chartConfig: localChartConfig,
-      summaryStats: localSummaryStats,
-      lineChartData: localLineChartData,
-      hasEnoughHistory: localHasEnoughHistory,
-      questionStats: localQuestionStats,
-      questionHistoryLineData: localQuestionHistoryLineData,
-      questionTimeChartConfig: localQuestionTimeChartConfig,
-      sessions: localSessions
+    return { 
+        overallStats: localOverallStats, 
+        chartData: localChartData, 
+        chartConfig: localChartConfig, 
+        summaryStats: localSummaryStats, 
+        lineChartData: localLineChartData, 
+        hasEnoughHistory: localHasEnoughHistory, 
+        questionStats: localQuestionStats, 
+        questionHistoryLineData: localQuestionHistoryLineData, 
+        questionTimeChartConfig: localQuestionTimeChartConfig, 
+        sessions: localSessions 
     };
   }, [profile, selectedChapters]);
 
@@ -693,10 +693,10 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
                                                 <AccordionContent className="pt-2 px-4 pb-4">
                                                     <div className="flex flex-col gap-1 max-h-48 overflow-y-auto pr-2">
                                                         <div className="flex items-center space-x-3 p-1 rounded-md transition-colors hover:bg-muted/50">
-                                                            <Checkbox 
+                                                            <Checkbox
                                                                 id={`${subject.name}-select-all`}
-                                                                checked={allChaptersSelected || selectedChapters[subject.name]?.length === subject.chapters.length ? 'checked' : 'unchecked'}
-                                                                onCheckedChange={(checked) => handleSelectAll(subject.name, checked === 'checked')}
+                                                                checked={{ status: (allChaptersSelected || selectedChapters[subject.name]?.length === subject.chapters.length) ? 'checked' : 'unchecked' }}
+                                                                onCheckedChange={(checked) => handleSelectAll(subject.name, checked.status === 'checked')}
                                                             />
                                                             <Label htmlFor={`${subject.name}-select-all`} className="font-semibold text-sm cursor-pointer flex-1">
                                                                 Select All
@@ -707,8 +707,8 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
                                                             <div key={chapter.name} className="flex items-center space-x-3 p-1 rounded-md transition-colors hover:bg-muted/50">
                                                                 <Checkbox 
                                                                     id={`${subject.name}-${chapter.name}`}
-                                                                    checked={allChaptersSelected || (selectedChapters[subject.name]?.includes(chapter.name) ?? false) ? 'checked' : 'unchecked'}
-                                                                    onCheckedChange={(checked) => handleChapterSelect(subject.name, chapter.name, checked === 'checked')}
+                                                                    checked={{ status: (allChaptersSelected || (selectedChapters[subject.name]?.includes(chapter.name) ?? false)) ? 'checked' : 'unchecked' }}
+                                                                    onCheckedChange={(checked) => handleChapterSelect(subject.name, chapter.name, checked.status === 'checked')}
                                                                 />
                                                                 <Label htmlFor={`${subject.name}-${chapter.name}`} className="font-normal text-sm cursor-pointer flex-1">
                                                                     {chapter.name}
@@ -848,4 +848,5 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
     </Tabs>
   );
 }
+
 
