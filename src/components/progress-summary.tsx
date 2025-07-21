@@ -328,146 +328,179 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
   const [selectedChapters, setSelectedChapters] = useState<Record<string, string[]>>({});
   const [progressGoal, setProgressGoal] = useState(75);
 
-  const { overallStats, chartData, chartConfig, summaryStats, lineChartData, hasEnoughHistory, questionStats, questionHistoryLineData, questionTimeChartConfig, sessions } = useMemo(() => {
+  const {
+    overallStats,
+    chartData,
+    chartConfig,
+    summaryStats,
+    lineChartData,
+    hasEnoughHistory,
+    questionStats,
+    questionHistoryLineData,
+    questionTimeChartConfig,
+    sessions
+  } = useMemo(() => {
     if (!profile || profile.subjects.length === 0) {
-      return { overallStats: { totalChapters: 0, totalLectures: 0, taskBreakdown: [] }, chartData: [], chartConfig: {}, summaryStats: { subjectsCompleted: 0, chaptersCompleted: 0, averageCompletion: 0 }, lineChartData: [], hasEnoughHistory: false, questionStats: { totalSessions: 0, totalQuestions: 0, totalTime: 0, overallAverage: 0 }, questionHistoryLineData: [], questionTimeChartConfig: {}, sessions: [] };
+      return {
+        overallStats: { totalChapters: 0, totalLectures: 0, taskBreakdown: [] },
+        chartData: [],
+        chartConfig: {},
+        summaryStats: { subjectsCompleted: 0, chaptersCompleted: 0, averageCompletion: 0 },
+        lineChartData: [],
+        hasEnoughHistory: false,
+        questionStats: { totalSessions: 0, totalQuestions: 0, totalTime: 0, overallAverage: 0 },
+        questionHistoryLineData: [],
+        questionTimeChartConfig: {},
+        sessions: []
+      };
     }
-    
-    const chartConfig: ChartConfig = {};
-    const colors = ["hsl(180, 80%, 55%)", "hsl(221, 83%, 65%)", "hsl(262, 85%, 68%)", "hsl(24, 96%, 63%)", "hsl(142, 76%, 46%)"];
-
+  
+    // Initialize all variables that will be returned
+    const localChartConfig: ChartConfig = {};
     let totalChaptersCompleted = 0;
     let totalProgressSum = 0;
     let totalChaptersCount = 0;
-
-    const chartData = profile.subjects.map((subject, index) => {
+  
+    const colors = ["hsl(180, 80%, 55%)", "hsl(221, 83%, 65%)", "hsl(262, 85%, 68%)", "hsl(24, 96%, 63%)", "hsl(142, 76%, 46%)"];
+  
+    const localChartData = profile.subjects.map((subject, index) => {
       totalChaptersCount += subject.chapters.length;
       const subjectFilter = selectedChapters[subject.name];
       const chaptersToConsider = subjectFilter === undefined
         ? subject.chapters
         : subject.chapters.filter(c => subjectFilter.includes(c.name));
-
+  
       const tasksPerLecture = subject.tasks?.length || 0;
       const progress = getProgress(chaptersToConsider, tasksPerLecture);
-      
+  
       const subjectChaptersCompleted = subject.chapters.filter(c => getProgress([c], tasksPerLecture) === 100).length;
       totalChaptersCompleted += subjectChaptersCompleted;
       totalProgressSum += getProgress(subject.chapters, tasksPerLecture);
-
+  
       const color = colors[index % colors.length];
-
-      chartConfig[subject.name] = {
-          label: subject.name,
-          color: color,
+  
+      localChartConfig[subject.name] = {
+        label: subject.name,
+        color: color,
       };
-      
+  
       return {
         subject: subject.name,
         progress: progress,
         fill: color,
       };
     });
-
+  
     const subjectsCompleted = profile.subjects.filter(s => getProgress(s.chapters, s.tasks?.length || 0) === 100).length;
     const averageCompletion = profile.subjects.length > 0 ? Math.round(totalProgressSum / profile.subjects.length) : 0;
-
-    const summaryStats = {
-        subjectsCompleted,
-        chaptersCompleted: totalChaptersCompleted,
-        averageCompletion,
+  
+    const localSummaryStats = {
+      subjectsCompleted,
+      chaptersCompleted: totalChaptersCompleted,
+      averageCompletion,
     };
-    
+  
     const history = profile.progressHistory || [];
-    const enoughHistory = history.length >= 2;
-    const lineChartData = history.map(point => ({
-        date: format(new Date(`${point.date}T00:00:00`), 'MMM d'),
-        progress: point.progress
+    const localHasEnoughHistory = history.length >= 2;
+    const localLineChartData = history.map(point => ({
+      date: format(new Date(`${point.date}T00:00:00`), 'MMM d'),
+      progress: point.progress
     })).slice(-30);
-
-
-    const sessions = profile.questionSessions || [];
-    const questionStats = {
-        totalSessions: sessions.length,
-        totalQuestions: sessions.reduce((acc, s) => acc + s.numQuestions, 0),
-        totalTime: sessions.reduce((acc, s) => acc + s.totalTime, 0),
-        get overallAverage() {
-            return this.totalQuestions > 0 ? this.totalTime / this.totalQuestions : 0;
-        },
+  
+    const localSessions = profile.questionSessions || [];
+    const localQuestionStats = {
+      totalSessions: localSessions.length,
+      totalQuestions: localSessions.reduce((acc, s) => acc + s.numQuestions, 0),
+      totalTime: localSessions.reduce((acc, s) => acc + s.totalTime, 0),
+      get overallAverage() {
+        return this.totalQuestions > 0 ? this.totalTime / this.totalQuestions : 0;
+      },
     };
-
-    const questionHistoryLineData = sessions
-        .map(s => ({
-            date: s.date,
-            averageTime: s.totalTime / s.numQuestions,
-        }))
-        .sort((a, b) => a.date - b.date)
-        .slice(-30)
-        .map(s => ({
-            date: format(new Date(s.date), 'MMM d'),
-            averageTime: s.averageTime / 1000,
-        }));
-    
-    const questionTimeChartConfig: ChartConfig = {
-        averageTime: {
-            label: "Average Time (s)",
-            color: "hsl(var(--primary))",
-        },
+  
+    const localQuestionHistoryLineData = localSessions
+      .map(s => ({
+        date: s.date,
+        averageTime: s.totalTime / s.numQuestions,
+      }))
+      .sort((a, b) => a.date - b.date)
+      .slice(-30)
+      .map(s => ({
+        date: format(new Date(s.date), 'MMM d'),
+        averageTime: s.averageTime / 1000,
+      }));
+  
+    const localQuestionTimeChartConfig: ChartConfig = {
+      averageTime: {
+        label: "Average Time (s)",
+        color: "hsl(var(--primary))",
+      },
     };
-
+  
     const lecturesWorkedOn = new Set();
     const taskStats: Record<string, { completed: number; total: number }> = {};
     const chaptersWorkedOn = new Set();
-    
+  
     profile.subjects.forEach(subject => {
+      subject.tasks.forEach(task => {
+        if (!taskStats[task]) {
+          taskStats[task] = { completed: 0, total: 0 };
+        }
+      });
+  
+      subject.chapters.forEach(chapter => {
+        let chapterWorkedOn = false;
+        const allCheckedStates = chapter.checkedState || {};
+  
+        Object.values(allCheckedStates).forEach(item => {
+          if (item.status === 'checked' || item.status === 'checked-red') {
+            chapterWorkedOn = true;
+          }
+        });
+  
+        if (chapterWorkedOn) {
+          chaptersWorkedOn.add(chapter.name);
+        }
+  
+        Object.keys(allCheckedStates).forEach(key => {
+          const parts = key.split('-');
+          const taskName = parts[parts.length - 1];
+          const lectureNum = parts[parts.length - 2];
+  
+          if (taskStats[taskName] && (allCheckedStates[key].status === 'checked' || allCheckedStates[key].status === 'checked-red')) {
+            taskStats[taskName].completed++;
+          }
+  
+          lecturesWorkedOn.add(`${subject.name}-${chapter.name}-${lectureNum}`);
+        });
+  
         subject.tasks.forEach(task => {
-            if (!taskStats[task]) {
-                taskStats[task] = { completed: 0, total: 0 };
-            }
+          if (taskStats[task]) {
+            taskStats[task].total += chapter.lectureCount;
+          }
         });
-
-        subject.chapters.forEach(chapter => {
-            let chapterWorkedOn = false;
-            const allCheckedStates = chapter.checkedState || {};
-            
-            Object.values(allCheckedStates).forEach(item => {
-              if (item.status === 'checked' || item.status === 'checked-red') {
-                  chapterWorkedOn = true;
-              }
-            });
-
-            if (chapterWorkedOn) {
-                chaptersWorkedOn.add(chapter.name);
-            }
-
-            Object.keys(allCheckedStates).forEach(key => {
-                const parts = key.split('-');
-                const taskName = parts[parts.length - 1];
-                const lectureNum = parts[parts.length - 2];
-                
-                if (taskStats[taskName]) {
-                    taskStats[taskName].completed++;
-                }
-                
-                lecturesWorkedOn.add(`${subject.name}-${chapter.name}-${lectureNum}`);
-            });
-
-            subject.tasks.forEach(task => {
-                if (taskStats[task]) {
-                    taskStats[task].total += chapter.lectureCount;
-                }
-            });
-        });
+      });
     });
-
-    const overallStats = {
-        totalChapters: chaptersWorkedOn.size,
-        totalLectures: lecturesWorkedOn.size,
-        taskBreakdown: Object.entries(taskStats)
-            .map(([name, { completed, total }]) => ({ name, completed, total }))
-            .sort((a,b) => a.name.localeCompare(b.name)),
+  
+    const localOverallStats = {
+      totalChapters: chaptersWorkedOn.size,
+      totalLectures: lecturesWorkedOn.size,
+      taskBreakdown: Object.entries(taskStats)
+        .map(([name, { completed, total }]) => ({ name, completed, total }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
     };
-
-    return { overallStats, chartData, chartConfig, summaryStats, lineChartData, hasEnoughHistory, questionStats, questionHistoryLineData, questionTimeChartConfig, sessions };
+  
+    return {
+      overallStats: localOverallStats,
+      chartData: localChartData,
+      chartConfig: localChartConfig,
+      summaryStats: localSummaryStats,
+      lineChartData: localLineChartData,
+      hasEnoughHistory: localHasEnoughHistory,
+      questionStats: localQuestionStats,
+      questionHistoryLineData: localQuestionHistoryLineData,
+      questionTimeChartConfig: localQuestionTimeChartConfig,
+      sessions: localSessions
+    };
   }, [profile, selectedChapters]);
 
   const handleChapterSelect = useCallback((subjectName: string, chapterName: string, checked: boolean) => {
