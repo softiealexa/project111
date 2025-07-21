@@ -196,12 +196,6 @@ function WeeklyProgressDashboard({ profile }: { profile: Profile }) {
         });
 
         const data = Object.values(chaptersInWeek).map(({ subject, chapter, completedTasks }) => {
-            const tasksPerLecture = subject.tasks.length;
-            
-            const totalTasksInChapter = Object.keys(chapter.checkedState || {}).length;
-            const totalPossibleTasks = chapter.lectureCount * tasksPerLecture;
-            const chapterProgress = totalPossibleTasks > 0 ? Math.round((totalTasksInChapter / totalPossibleTasks) * 100) : 0;
-            
             return {
                 subjectName: subject.name,
                 subjectIcon: subject.icon,
@@ -218,7 +212,9 @@ function WeeklyProgressDashboard({ profile }: { profile: Profile }) {
         const taskStats: Record<string, { completed: number; total: number }> = {};
         const chaptersWorkedOn = new Set();
 
-        profile.subjects.forEach(s => s.tasks.forEach(t => { taskStats[t] = { completed: 0, total: 0 }}));
+        const allTasks = new Set<string>();
+        profile.subjects.forEach(s => s.tasks.forEach(t => allTasks.add(t)));
+        allTasks.forEach(t => { taskStats[t] = { completed: 0, total: 0 }});
 
         data.forEach(item => {
             chaptersWorkedOn.add(item.chapter.name);
@@ -241,6 +237,7 @@ function WeeklyProgressDashboard({ profile }: { profile: Profile }) {
             totalLectures: lecturesWorkedOn.size,
             taskBreakdown: Object.entries(taskStats)
                 .map(([name, { completed }]) => ({ name, completed, total: 0 }))
+                .filter(item => item.completed > 0)
                 .sort((a,b) => a.name.localeCompare(b.name)),
         };
         
@@ -336,7 +333,7 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
       return { overallStats: { totalChapters: 0, totalLectures: 0, taskBreakdown: [] }, chartData: [], chartConfig: {}, summaryStats: { subjectsCompleted: 0, chaptersCompleted: 0, averageCompletion: 0 }, lineChartData: [], hasEnoughHistory: false, questionStats: { totalSessions: 0, totalQuestions: 0, totalTime: 0, overallAverage: 0 }, questionHistoryLineData: [], questionTimeChartConfig: {}, sessions: [] };
     }
     
-    const config: ChartConfig = {};
+    const chartConfig: ChartConfig = {};
     const colors = ["hsl(180, 80%, 55%)", "hsl(221, 83%, 65%)", "hsl(262, 85%, 68%)", "hsl(24, 96%, 63%)", "hsl(142, 76%, 46%)"];
 
     let totalChaptersCompleted = 0;
@@ -359,7 +356,7 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
 
       const color = colors[index % colors.length];
 
-      config[subject.name] = {
+      chartConfig[subject.name] = {
           label: subject.name,
           color: color,
       };
@@ -432,6 +429,16 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
             let chapterWorkedOn = false;
             const allCheckedStates = chapter.checkedState || {};
             
+            Object.values(allCheckedStates).forEach(item => {
+              if (item.status === 'checked' || item.status === 'checked-red') {
+                  chapterWorkedOn = true;
+              }
+            });
+
+            if (chapterWorkedOn) {
+                chaptersWorkedOn.add(chapter.name);
+            }
+
             Object.keys(allCheckedStates).forEach(key => {
                 const parts = key.split('-');
                 const taskName = parts[parts.length - 1];
@@ -442,12 +449,7 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
                 }
                 
                 lecturesWorkedOn.add(`${subject.name}-${chapter.name}-${lectureNum}`);
-                chapterWorkedOn = true;
             });
-
-            if (chapterWorkedOn) {
-                chaptersWorkedOn.add(chapter.name);
-            }
 
             subject.tasks.forEach(task => {
                 if (taskStats[task]) {
