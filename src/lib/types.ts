@@ -11,7 +11,8 @@ export interface CheckedState {
 export interface SimpleTodo {
   id: string;
   text: string;
-  completed: boolean;
+  status: TaskStatus;
+  completedAt?: number;
   createdAt: number;
   deadline?: number; // Optional timestamp
   priority?: Priority; // Optional priority

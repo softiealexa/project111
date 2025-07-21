@@ -132,14 +132,26 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
             };
         });
         
+        const migratedSimpleTodos = (profile.simpleTodos || []).map((todo: any) => {
+            if (typeof todo.completed === 'boolean') {
+                return {
+                    ...todo,
+                    status: todo.completed ? 'checked' : 'unchecked',
+                    completedAt: todo.completed ? todo.completedAt || Date.now() : undefined,
+                    completed: undefined, // remove old property
+                };
+            }
+            return todo;
+        });
+
         return {
             ...profile,
             subjects: migratedSubjects,
+            simpleTodos: migratedSimpleTodos,
             plannerNotes: profile.plannerNotes || {},
             notes: profile.notes || [],
             importantLinks: profile.importantLinks || [],
             todos: profile.todos || [],
-            simpleTodos: profile.simpleTodos || [],
             progressHistory: profile.progressHistory || [],
             questionSessions: profile.questionSessions || [],
             examCountdowns: profile.examCountdowns || [],
@@ -885,7 +897,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const newTodo: SimpleTodo = {
       id: crypto.randomUUID(),
       text,
-      completed: false,
+      status: 'unchecked',
       createdAt: Date.now(),
       priority,
       deadline,

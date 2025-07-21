@@ -20,7 +20,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useData } from "@/contexts/data-context";
-import type { SimpleTodo, Priority } from "@/lib/types";
+import type { SimpleTodo, Priority, CheckedState } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -46,7 +46,7 @@ const deadlineColors = {
     default: '',
 };
 
-function SortableTodoItem({ todo, onToggle, onDelete }: { todo: SimpleTodo; onToggle: (id: string, completed: boolean) => void; onDelete: (id: string) => void; }) {
+function SortableTodoItem({ todo, onToggle, onDelete }: { todo: SimpleTodo; onToggle: (id: string, newStatus: CheckedState) => void; onDelete: (id: string) => void; }) {
   const {
     attributes,
     listeners,
@@ -63,13 +63,13 @@ function SortableTodoItem({ todo, onToggle, onDelete }: { todo: SimpleTodo; onTo
   };
 
   const deadlineStatus = useMemo(() => {
-    if (!todo.deadline || todo.completed) return 'default';
+    if (!todo.deadline || todo.status !== 'unchecked') return 'default';
     const deadlineDate = new Date(todo.deadline);
     const today = startOfToday();
     if (isBefore(deadlineDate, today)) return 'overdue';
     if (isToday(deadlineDate)) return 'approaching';
     return 'default';
-  }, [todo.deadline, todo.completed]);
+  }, [todo.deadline, todo.status]);
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} className={cn("group flex items-center gap-3 p-2 rounded-md transition-colors hover:bg-muted/50", isDragging && "shadow-lg bg-card")}>
@@ -78,12 +78,12 @@ function SortableTodoItem({ todo, onToggle, onDelete }: { todo: SimpleTodo; onTo
       </span>
       <Checkbox
         id={`task-${todo.id}`}
-        checked={todo.completed ? 'checked' : 'unchecked'}
-        onCheckedChange={(status) => onToggle(todo.id, status === 'checked' || status === 'checked-red')}
-        aria-label={`Mark task as ${todo.completed ? 'incomplete' : 'complete'}`}
+        checked={{status: todo.status, completedAt: todo.completedAt}}
+        onCheckedChange={(newCheckedState) => onToggle(todo.id, newCheckedState)}
+        aria-label={`Mark task as ${todo.status !== 'unchecked' ? 'incomplete' : 'complete'}`}
         className="h-5 w-5 rounded-full"
       />
-      <Label htmlFor={`task-${todo.id}`} className={cn("flex-grow cursor-pointer", todo.completed && "line-through text-muted-foreground")}>
+      <Label htmlFor={`task-${todo.id}`} className={cn("flex-grow cursor-pointer", todo.status !== 'unchecked' && "line-through text-muted-foreground")}>
         {todo.text}
       </Label>
       
@@ -114,8 +114,8 @@ export default function SimpleTodoList() {
 
   const sortedTasks = useMemo(() => {
     return [...allTasks].sort((a, b) => {
-      if (a.completed && !b.completed) return 1;
-      if (!a.completed && b.completed) return -1;
+      if (a.status !== 'unchecked' && b.status === 'unchecked') return 1;
+      if (a.status === 'unchecked' && b.status !== 'unchecked') return -1;
       return b.createdAt - a.createdAt;
     });
   }, [allTasks]);
@@ -134,10 +134,10 @@ export default function SimpleTodoList() {
     setPriority('Medium');
   };
 
-  const handleToggleTask = (taskId: string, completed: boolean) => {
+  const handleToggleTask = (taskId: string, newStatus: CheckedState) => {
     const task = allTasks.find(t => t.id === taskId);
     if (task) {
-      updateSimpleTodo({ ...task, completed });
+      updateSimpleTodo({ ...task, status: newStatus.status, completedAt: newStatus.completedAt });
     }
   };
 
@@ -247,4 +247,3 @@ export default function SimpleTodoList() {
     </Card>
   );
 }
-
