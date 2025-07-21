@@ -6,7 +6,7 @@ import { format, addDays, subDays, startOfDay } from 'date-fns';
 import { Calendar as CalendarIcon, Plus, Trash2, Edit, ChevronLeft, ChevronRight, CornerDownLeft } from 'lucide-react';
 
 import { useData } from "@/contexts/data-context";
-import type { SmartTodo } from "@/lib/types";
+import type { SmartTodo, CheckedState } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -194,7 +194,7 @@ export default function SmartTodoList() {
                       >
                           <Checkbox
                               id={`task-${task.id}`}
-                              checked={task.status === 'completed' ? 'checked' : 'unchecked'}
+                              checked={{ status: task.status === 'completed' ? 'checked' : 'unchecked' }}
                               onCheckedChange={() => handleToggleTask(task)}
                               aria-label={`Mark task as ${task.status === 'completed' ? 'incomplete' : 'complete'}`}
                           />
