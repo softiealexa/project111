@@ -149,8 +149,8 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
             <button {...listeners} aria-label="Drag to reorder chapter" className="cursor-grab pl-3 pr-2 py-4 text-muted-foreground hover:text-foreground touch-none">
               <GripVertical className="h-5 w-5" />
             </button>
-            <AccordionPrimitive.Trigger className="flex-1 flex-col sm:flex-row items-start sm:items-center justify-between gap-y-2 gap-x-4 py-3 pr-3 text-left hover:no-underline min-w-0 [&[data-state=open]>svg.accordion-chevron]:rotate-180">
-              <div className="min-w-0 flex-1">
+            <AccordionPrimitive.Trigger className="flex-1 flex items-center justify-between gap-4 py-3 pr-3 text-left hover:no-underline min-w-0 [&>svg.accordion-chevron]:rotate-180">
+              <div className="flex-1 min-w-0">
                 <h3 className="truncate font-headline text-lg font-medium text-foreground">
                   {chapter.name}
                 </h3>
@@ -166,13 +166,11 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
                   )}
                 </div>
               </div>
-              <div className="flex w-full sm:w-auto shrink-0 items-center gap-4 sm:w-[260px] pr-1 sm:pr-0">
-                 <div className="flex w-full items-center gap-2 text-sm text-muted-foreground">
-                    <span className="font-medium tabular-nums whitespace-nowrap hidden sm:inline-block sm:w-12 text-center">{completedTasks}/{totalTasks}</span>
-                    <Progress value={progress} indicatorClassName={progressColorClass} className="flex-1 h-2 sm:h-4" />
-                    <span className="font-bold tabular-nums text-foreground whitespace-nowrap w-12 text-right">{Math.round(progress)}%</span>
-                </div>
-                <ChevronDown className="accordion-chevron h-4 w-4 shrink-0 transition-transform duration-200 hidden sm:block" />
+              <div className="flex items-center gap-3 shrink-0">
+                 <span className="font-medium tabular-nums whitespace-nowrap text-sm text-muted-foreground">{completedTasks}/{totalTasks}</span>
+                 <Progress value={progress} indicatorClassName={progressColorClass} className="w-20 h-2" />
+                 <span className="font-bold tabular-nums text-foreground whitespace-nowrap w-12 text-left">{Math.round(progress)}%</span>
+                 <ChevronDown className="accordion-chevron h-4 w-4 shrink-0 transition-transform duration-200" />
               </div>
             </AccordionPrimitive.Trigger>
           </AccordionPrimitive.Header>
