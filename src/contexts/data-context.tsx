@@ -134,11 +134,11 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
         
         const migratedSimpleTodos = (profile.simpleTodos || []).map((todo: any) => {
             if (typeof todo.completed === 'boolean') {
+                const { completed, ...rest } = todo;
                 return {
-                    ...todo,
-                    status: todo.completed ? 'checked' : 'unchecked',
-                    completedAt: todo.completed ? todo.completedAt || Date.now() : undefined,
-                    completed: undefined, // remove old property
+                    ...rest,
+                    status: completed ? 'checked' : 'unchecked',
+                    completedAt: completed ? todo.completedAt || Date.now() : undefined,
                 };
             }
             return todo;
