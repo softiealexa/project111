@@ -81,6 +81,7 @@ function WeeklyProgressDashboard({ profile }: { profile: Profile }) {
             return {
                 subjectName: subject.name,
                 subjectIcon: subject.icon,
+                tasks: subject.tasks || [],
                 chapters: chaptersInWeek.map(chapter => {
                     const tasksPerLecture = subject.tasks.length;
                     const totalTasks = chapter.lectureCount * tasksPerLecture;
@@ -91,7 +92,6 @@ function WeeklyProgressDashboard({ profile }: { profile: Profile }) {
                         progress,
                         completedTasks,
                         totalTasks,
-                        tasks: subject.tasks
                     };
                 })
             };
@@ -106,11 +106,35 @@ function WeeklyProgressDashboard({ profile }: { profile: Profile }) {
     const weeklyStats = useMemo(() => {
         let totalChapters = 0;
         let totalLectures = 0;
+        const taskStats: Record<string, { completed: number, total: number }> = {};
+
         weeklyData.forEach(subject => {
             totalChapters += subject.chapters.length;
-            subject.chapters.forEach((c: any) => totalLectures += c.lectureCount);
+            subject.chapters.forEach((chapter: any) => {
+                totalLectures += chapter.lectureCount;
+
+                subject.tasks.forEach((task: string) => {
+                    if (!taskStats[task]) {
+                        taskStats[task] = { completed: 0, total: 0 };
+                    }
+                    taskStats[task].total += chapter.lectureCount;
+                    
+                    for (let i = 1; i <= chapter.lectureCount; i++) {
+                        const checkboxId = `${subject.subjectName}-${chapter.name}-Lecture-${i}-${task}`;
+                        if (chapter.checkedState?.[checkboxId] === 'checked' || chapter.checkedState?.[checkboxId] === 'checked-red') {
+                            taskStats[task].completed += 1;
+                        }
+                    }
+                });
+            });
         });
-        return { totalChapters, totalLectures };
+        
+        const taskBreakdown = Object.entries(taskStats)
+            .map(([name, stats]) => ({ name, ...stats }))
+            .sort((a,b) => a.name.localeCompare(b.name));
+
+
+        return { totalChapters, totalLectures, taskBreakdown };
     }, [weeklyData]);
 
     return (
@@ -135,21 +159,39 @@ function WeeklyProgressDashboard({ profile }: { profile: Profile }) {
                 </div>
             ) : (
                 <>
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="text-lg">Week at a Glance</CardTitle>
-                    </CardHeader>
-                    <CardContent className="grid grid-cols-2 gap-4">
-                        <div className="rounded-lg border p-4">
-                            <p className="text-sm font-medium text-muted-foreground">Chapters Due</p>
-                            <p className="text-3xl font-bold">{weeklyStats.totalChapters}</p>
-                        </div>
-                         <div className="rounded-lg border p-4">
-                            <p className="text-sm font-medium text-muted-foreground">Total Lectures</p>
-                            <p className="text-3xl font-bold">{weeklyStats.totalLectures}</p>
-                        </div>
-                    </CardContent>
-                </Card>
+                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                     <Card>
+                        <CardHeader>
+                            <CardTitle className="text-lg">Week at a Glance</CardTitle>
+                        </CardHeader>
+                        <CardContent className="grid grid-cols-2 gap-4">
+                            <div className="rounded-lg border p-4">
+                                <p className="text-sm font-medium text-muted-foreground">Chapters Due</p>
+                                <p className="text-3xl font-bold">{weeklyStats.totalChapters}</p>
+                            </div>
+                             <div className="rounded-lg border p-4">
+                                <p className="text-sm font-medium text-muted-foreground">Total Lectures</p>
+                                <p className="text-3xl font-bold">{weeklyStats.totalLectures}</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                     <Card>
+                        <CardHeader>
+                            <CardTitle className="text-lg">Task Breakdown</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            {weeklyStats.taskBreakdown.map(task => (
+                                <div key={task.name}>
+                                    <div className="flex justify-between items-center mb-1 text-sm">
+                                        <span className="font-medium text-muted-foreground">{task.name}</span>
+                                        <span>{task.completed} / {task.total}</span>
+                                    </div>
+                                    <Progress value={task.total > 0 ? (task.completed / task.total) * 100 : 0} />
+                                </div>
+                            ))}
+                        </CardContent>
+                    </Card>
+                 </div>
 
                 <Accordion type="multiple" className="w-full space-y-4">
                     {weeklyData.map(subject => {
@@ -162,7 +204,7 @@ function WeeklyProgressDashboard({ profile }: { profile: Profile }) {
                                         {subject.subjectName}
                                     </h4>
                                  </div>
-                                {subject.chapters.map((chapter: any, index: number) => (
+                                {subject.chapters.map((chapter: any) => (
                                     <AccordionItem key={chapter.name} value={`${subject.subjectName}-${chapter.name}`} className="border-b last:border-b-0">
                                         <AccordionTrigger className="px-4 py-3 text-base hover:bg-muted/50 hover:no-underline [&[data-state=open]>svg]:rotate-180">
                                             <div className="flex-1 text-left min-w-0">
@@ -182,7 +224,7 @@ function WeeklyProgressDashboard({ profile }: { profile: Profile }) {
                                                     <div key={lectureNum} className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-md bg-background p-2">
                                                         <p className="font-semibold text-sm">Lecture {lectureNum}</p>
                                                         <div className="flex items-center gap-x-4 gap-y-1">
-                                                            {chapter.tasks.map((task: string) => {
+                                                            {subject.tasks.map((task: string) => {
                                                                 const checkboxId = `${subject.subjectName}-${chapter.name}-Lecture-${lectureNum}-${task}`;
                                                                 const isChecked = chapter.checkedState?.[checkboxId] === 'checked' || chapter.checkedState?.[checkboxId] === 'checked-red';
                                                                 return (
