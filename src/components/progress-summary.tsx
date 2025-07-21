@@ -331,7 +331,7 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
   const [selectedChapters, setSelectedChapters] = useState<Record<string, string[]>>({});
   const [progressGoal, setProgressGoal] = useState(75);
 
-  const { overallStats, chartData, chartConfig, lineChartData, hasEnoughHistory, questionStats, questionHistoryLineData, questionTimeChartConfig, sessions } = useMemo(() => {
+  const { overallStats, chartData, chartConfig, summaryStats, lineChartData, hasEnoughHistory, questionStats, questionHistoryLineData, questionTimeChartConfig, sessions } = useMemo(() => {
     if (!profile || profile.subjects.length === 0) {
       return { overallStats: { totalChapters: 0, totalLectures: 0, taskBreakdown: [] }, chartData: [], chartConfig: {}, summaryStats: { subjectsCompleted: 0, chaptersCompleted: 0, averageCompletion: 0 }, lineChartData: [], hasEnoughHistory: false, questionStats: { totalSessions: 0, totalQuestions: 0, totalTime: 0, overallAverage: 0 }, questionHistoryLineData: [], questionTimeChartConfig: {}, sessions: [] };
     }
@@ -343,7 +343,7 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
     let totalProgressSum = 0;
     let totalChaptersCount = 0;
 
-    const data = profile.subjects.map((subject, index) => {
+    const chartData = profile.subjects.map((subject, index) => {
       totalChaptersCount += subject.chapters.length;
       const subjectFilter = selectedChapters[subject.name];
       const chaptersToConsider = subjectFilter === undefined
@@ -382,7 +382,7 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
     
     const history = profile.progressHistory || [];
     const enoughHistory = history.length >= 2;
-    const lineData = history.map(point => ({
+    const lineChartData = history.map(point => ({
         date: format(new Date(`${point.date}T00:00:00`), 'MMM d'),
         progress: point.progress
     })).slice(-30);
