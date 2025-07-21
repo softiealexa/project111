@@ -3,8 +3,8 @@
 
 import type { Profile, Subject, Chapter, TaskStatus } from "@/lib/types";
 import { useMemo, useState, useCallback } from "react";
-import { Bar, BarChart, Pie, PieChart, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Legend, Tooltip, LabelList, ReferenceLine, LineChart, Line, Label as RechartsLabel } from "recharts";
-import { CheckCircle, BookOpen, TrendingUp, Target, Filter, History, Clock, BarChart as BarChartIcon } from "lucide-react";
+import { Bar, BarChart, Pie, PieChart, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Legend, Tooltip as RechartsTooltip, LabelList, ReferenceLine, LineChart, Line, Label as RechartsLabel } from "recharts";
+import { CheckCircle, BookOpen, TrendingUp, Target, Filter, History, Clock, BarChart as BarChartIcon, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -39,7 +39,11 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
-import { format } from "date-fns";
+import { addDays, format, startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
+import { getIconComponent } from "@/lib/icons";
+import { Progress } from "./ui/progress";
+import { Button } from "./ui/button";
+import { cn } from "@/lib/utils";
 
 const getProgress = (chapters: Chapter[], tasksPerLecture: number) => {
     if (tasksPerLecture === 0) return 0;
@@ -59,6 +63,151 @@ const formatAverageTime = (ms: number) => {
   const remainingSeconds = totalSeconds % 60;
   return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toFixed(2).padStart(5, '0')}`;
 };
+
+function WeeklyProgressDashboard({ profile }: { profile: Profile }) {
+    const [currentDate, setCurrentDate] = useState(new Date());
+
+    const { weekRange, weeklyData } = useMemo(() => {
+        const start = startOfWeek(currentDate, { weekStartsOn: 1 });
+        const end = endOfWeek(currentDate, { weekStartsOn: 1 });
+
+        const data = profile.subjects.map(subject => {
+            const chaptersInWeek = subject.chapters.filter(chapter => 
+                chapter.deadline && isWithinInterval(new Date(chapter.deadline), { start, end })
+            );
+
+            if (chaptersInWeek.length === 0) return null;
+
+            return {
+                subjectName: subject.name,
+                subjectIcon: subject.icon,
+                chapters: chaptersInWeek.map(chapter => {
+                    const tasksPerLecture = subject.tasks.length;
+                    const totalTasks = chapter.lectureCount * tasksPerLecture;
+                    const completedTasks = Object.values(chapter.checkedState || {}).filter(status => status === 'checked' || status === 'checked-red').length;
+                    const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+                    return {
+                        ...chapter,
+                        progress,
+                        completedTasks,
+                        totalTasks,
+                        tasks: subject.tasks
+                    };
+                })
+            };
+        }).filter(Boolean);
+
+        return {
+            weekRange: { start, end },
+            weeklyData: data as any[]
+        };
+    }, [currentDate, profile]);
+
+    const weeklyStats = useMemo(() => {
+        let totalChapters = 0;
+        let totalLectures = 0;
+        weeklyData.forEach(subject => {
+            totalChapters += subject.chapters.length;
+            subject.chapters.forEach((c: any) => totalLectures += c.lectureCount);
+        });
+        return { totalChapters, totalLectures };
+    }, [weeklyData]);
+
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="space-y-1">
+                    <h3 className="text-xl font-semibold">Weekly Report</h3>
+                    <p className="text-muted-foreground">{format(weekRange.start, 'MMM d')} - {format(weekRange.end, 'd, yyyy')}</p>
+                </div>
+                <div className='flex items-center rounded-md border bg-card'>
+                    <Button variant="ghost" onClick={() => setCurrentDate(addDays(currentDate, -7))} className="rounded-r-none"><ChevronLeft className="mr-2 h-4 w-4"/> Prev</Button>
+                    <Button variant="ghost" onClick={() => setCurrentDate(new Date())} className="rounded-none border-x">This Week</Button>
+                    <Button variant="ghost" onClick={() => setCurrentDate(addDays(currentDate, 7))} className="rounded-l-none">Next <ChevronRight className="ml-2 h-4 w-4"/></Button>
+                </div>
+            </div>
+            
+            {weeklyData.length === 0 ? (
+                <div className="flex flex-col items-center justify-center rounded-md border-2 border-dashed py-12 text-center">
+                    <CalendarDays className="h-10 w-10 text-muted-foreground mb-4"/>
+                    <h3 className="text-lg font-medium text-muted-foreground">No Chapters Due This Week</h3>
+                    <p className="text-sm text-muted-foreground">Set some deadlines in the Customization panel to see them here.</p>
+                </div>
+            ) : (
+                <>
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg">Week at a Glance</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-2 gap-4">
+                        <div className="rounded-lg border p-4">
+                            <p className="text-sm font-medium text-muted-foreground">Chapters Due</p>
+                            <p className="text-3xl font-bold">{weeklyStats.totalChapters}</p>
+                        </div>
+                         <div className="rounded-lg border p-4">
+                            <p className="text-sm font-medium text-muted-foreground">Total Lectures</p>
+                            <p className="text-3xl font-bold">{weeklyStats.totalLectures}</p>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Accordion type="multiple" className="w-full space-y-4">
+                    {weeklyData.map(subject => {
+                        const Icon = getIconComponent(subject.subjectIcon);
+                        return (
+                             <Card key={subject.subjectName} className="overflow-hidden">
+                                 <div className="p-4 border-b bg-muted/30">
+                                    <h4 className="text-lg font-semibold flex items-center gap-2">
+                                        <Icon className="h-5 w-5"/>
+                                        {subject.subjectName}
+                                    </h4>
+                                 </div>
+                                {subject.chapters.map((chapter: any, index: number) => (
+                                    <AccordionItem key={chapter.name} value={`${subject.subjectName}-${chapter.name}`} className="border-b last:border-b-0">
+                                        <AccordionTrigger className="px-4 py-3 text-base hover:bg-muted/50 hover:no-underline [&[data-state=open]>svg]:rotate-180">
+                                            <div className="flex-1 text-left min-w-0">
+                                                <p className="font-medium truncate">{chapter.name}</p>
+                                                <p className="text-sm text-muted-foreground">Due: {format(new Date(chapter.deadline), 'EEEE, MMM d')}</p>
+                                            </div>
+                                             <div className="flex shrink-0 items-center gap-4 w-full sm:w-[220px]">
+                                                <div className="flex w-full items-center gap-2 text-sm text-muted-foreground">
+                                                    <Progress value={chapter.progress} className="flex-1" />
+                                                    <span className="font-bold tabular-nums text-foreground whitespace-nowrap w-12 text-right">{chapter.progress}%</span>
+                                                </div>
+                                            </div>
+                                        </AccordionTrigger>
+                                        <AccordionContent className="px-4 pb-4">
+                                            <div className="space-y-3 rounded-md border p-3">
+                                                {Array.from({ length: chapter.lectureCount }, (_, i) => i + 1).map((lectureNum) => (
+                                                    <div key={lectureNum} className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-md bg-background p-2">
+                                                        <p className="font-semibold text-sm">Lecture {lectureNum}</p>
+                                                        <div className="flex items-center gap-x-4 gap-y-1">
+                                                            {chapter.tasks.map((task: string) => {
+                                                                const checkboxId = `${subject.subjectName}-${chapter.name}-Lecture-${lectureNum}-${task}`;
+                                                                const isChecked = chapter.checkedState?.[checkboxId] === 'checked' || chapter.checkedState?.[checkboxId] === 'checked-red';
+                                                                return (
+                                                                    <div key={task} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                                                        <CheckCircle className={cn("h-3.5 w-3.5", isChecked ? "text-green-500" : "text-muted-foreground/50")} />
+                                                                        <span>{task}</span>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                ))}
+                            </Card>
+                        )
+                    })}
+                </Accordion>
+                </>
+            )}
+        </div>
+    );
+}
 
 export default function ProgressSummary({ profile }: { profile: Profile }) {
   const [chartType, setChartType] = useState("bar");
@@ -117,10 +266,9 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
     const history = profile.progressHistory || [];
     const enoughHistory = history.length >= 2;
     const lineData = history.map(point => ({
-        // Date is 'YYYY-MM-DD', needs to be parsed correctly. Add T00:00:00 to avoid timezone issues.
         date: format(new Date(`${point.date}T00:00:00`), 'MMM d'),
         progress: point.progress
-    })).slice(-30); // Show last 30 days max
+    })).slice(-30);
 
 
     const sessions = profile.questionSessions || [];
@@ -138,11 +286,11 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
             date: s.date,
             averageTime: s.totalTime / s.numQuestions,
         }))
-        .sort((a, b) => a.date - b.date) // Sort by date ascending
-        .slice(-30) // show last 30 sessions
+        .sort((a, b) => a.date - b.date)
+        .slice(-30)
         .map(s => ({
             date: format(new Date(s.date), 'MMM d'),
-            averageTime: s.averageTime / 1000, // convert ms to seconds
+            averageTime: s.averageTime / 1000,
         }));
     
     const questionTimeChartConfig: ChartConfig = {
@@ -193,300 +341,309 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
   }
 
   return (
-    <div className="space-y-6">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <Card className="hover:bg-card/90 transition-colors hover:shadow-primary/10 hover:shadow-md">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Subjects Completed</CardTitle>
-                    <CheckCircle className="h-5 w-5 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-3xl font-bold">{summaryStats.subjectsCompleted}/{profile.subjects.length}</div>
-                    <p className="text-xs text-muted-foreground">Total subjects marked as 100% complete.</p>
-                </CardContent>
-            </Card>
-            <Card className="hover:bg-card/90 transition-colors hover:shadow-primary/10 hover:shadow-md">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Chapters Completed</CardTitle>
-                    <BookOpen className="h-5 w-5 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-3xl font-bold">{summaryStats.chaptersCompleted}</div>
-                    <p className="text-xs text-muted-foreground">Total chapters marked as 100% complete.</p>
-                </CardContent>
-            </Card>
-            <Card className="hover:bg-card/90 transition-colors hover:shadow-primary/10 hover:shadow-md">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Average Completion</CardTitle>
-                    <TrendingUp className="h-5 w-5 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-3xl font-bold">{summaryStats.averageCompletion}%</div>
-                    <p className="text-xs text-muted-foreground">Average progress across all subjects.</p>
-                </CardContent>
-            </Card>
-        </div>
+     <Tabs defaultValue="overall" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsTrigger value="overall">Overall</TabsTrigger>
+          <TabsTrigger value="weekly">Weekly</TabsTrigger>
+        </TabsList>
+        <TabsContent value="overall" className="space-y-6">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <Card className="hover:bg-card/90 transition-colors hover:shadow-primary/10 hover:shadow-md">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Subjects Completed</CardTitle>
+                        <CheckCircle className="h-5 w-5 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold">{summaryStats.subjectsCompleted}/{profile.subjects.length}</div>
+                        <p className="text-xs text-muted-foreground">Total subjects marked as 100% complete.</p>
+                    </CardContent>
+                </Card>
+                <Card className="hover:bg-card/90 transition-colors hover:shadow-primary/10 hover:shadow-md">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Chapters Completed</CardTitle>
+                        <BookOpen className="h-5 w-5 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold">{summaryStats.chaptersCompleted}</div>
+                        <p className="text-xs text-muted-foreground">Total chapters marked as 100% complete.</p>
+                    </CardContent>
+                </Card>
+                <Card className="hover:bg-card/90 transition-colors hover:shadow-primary/10 hover:shadow-md">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Average Completion</CardTitle>
+                        <TrendingUp className="h-5 w-5 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold">{summaryStats.averageCompletion}%</div>
+                        <p className="text-xs text-muted-foreground">Average progress across all subjects.</p>
+                    </CardContent>
+                </Card>
+            </div>
 
-        <Card>
-            <CardHeader>
-                <CardTitle>Performance Analysis</CardTitle>
-                <CardDescription>Visualize your progress based on the selected filters.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Tabs value={chartType} onValueChange={setChartType} className="w-full">
-                    <TabsList className="grid w-full grid-cols-3 mb-4">
-                        <TabsTrigger value="bar">Bar Chart</TabsTrigger>
-                        <TabsTrigger value="pie">Pie Chart</TabsTrigger>
-                        <TabsTrigger value="line">Line Chart</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="bar">
-                        <ChartContainer config={chartConfig} className="mx-auto aspect-video max-h-[400px]">
-                            <BarChart data={chartData} margin={{ top: 20, right: 10, left: -20, bottom: 5 }}>
-                                <CartesianGrid vertical={false} />
-                                <XAxis dataKey="subject" tickLine={false} tickMargin={10} axisLine={false} tickFormatter={(value) => value.slice(0, 8)} />
-                                <YAxis tickFormatter={(value) => `${value}%`} domain={[0, 100]} />
-                                <Tooltip
-                                    cursor={false}
-                                    content={<ChartTooltipContent 
-                                        labelKey="subject" 
-                                        indicator="dot"
-                                        formatter={(value) => <span className="font-bold text-foreground">{`${value}% Complete`}</span>}
-                                    />}
-                                />
-                                <ReferenceLine y={progressGoal} strokeDasharray="3 3" stroke="hsl(var(--primary))">
-                                  <RechartsLabel value={`Goal: ${progressGoal}%`} position="insideTopRight" fill="hsl(var(--primary))" fontSize={12} dy={-5} dx={-5} />
-                                </ReferenceLine>
-                                <Bar dataKey="progress" radius={[8, 8, 0, 0]}>
-                                  <LabelList dataKey="progress" position="top" offset={8} className="fill-foreground" fontSize={12} formatter={(value: number) => `${value}%`} />
-                                </Bar>
-                            </BarChart>
-                        </ChartContainer>
-                    </TabsContent>
-                    <TabsContent value="pie">
-                       <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[400px]">
-                            <PieChart>
-                                <Tooltip content={<ChartTooltipContent hideLabel nameKey="subject" />} />
-                                <Pie data={chartData} dataKey="progress" nameKey="subject" innerRadius={60} strokeWidth={2}>
-                                    {chartData.map((entry) => (
-                                        <Cell key={`cell-${entry.subject}`} fill={entry.fill} />
-                                    ))}
-                                </Pie>
-                                <Legend content={<ChartLegendContent nameKey="subject" />} />
-                            </PieChart>
-                        </ChartContainer>
-                    </TabsContent>
-                    <TabsContent value="line">
-                        {!hasEnoughHistory ? (
-                            <Alert variant="default" className="my-4">
-                                <TrendingUp className="h-4 w-4" />
-                                <AlertTitle>Not Enough Data</AlertTitle>
-                                <AlertDescription>
-                                    Keep tracking your progress for a couple of days to see your historical data here.
-                                </AlertDescription>
-                            </Alert>
-                        ) : (
-                            <ChartContainer config={{ progress: { label: "Progress", color: "hsl(var(--primary))" } }} className="mx-auto aspect-video max-h-[400px]">
-                                <LineChart data={lineChartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Performance Analysis</CardTitle>
+                    <CardDescription>Visualize your progress based on the selected filters.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Tabs value={chartType} onValueChange={setChartType} className="w-full">
+                        <TabsList className="grid w-full grid-cols-3 mb-4">
+                            <TabsTrigger value="bar">Bar Chart</TabsTrigger>
+                            <TabsTrigger value="pie">Pie Chart</TabsTrigger>
+                            <TabsTrigger value="line">Line Chart</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="bar">
+                            <ChartContainer config={chartConfig} className="mx-auto aspect-video max-h-[400px]">
+                                <BarChart data={chartData} margin={{ top: 20, right: 10, left: -20, bottom: 5 }}>
                                     <CartesianGrid vertical={false} />
-                                    <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
+                                    <XAxis dataKey="subject" tickLine={false} tickMargin={10} axisLine={false} tickFormatter={(value) => value.slice(0, 8)} />
                                     <YAxis tickFormatter={(value) => `${value}%`} domain={[0, 100]} />
-                                    <Tooltip
+                                    <RechartsTooltip
+                                        cursor={false}
                                         content={<ChartTooltipContent 
+                                            labelKey="subject" 
                                             indicator="dot"
-                                            formatter={(value, name, item) => (
-                                                <div className="flex flex-col gap-0.5">
-                                                    <span className="font-bold text-foreground text-sm">{item.payload.date}</span>
-                                                    <span className="text-muted-foreground">{`Progress: ${value}%`}</span>
-                                                </div>
-                                            )}
-                                            hideLabel
+                                            formatter={(value) => <span className="font-bold text-foreground">{`${value}% Complete`}</span>}
                                         />}
                                     />
-                                    <Line type="monotone" dataKey="progress" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4, fill: "hsl(var(--primary))" }} />
-                                </LineChart>
+                                    <ReferenceLine y={progressGoal} strokeDasharray="3 3" stroke="hsl(var(--primary))">
+                                    <RechartsLabel value={`Goal: ${progressGoal}%`} position="insideTopRight" fill="hsl(var(--primary))" fontSize={12} dy={-5} dx={-5} />
+                                    </ReferenceLine>
+                                    <Bar dataKey="progress" radius={[8, 8, 0, 0]}>
+                                    <LabelList dataKey="progress" position="top" offset={8} className="fill-foreground" fontSize={12} formatter={(value: number) => `${value}%`} />
+                                    </Bar>
+                                </BarChart>
                             </ChartContainer>
-                        )}
-                    </TabsContent>
-                </Tabs>
-            </CardContent>
-            <Separator />
-            <Accordion type="single" collapsible className="w-full">
-               <AccordionItem value="filters" className="border-none">
-                    <AccordionTrigger className="px-6 py-4 font-medium text-base hover:no-underline [&[data-state=open]>svg]:rotate-180">
-                        <div className="flex items-center gap-3">
-                            <Filter className="h-5 w-5" />
-                            <span>Filters & Goal Setting</span>
-                        </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-6 pb-6">
-                        <div className="grid grid-cols-1 md:grid-cols-[1fr_200px] gap-6">
-                            <div>
-                                <h3 className="text-base font-medium text-foreground mb-2">Filter by Chapter</h3>
-                                <p className="text-sm text-muted-foreground mb-4">
-                                    Include or exclude specific chapters from the charts above.
-                                </p>
-                                <Accordion type="multiple" className="w-full space-y-2">
-                                    {profile.subjects.map(subject => {
-                                    if (subject.chapters.length === 0) return null;
-                                    
-                                    const allChaptersSelected = selectedChapters[subject.name] === undefined;
-                                    
-                                    return (
-                                        <AccordionItem value={subject.name} key={subject.name} className="border rounded-md data-[state=open]:shadow-sm">
-                                            <AccordionTrigger className="px-4 py-2 hover:no-underline text-sm">
-                                                {subject.name}
-                                            </AccordionTrigger>
-                                            <AccordionContent className="pt-2 px-4 pb-4">
-                                                <div className="flex flex-col gap-1 max-h-48 overflow-y-auto pr-2">
-                                                    <div className="flex items-center space-x-3 p-1 rounded-md transition-colors hover:bg-muted/50">
-                                                        <Checkbox 
-                                                            id={`${subject.name}-select-all`}
-                                                            checked={allChaptersSelected || selectedChapters[subject.name]?.length === subject.chapters.length ? 'checked' : 'unchecked'}
-                                                            onCheckedChange={(checked) => handleSelectAll(subject.name, checked === 'checked')}
-                                                        />
-                                                        <Label htmlFor={`${subject.name}-select-all`} className="font-semibold text-sm cursor-pointer flex-1">
-                                                            Select All
-                                                        </Label>
-                                                    </div>
-                                                    <Separator className="my-1"/>
-                                                    {subject.chapters.map(chapter => (
-                                                        <div key={chapter.name} className="flex items-center space-x-3 p-1 rounded-md transition-colors hover:bg-muted/50">
-                                                            <Checkbox 
-                                                                id={`${subject.name}-${chapter.name}`}
-                                                                checked={allChaptersSelected || (selectedChapters[subject.name]?.includes(chapter.name) ?? false) ? 'checked' : 'unchecked'}
-                                                                onCheckedChange={(checked) => handleChapterSelect(subject.name, chapter.name, checked === 'checked')}
-                                                            />
-                                                            <Label htmlFor={`${subject.name}-${chapter.name}`} className="font-normal text-sm cursor-pointer flex-1">
-                                                                {chapter.name}
-                                                            </Label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </AccordionContent>
-                                        </AccordionItem>
-                                    )
-                                    })}
-                                </Accordion>
-                            </div>
-                            <div className="space-y-4">
-                                <h3 className="text-base font-medium text-foreground">Set Progress Goal</h3>
-                                 <div className="grid gap-2">
-                                    <Label htmlFor="goal-input" className="flex items-center gap-2 text-muted-foreground">
-                                       <Target className="h-4 w-4" /> Goal Percentage
-                                    </Label>
-                                    <div className="relative">
-                                      <Input
-                                          id="goal-input"
-                                          type="number"
-                                          value={progressGoal}
-                                          onChange={(e) => {
-                                              const val = parseInt(e.target.value, 10);
-                                              if (!isNaN(val) && val >= 0 && val <= 100) {
-                                                  setProgressGoal(val);
-                                              } else if (e.target.value === "") {
-                                                  setProgressGoal(0);
-                                              }
-                                          }}
-                                          min="0"
-                                          max="100"
-                                          className="pr-8"
-                                      />
-                                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">%</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </AccordionContent>
-                </AccordionItem>
-            </Accordion>
-        </Card>
-
-        <Card>
-            <CardHeader>
-                <CardTitle>Question Timer Statistics</CardTitle>
-                <CardDescription>An overview of your question attempt performance.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                {sessions.length > 0 ? (
-                    <>
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                            <Card>
-                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                    <CardTitle className="text-sm font-medium">Sessions Completed</CardTitle>
-                                    <History className="h-5 w-5 text-muted-foreground" />
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-3xl font-bold">{questionStats.totalSessions}</div>
-                                </CardContent>
-                            </Card>
-                            <Card>
-                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                    <CardTitle className="text-sm font-medium">Questions Answered</CardTitle>
-                                    <CheckCircle className="h-5 w-5 text-muted-foreground" />
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-3xl font-bold">{questionStats.totalQuestions}</div>
-                                </CardContent>
-                            </Card>
-                            <Card>
-                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                    <CardTitle className="text-sm font-medium">Overall Avg. Time</CardTitle>
-                                    <Clock className="h-5 w-5 text-muted-foreground" />
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-3xl font-bold">{formatAverageTime(questionStats.overallAverage)}</div>
-                                </CardContent>
-                            </Card>
-                        </div>
-                        <div>
-                            <h4 className="text-base font-medium mb-4">Average Time per Session (seconds)</h4>
-                             {questionHistoryLineData.length >= 2 ? (
-                                <ChartContainer config={questionTimeChartConfig} className="mx-auto aspect-video max-h-[250px]">
-                                    <LineChart data={questionHistoryLineData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                        </TabsContent>
+                        <TabsContent value="pie">
+                        <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[400px]">
+                                <PieChart>
+                                    <RechartsTooltip content={<ChartTooltipContent hideLabel nameKey="subject" />} />
+                                    <Pie data={chartData} dataKey="progress" nameKey="subject" innerRadius={60} strokeWidth={2}>
+                                        {chartData.map((entry) => (
+                                            <Cell key={`cell-${entry.subject}`} fill={entry.fill} />
+                                        ))}
+                                    </Pie>
+                                    <Legend content={<ChartLegendContent nameKey="subject" />} />
+                                </PieChart>
+                            </ChartContainer>
+                        </TabsContent>
+                        <TabsContent value="line">
+                            {!hasEnoughHistory ? (
+                                <Alert variant="default" className="my-4">
+                                    <TrendingUp className="h-4 w-4" />
+                                    <AlertTitle>Not Enough Data</AlertTitle>
+                                    <AlertDescription>
+                                        Keep tracking your progress for a couple of days to see your historical data here.
+                                    </AlertDescription>
+                                </Alert>
+                            ) : (
+                                <ChartContainer config={{ progress: { label: "Progress", color: "hsl(var(--primary))" } }} className="mx-auto aspect-video max-h-[400px]">
+                                    <LineChart data={lineChartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
                                         <CartesianGrid vertical={false} />
                                         <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
-                                        <YAxis 
-                                            tickFormatter={(value) => `${value.toFixed(1)}s`}
-                                            domain={['dataMin - 1', 'dataMax + 1']}
-                                        />
-                                        <Tooltip
-                                            cursor={false}
+                                        <YAxis tickFormatter={(value) => `${value}%`} domain={[0, 100]} />
+                                        <RechartsTooltip
                                             content={<ChartTooltipContent 
                                                 indicator="dot"
                                                 formatter={(value, name, item) => (
                                                     <div className="flex flex-col gap-0.5">
                                                         <span className="font-bold text-foreground text-sm">{item.payload.date}</span>
-                                                        <span className="text-muted-foreground">{`Avg Time: ${Number(value).toFixed(2)}s`}</span>
+                                                        <span className="text-muted-foreground">{`Progress: ${value}%`}</span>
                                                     </div>
                                                 )}
                                                 hideLabel
                                             />}
                                         />
-                                        <Line type="monotone" dataKey="averageTime" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4 }} />
+                                        <Line type="monotone" dataKey="progress" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4, fill: "hsl(var(--primary))" }} />
                                     </LineChart>
                                 </ChartContainer>
-                            ) : (
-                                 <Alert variant="default">
-                                    <TrendingUp className="h-4 w-4" />
-                                    <AlertTitle>Not Enough Session Data</AlertTitle>
-                                    <AlertDescription>
-                                        Complete at least two sessions to see your trend chart.
-                                    </AlertDescription>
-                                </Alert>
                             )}
-                        </div>
-                    </>
-                ) : (
-                     <Alert>
-                        <BarChartIcon className="h-4 w-4" />
-                        <AlertTitle>No Data Yet</AlertTitle>
-                        <AlertDescription>
-                          You haven't completed any Question Timer sessions. Go to the "Tools" tab to start one!
-                        </AlertDescription>
-                      </Alert>
-                )}
-            </CardContent>
-        </Card>
-    </div>
+                        </TabsContent>
+                    </Tabs>
+                </CardContent>
+                <Separator />
+                <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="filters" className="border-none">
+                        <AccordionTrigger className="px-6 py-4 font-medium text-base hover:no-underline [&[data-state=open]>svg]:rotate-180">
+                            <div className="flex items-center gap-3">
+                                <Filter className="h-5 w-5" />
+                                <span>Filters & Goal Setting</span>
+                            </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="px-6 pb-6">
+                            <div className="grid grid-cols-1 md:grid-cols-[1fr_200px] gap-6">
+                                <div>
+                                    <h3 className="text-base font-medium text-foreground mb-2">Filter by Chapter</h3>
+                                    <p className="text-sm text-muted-foreground mb-4">
+                                        Include or exclude specific chapters from the charts above.
+                                    </p>
+                                    <Accordion type="multiple" className="w-full space-y-2">
+                                        {profile.subjects.map(subject => {
+                                        if (subject.chapters.length === 0) return null;
+                                        
+                                        const allChaptersSelected = selectedChapters[subject.name] === undefined;
+                                        
+                                        return (
+                                            <AccordionItem value={subject.name} key={subject.name} className="border rounded-md data-[state=open]:shadow-sm">
+                                                <AccordionTrigger className="px-4 py-2 hover:no-underline text-sm">
+                                                    {subject.name}
+                                                </AccordionTrigger>
+                                                <AccordionContent className="pt-2 px-4 pb-4">
+                                                    <div className="flex flex-col gap-1 max-h-48 overflow-y-auto pr-2">
+                                                        <div className="flex items-center space-x-3 p-1 rounded-md transition-colors hover:bg-muted/50">
+                                                            <Checkbox 
+                                                                id={`${subject.name}-select-all`}
+                                                                checked={allChaptersSelected || selectedChapters[subject.name]?.length === subject.chapters.length ? 'checked' : 'unchecked'}
+                                                                onCheckedChange={(checked) => handleSelectAll(subject.name, checked === 'checked')}
+                                                            />
+                                                            <Label htmlFor={`${subject.name}-select-all`} className="font-semibold text-sm cursor-pointer flex-1">
+                                                                Select All
+                                                            </Label>
+                                                        </div>
+                                                        <Separator className="my-1"/>
+                                                        {subject.chapters.map(chapter => (
+                                                            <div key={chapter.name} className="flex items-center space-x-3 p-1 rounded-md transition-colors hover:bg-muted/50">
+                                                                <Checkbox 
+                                                                    id={`${subject.name}-${chapter.name}`}
+                                                                    checked={allChaptersSelected || (selectedChapters[subject.name]?.includes(chapter.name) ?? false) ? 'checked' : 'unchecked'}
+                                                                    onCheckedChange={(checked) => handleChapterSelect(subject.name, chapter.name, checked === 'checked')}
+                                                                />
+                                                                <Label htmlFor={`${subject.name}-${chapter.name}`} className="font-normal text-sm cursor-pointer flex-1">
+                                                                    {chapter.name}
+                                                                </Label>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </AccordionContent>
+                                            </AccordionItem>
+                                        )
+                                        })}
+                                    </Accordion>
+                                </div>
+                                <div className="space-y-4">
+                                    <h3 className="text-base font-medium text-foreground">Set Progress Goal</h3>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="goal-input" className="flex items-center gap-2 text-muted-foreground">
+                                        <Target className="h-4 w-4" /> Goal Percentage
+                                        </Label>
+                                        <div className="relative">
+                                        <Input
+                                            id="goal-input"
+                                            type="number"
+                                            value={progressGoal}
+                                            onChange={(e) => {
+                                                const val = parseInt(e.target.value, 10);
+                                                if (!isNaN(val) && val >= 0 && val <= 100) {
+                                                    setProgressGoal(val);
+                                                } else if (e.target.value === "") {
+                                                    setProgressGoal(0);
+                                                }
+                                            }}
+                                            min="0"
+                                            max="100"
+                                            className="pr-8"
+                                        />
+                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Question Timer Statistics</CardTitle>
+                    <CardDescription>An overview of your question attempt performance.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    {sessions.length > 0 ? (
+                        <>
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                <Card>
+                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                        <CardTitle className="text-sm font-medium">Sessions Completed</CardTitle>
+                                        <History className="h-5 w-5 text-muted-foreground" />
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="text-3xl font-bold">{questionStats.totalSessions}</div>
+                                    </CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                        <CardTitle className="text-sm font-medium">Questions Answered</CardTitle>
+                                        <CheckCircle className="h-5 w-5 text-muted-foreground" />
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="text-3xl font-bold">{questionStats.totalQuestions}</div>
+                                    </CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                        <CardTitle className="text-sm font-medium">Overall Avg. Time</CardTitle>
+                                        <Clock className="h-5 w-5 text-muted-foreground" />
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="text-3xl font-bold">{formatAverageTime(questionStats.overallAverage)}</div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                            <div>
+                                <h4 className="text-base font-medium mb-4">Average Time per Session (seconds)</h4>
+                                {questionHistoryLineData.length >= 2 ? (
+                                    <ChartContainer config={questionTimeChartConfig} className="mx-auto aspect-video max-h-[250px]">
+                                        <LineChart data={questionHistoryLineData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                                            <CartesianGrid vertical={false} />
+                                            <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
+                                            <YAxis 
+                                                tickFormatter={(value) => `${value.toFixed(1)}s`}
+                                                domain={['dataMin - 1', 'dataMax + 1']}
+                                            />
+                                            <RechartsTooltip
+                                                cursor={false}
+                                                content={<ChartTooltipContent 
+                                                    indicator="dot"
+                                                    formatter={(value, name, item) => (
+                                                        <div className="flex flex-col gap-0.5">
+                                                            <span className="font-bold text-foreground text-sm">{item.payload.date}</span>
+                                                            <span className="text-muted-foreground">{`Avg Time: ${Number(value).toFixed(2)}s`}</span>
+                                                        </div>
+                                                    )}
+                                                    hideLabel
+                                                />}
+                                            />
+                                            <Line type="monotone" dataKey="averageTime" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4 }} />
+                                        </LineChart>
+                                    </ChartContainer>
+                                ) : (
+                                    <Alert variant="default">
+                                        <TrendingUp className="h-4 w-4" />
+                                        <AlertTitle>Not Enough Session Data</AlertTitle>
+                                        <AlertDescription>
+                                            Complete at least two sessions to see your trend chart.
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
+                            </div>
+                        </>
+                    ) : (
+                        <Alert>
+                            <BarChartIcon className="h-4 w-4" />
+                            <AlertTitle>No Data Yet</AlertTitle>
+                            <AlertDescription>
+                            You haven't completed any Question Timer sessions. Go to the "Tools" tab to start one!
+                            </AlertDescription>
+                        </Alert>
+                    )}
+                </CardContent>
+            </Card>
+        </TabsContent>
+        <TabsContent value="weekly">
+            <WeeklyProgressDashboard profile={profile} />
+        </TabsContent>
+    </Tabs>
   );
 }
