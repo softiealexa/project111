@@ -145,15 +145,15 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
       )}>
         <AccordionItem value={`item-${index}`} className="border-b-0">
           <AccordionPrimitive.Header className="flex w-full items-center hover:bg-primary/5">
-            <button {...listeners} aria-label="Drag to reorder chapter" className="cursor-grab pl-4 pr-2 py-4 text-muted-foreground hover:text-foreground touch-none">
+            <button {...listeners} aria-label="Drag to reorder chapter" className="cursor-grab pl-3 pr-2 py-4 text-muted-foreground hover:text-foreground touch-none">
               <GripVertical className="h-5 w-5" />
             </button>
-            <AccordionPrimitive.Trigger className="flex flex-1 items-center justify-between gap-4 py-4 pr-4 text-left hover:no-underline [&[data-state=open]>svg.accordion-chevron]:rotate-180">
+            <AccordionPrimitive.Trigger className="flex flex-1 flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4 py-3 pr-3 text-left hover:no-underline [&[data-state=open]>svg.accordion-chevron]:rotate-180">
               <div className="min-w-0 flex-1">
                 <h3 className="truncate font-headline text-lg font-medium text-foreground">
                   {chapter.name}
                 </h3>
-                <div className="flex items-center gap-x-3 gap-y-1 text-sm flex-wrap">
+                <div className="flex items-center gap-x-3 gap-y-1 text-sm flex-wrap mt-1">
                   <p className={cn("text-muted-foreground", isCompleted && "text-primary/80")}>
                     {chapter.lectureCount} lectures
                   </p>
@@ -165,13 +165,13 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
                   )}
                 </div>
               </div>
-              <div className="flex shrink-0 items-center gap-4 sm:w-[260px]">
+              <div className="flex shrink-0 items-center gap-4 w-full sm:w-[260px]">
                  <div className="flex w-full items-center gap-2 text-sm text-muted-foreground">
                     <span className="font-medium tabular-nums whitespace-nowrap w-12 text-center">{completedTasks}/{totalTasks}</span>
                     <Progress value={progress} indicatorClassName={progressColorClass} className="flex-1" />
                     <span className="font-bold tabular-nums text-foreground whitespace-nowrap w-12 text-right">{Math.round(progress)}%</span>
                 </div>
-                <ChevronDown className="accordion-chevron h-4 w-4 shrink-0 transition-transform duration-200" />
+                <ChevronDown className="accordion-chevron h-4 w-4 shrink-0 transition-transform duration-200 hidden sm:block" />
               </div>
             </AccordionPrimitive.Trigger>
           </AccordionPrimitive.Header>

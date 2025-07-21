@@ -94,7 +94,7 @@ export default function DashboardClient() {
     )
   }
 
-  const hasMoreThanFourSubjects = activeProfile.subjects.length > 4;
+  const hasMoreThanFourSubjects = activeProfile.subjects.length > 3;
 
   return (
     <div className="flex w-full flex-col items-center bg-background text-foreground pb-12">
@@ -113,13 +113,13 @@ export default function DashboardClient() {
                 <div className="flex items-center justify-between gap-4">
                   <ScrollArea className="flex-1 whitespace-nowrap rounded-md pb-2.5">
                     <TabsList className={cn(
-                      "transition-all duration-300",
+                      "transition-all duration-300 p-1.5 sm:p-1 h-auto sm:h-10",
                       !hasMoreThanFourSubjects && "grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
                     )}>
                       {activeProfile.subjects.map((subject) => {
                         const Icon = getIconComponent(subject.icon);
                         return (
-                          <TabsTrigger key={subject.name} value={subject.name} className="flex items-center gap-2">
+                          <TabsTrigger key={subject.name} value={subject.name} className="flex items-center gap-2 text-sm sm:text-base h-9 sm:h-auto">
                             <Icon className="h-5 w-5" />
                             <span>{subject.name}</span>
                           </TabsTrigger>
