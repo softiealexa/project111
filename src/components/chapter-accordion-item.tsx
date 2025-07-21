@@ -166,12 +166,15 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-3 shrink-0">
+               <div className="hidden sm:flex items-center gap-3 shrink-0">
                  <span className="font-medium tabular-nums whitespace-nowrap text-sm text-muted-foreground">{completedTasks}/{totalTasks}</span>
-                 <Progress value={progress} indicatorClassName={progressColorClass} className="w-20 h-2" />
+                 <Progress value={progress} indicatorClassName={progressColorClass} className="w-12 h-2" />
                  <span className="font-bold tabular-nums text-foreground whitespace-nowrap w-12 text-left">{Math.round(progress)}%</span>
-                 <ChevronDown className="accordion-chevron h-4 w-4 shrink-0 transition-transform duration-200" />
               </div>
+              <div className="flex sm:hidden items-center gap-2 shrink-0">
+                  <span className="font-bold tabular-nums text-foreground whitespace-nowrap">{Math.round(progress)}%</span>
+              </div>
+              <ChevronDown className="accordion-chevron h-4 w-4 shrink-0 transition-transform duration-200" />
             </AccordionPrimitive.Trigger>
           </AccordionPrimitive.Header>
           <AccordionContent className="p-0">
