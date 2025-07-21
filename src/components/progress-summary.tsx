@@ -5,7 +5,7 @@
 import type { Profile, Subject, Chapter, CheckedState } from "@/lib/types";
 import { useMemo, useState, useCallback } from "react";
 import { Bar, BarChart, Pie, PieChart, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Legend, Tooltip as RechartsTooltip, LabelList, ReferenceLine, LineChart, Line, Label as RechartsLabel } from "recharts";
-import { CheckCircle, BookOpen, TrendingUp, Target, Filter, History, Clock, BarChart as BarChartIcon, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { CheckCircle, BookOpen, TrendingUp, Target, Filter, History, Clock, BarChart as BarChartIcon, CalendarDays, ChevronLeft, ChevronRight, ListChecks } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -65,12 +65,114 @@ const formatAverageTime = (ms: number) => {
   return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toFixed(2).padStart(5, '0')}`;
 };
 
+function StatsDashboard({ title, stats, data }: { title: string, stats: { totalChapters: number, totalLectures: number, taskBreakdown: { name: string, completed: number, total: number }[]}, data: any[] }) {
+    const barChartConfig: ChartConfig = {};
+    const barChartData = data.map(d => {
+        barChartConfig[d.chapterName] = { label: d.chapterName, color: d.subjectColor };
+        return {
+            name: d.chapterName,
+            tasks: d.completedTasks,
+            fill: d.subjectColor,
+        };
+    });
+
+    return (
+        <div className="space-y-6">
+            <h3 className="text-xl font-semibold">{title}</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg">At a Glance</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-2 gap-4">
+                        <div className="rounded-lg border p-4">
+                            <p className="text-sm font-medium text-muted-foreground">Chapters</p>
+                            <p className="text-3xl font-bold">{stats.totalChapters}</p>
+                        </div>
+                        <div className="rounded-lg border p-4">
+                            <p className="text-sm font-medium text-muted-foreground">Lectures</p>
+                            <p className="text-3xl font-bold">{stats.totalLectures}</p>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card className="md:col-span-2">
+                    <CardHeader>
+                        <CardTitle className="text-lg">Task Breakdown</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {stats.taskBreakdown.length > 0 ? (
+                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                                {stats.taskBreakdown.map(task => (
+                                    <div key={task.name}>
+                                        <div className="flex justify-between items-center mb-1 text-sm">
+                                            <span className="font-medium text-muted-foreground">{task.name}</span>
+                                            <span className="font-bold">{task.completed} / {task.total}</span>
+                                        </div>
+                                        <Progress value={task.total > 0 ? (task.completed / task.total) * 100 : 0} />
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-muted-foreground text-center py-4">No task data available.</p>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+             {data.length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg">Chapter Activity</CardTitle>
+                        <CardDescription>Tasks completed per chapter.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ChartContainer config={barChartConfig} className="mx-auto aspect-video max-h-[300px]">
+                            <BarChart data={barChartData} layout="vertical" margin={{ left: 10, right: 30 }}>
+                                <CartesianGrid horizontal={false} />
+                                <XAxis type="number" hide />
+                                <YAxis 
+                                    dataKey="name" 
+                                    type="category" 
+                                    tickLine={false} 
+                                    axisLine={false} 
+                                    tickMargin={10}
+                                    width={120}
+                                    className="text-xs truncate"
+                                />
+                                <RechartsTooltip 
+                                    cursor={{ fill: 'hsl(var(--muted))' }}
+                                    content={<ChartTooltipContent 
+                                        formatter={(value, name, item) => (
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-2 h-2 rounded-full" style={{backgroundColor: item.payload.fill}}></div>
+                                                <span className="font-medium text-foreground">{item.payload.name}: {value} tasks</span>
+                                            </div>
+                                        )}
+                                        hideLabel
+                                    />} 
+                                />
+                                <Bar dataKey="tasks" radius={4}>
+                                    {barChartData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ChartContainer>
+                    </CardContent>
+                </Card>
+             )}
+        </div>
+    );
+}
+
 function WeeklyProgressDashboard({ profile }: { profile: Profile }) {
     const [currentDate, setCurrentDate] = useState(new Date());
 
-    const { weekRange, weeklyData } = useMemo(() => {
+    const { weekRange, weeklyData, weeklyStats } = useMemo(() => {
         const start = startOfWeek(currentDate, { weekStartsOn: 1 });
         const end = endOfWeek(currentDate, { weekStartsOn: 1 });
+        const colors = ["hsl(180, 80%, 55%)", "hsl(221, 83%, 65%)", "hsl(262, 85%, 68%)", "hsl(24, 96%, 63%)", "hsl(142, 76%, 46%)"];
+        const subjectColorMap: Record<string, string> = {};
+        profile.subjects.forEach((s, i) => subjectColorMap[s.name] = colors[i % colors.length]);
 
         const chaptersInWeek: Record<string, { subject: Subject, chapter: Chapter, completedTasks: Record<string, CheckedState> }> = {};
         
@@ -103,68 +205,63 @@ function WeeklyProgressDashboard({ profile }: { profile: Profile }) {
             return {
                 subjectName: subject.name,
                 subjectIcon: subject.icon,
+                subjectColor: subjectColorMap[subject.name] || '#ccc',
                 tasks: subject.tasks,
-                chapter: {
-                    ...chapter,
-                    progress: chapterProgress,
-                },
+                chapterName: chapter.name,
+                chapter,
+                completedTasks: Object.keys(completedTasks).length,
                 weeklyCompletedTasks: completedTasks,
             };
         });
-        
-        return {
-            weekRange: { start, end },
-            weeklyData: data,
-        };
-    }, [currentDate, profile]);
-    
-    const weeklyStats = useMemo(() => {
-        let totalLecturesWorkedOn = 0;
+
         const lecturesWorkedOn = new Set();
-        const taskStats: Record<string, number> = {};
+        const taskStats: Record<string, { completed: number; total: number }> = {};
         const chaptersWorkedOn = new Set();
 
-        weeklyData.forEach(item => {
-            chaptersWorkedOn.add(item.chapter.name);
+        profile.subjects.forEach(s => s.tasks.forEach(t => { taskStats[t] = { completed: 0, total: 0 }}));
 
-            item.tasks.forEach(task => {
-                if (!taskStats[task]) {
-                    taskStats[task] = 0;
-                }
-            });
+        data.forEach(item => {
+            chaptersWorkedOn.add(item.chapter.name);
 
             Object.keys(item.weeklyCompletedTasks).forEach(key => {
                 const parts = key.split('-');
                 const taskName = parts[parts.length - 1];
                 const lectureNum = parts[parts.length - 2];
                 
-                if (taskStats[taskName] !== undefined) {
-                    taskStats[taskName]++;
+                if (taskStats[taskName]) {
+                    taskStats[taskName].completed++;
                 }
                 
                 lecturesWorkedOn.add(`${item.subjectName}-${item.chapter.name}-${lectureNum}`);
             });
         });
 
-        totalLecturesWorkedOn = lecturesWorkedOn.size;
-        const taskBreakdown = Object.entries(taskStats)
-            .map(([name, completed]) => ({ name, completed }))
-            .sort((a,b) => a.name.localeCompare(b.name));
-
-        return { totalChapters: chaptersWorkedOn.size, totalLectures: totalLecturesWorkedOn, taskBreakdown };
-    }, [weeklyData]);
+        const stats = {
+            totalChapters: chaptersWorkedOn.size,
+            totalLectures: lecturesWorkedOn.size,
+            taskBreakdown: Object.entries(taskStats)
+                .map(([name, { completed }]) => ({ name, completed, total: 0 }))
+                .sort((a,b) => a.name.localeCompare(b.name)),
+        };
+        
+        return {
+            weekRange: { start, end },
+            weeklyData: data,
+            weeklyStats: stats,
+        };
+    }, [currentDate, profile]);
 
     return (
         <div className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="space-y-1">
-                    <h3 className="text-xl font-semibold">Weekly Report</h3>
-                    <p className="text-muted-foreground">{format(weekRange.start, 'MMM d')} - {format(weekRange.end, 'd, yyyy')}</p>
-                </div>
-                <div className='flex items-center rounded-md border bg-card'>
-                    <Button variant="ghost" onClick={() => setCurrentDate(addDays(currentDate, -7))} className="rounded-r-none"><ChevronLeft className="mr-2 h-4 w-4"/> Prev</Button>
-                    <Button variant="ghost" onClick={() => setCurrentDate(new Date())} className="rounded-none border-x">This Week</Button>
-                    <Button variant="ghost" onClick={() => setCurrentDate(addDays(currentDate, 7))} className="rounded-l-none">Next <ChevronRight className="ml-2 h-4 w-4"/></Button>
+                 <div className="space-y-1">
+                     <h3 className="text-xl font-semibold">Weekly Report</h3>
+                     <p className="text-muted-foreground">{format(weekRange.start, 'MMM d')} - {format(weekRange.end, 'd, yyyy')}</p>
+                 </div>
+                 <div className='flex items-center rounded-md border bg-card'>
+                    <Button variant="ghost" onClick={() => setCurrentDate(addDays(currentDate, -7))} className="rounded-r-none h-9"><ChevronLeft className="mr-2 h-4 w-4"/> Prev</Button>
+                    <Button variant="ghost" onClick={() => setCurrentDate(new Date())} className="rounded-none border-x h-9">This Week</Button>
+                    <Button variant="ghost" onClick={() => setCurrentDate(addDays(currentDate, 7))} className="rounded-l-none h-9">Next <ChevronRight className="ml-2 h-4 w-4"/></Button>
                 </div>
             </div>
             
@@ -176,91 +273,53 @@ function WeeklyProgressDashboard({ profile }: { profile: Profile }) {
                 </div>
             ) : (
                 <>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                     <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg">Week at a Glance</CardTitle>
-                        </CardHeader>
-                        <CardContent className="grid grid-cols-2 gap-4">
-                            <div className="rounded-lg border p-4">
-                                <p className="text-sm font-medium text-muted-foreground">Chapters Worked On</p>
-                                <p className="text-3xl font-bold">{weeklyStats.totalChapters}</p>
-                            </div>
-                             <div className="rounded-lg border p-4">
-                                <p className="text-sm font-medium text-muted-foreground">Lectures Touched</p>
-                                <p className="text-3xl font-bold">{weeklyStats.totalLectures}</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                     <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg">Task Breakdown</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                            {weeklyStats.taskBreakdown.map(task => (
-                                <div key={task.name}>
-                                    <div className="flex justify-between items-center mb-1 text-sm">
-                                        <span className="font-medium text-muted-foreground">{task.name}</span>
-                                        <span className="font-bold">{task.completed} completed</span>
+                    <StatsDashboard title="Weekly Snapshot" stats={weeklyStats} data={weeklyData} />
+                    <Accordion type="multiple" className="w-full space-y-4">
+                        {weeklyData.map(item => {
+                            const Icon = getIconComponent(item.subjectIcon);
+                            return (
+                                <Card key={`${item.subjectName}-${item.chapter.name}`} className="overflow-hidden">
+                                    <div className="p-4 border-b bg-muted/30">
+                                        <h4 className="text-lg font-semibold flex items-center gap-2">
+                                            <Icon className="h-5 w-5"/>
+                                            {item.subjectName}
+                                        </h4>
                                     </div>
-                                </div>
-                            ))}
-                        </CardContent>
-                    </Card>
-                 </div>
-
-                <Accordion type="multiple" className="w-full space-y-4">
-                    {weeklyData.map(item => {
-                        const Icon = getIconComponent(item.subjectIcon);
-                        return (
-                             <Card key={`${item.subjectName}-${item.chapter.name}`} className="overflow-hidden">
-                                 <div className="p-4 border-b bg-muted/30">
-                                    <h4 className="text-lg font-semibold flex items-center gap-2">
-                                        <Icon className="h-5 w-5"/>
-                                        {item.subjectName}
-                                    </h4>
-                                 </div>
-                                <AccordionItem value={`${item.subjectName}-${item.chapter.name}`} className="border-b last:border-b-0">
-                                    <AccordionTrigger className="px-4 py-3 text-base hover:bg-muted/50 hover:no-underline [&[data-state=open]>svg]:rotate-180">
-                                        <div className="flex-1 text-left min-w-0">
-                                            <p className="font-medium truncate">{item.chapter.name}</p>
-                                             <p className="text-sm text-muted-foreground">
-                                                {Object.keys(item.weeklyCompletedTasks).length} tasks completed this week
-                                            </p>
-                                        </div>
-                                            <div className="flex shrink-0 items-center gap-4 w-full sm:w-[220px]">
-                                            <div className="flex w-full items-center gap-2 text-sm text-muted-foreground">
-                                                <Progress value={item.chapter.progress} className="flex-1" />
-                                                <span className="font-bold tabular-nums text-foreground whitespace-nowrap w-12 text-right">{item.chapter.progress}%</span>
+                                    <AccordionItem value={`${item.subjectName}-${item.chapter.name}`} className="border-b last:border-b-0">
+                                        <AccordionTrigger className="px-4 py-3 text-base hover:bg-muted/50 hover:no-underline [&[data-state=open]>svg]:rotate-180">
+                                            <div className="flex-1 text-left min-w-0">
+                                                <p className="font-medium truncate">{item.chapter.name}</p>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {item.completedTasks} tasks completed this week
+                                                </p>
                                             </div>
-                                        </div>
-                                    </AccordionTrigger>
-                                    <AccordionContent className="px-4 pb-4">
-                                        <div className="space-y-3 rounded-md border p-3">
-                                            {Array.from({ length: item.chapter.lectureCount }, (_, i) => i + 1).map((lectureNum) => (
-                                                <div key={lectureNum} className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-x-6 gap-y-2 rounded-md bg-background p-2">
-                                                    <p className="font-semibold text-sm">Lecture {lectureNum}</p>
-                                                    <div className="flex items-center flex-wrap gap-x-4 gap-y-1">
-                                                        {item.tasks.map((task: string) => {
-                                                            const checkboxId = `${item.subjectName}-${item.chapter.name}-Lecture-${lectureNum}-${task}`;
-                                                            const isCheckedThisWeek = item.weeklyCompletedTasks[checkboxId] !== undefined;
-                                                            return (
-                                                                <div key={task} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                                                    <CheckCircle className={cn("h-3.5 w-3.5", isCheckedThisWeek ? "text-green-500" : "text-muted-foreground/50")} />
-                                                                    <span>{task}</span>
-                                                                </div>
-                                                            );
-                                                        })}
+                                        </AccordionTrigger>
+                                        <AccordionContent className="px-4 pb-4">
+                                            <div className="space-y-3 rounded-md border p-3">
+                                                {Array.from({ length: item.chapter.lectureCount }, (_, i) => i + 1).map((lectureNum) => (
+                                                    <div key={lectureNum} className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-x-6 gap-y-2 rounded-md bg-background p-2">
+                                                        <p className="font-semibold text-sm">Lecture {lectureNum}</p>
+                                                        <div className="flex items-center flex-wrap gap-x-4 gap-y-1">
+                                                            {item.tasks.map((task: string) => {
+                                                                const checkboxId = `${item.subjectName}-${item.chapter.name}-Lecture-${lectureNum}-${task}`;
+                                                                const isCheckedThisWeek = item.weeklyCompletedTasks[checkboxId] !== undefined;
+                                                                return (
+                                                                    <div key={task} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                                                        <CheckCircle className={cn("h-3.5 w-3.5", isCheckedThisWeek ? "text-green-500" : "text-muted-foreground/50")} />
+                                                                        <span>{task}</span>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </AccordionContent>
-                                </AccordionItem>
-                            </Card>
-                        )
-                    })}
-                </Accordion>
+                                                ))}
+                                            </div>
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                </Card>
+                            )
+                        })}
+                    </Accordion>
                 </>
             )}
         </div>
@@ -272,9 +331,9 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
   const [selectedChapters, setSelectedChapters] = useState<Record<string, string[]>>({});
   const [progressGoal, setProgressGoal] = useState(75);
 
-  const { chartData, chartConfig, summaryStats, lineChartData, hasEnoughHistory, questionStats, questionHistoryLineData, questionTimeChartConfig, sessions } = useMemo(() => {
+  const { overallStats, chartData, chartConfig, lineChartData, hasEnoughHistory, questionStats, questionHistoryLineData, questionTimeChartConfig, sessions } = useMemo(() => {
     if (!profile || profile.subjects.length === 0) {
-      return { chartData: [], chartConfig: {}, summaryStats: { subjectsCompleted: 0, chaptersCompleted: 0, averageCompletion: 0 }, lineChartData: [], hasEnoughHistory: false, questionStats: { totalSessions: 0, totalQuestions: 0, totalTime: 0, overallAverage: 0 }, questionHistoryLineData: [], questionTimeChartConfig: {}, sessions: [] };
+      return { overallStats: { totalChapters: 0, totalLectures: 0, taskBreakdown: [] }, chartData: [], chartConfig: {}, summaryStats: { subjectsCompleted: 0, chaptersCompleted: 0, averageCompletion: 0 }, lineChartData: [], hasEnoughHistory: false, questionStats: { totalSessions: 0, totalQuestions: 0, totalTime: 0, overallAverage: 0 }, questionHistoryLineData: [], questionTimeChartConfig: {}, sessions: [] };
     }
     
     const config: ChartConfig = {};
@@ -296,7 +355,7 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
       
       const subjectChaptersCompleted = subject.chapters.filter(c => getProgress([c], tasksPerLecture) === 100).length;
       totalChaptersCompleted += subjectChaptersCompleted;
-      totalProgressSum += getProgress(subject.chapters, tasksPerLecture); // Use full progress for average
+      totalProgressSum += getProgress(subject.chapters, tasksPerLecture);
 
       const color = colors[index % colors.length];
 
@@ -315,7 +374,7 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
     const subjectsCompleted = profile.subjects.filter(s => getProgress(s.chapters, s.tasks?.length || 0) === 100).length;
     const averageCompletion = profile.subjects.length > 0 ? Math.round(totalProgressSum / profile.subjects.length) : 0;
 
-    const stats = {
+    const summaryStats = {
         subjectsCompleted,
         chaptersCompleted: totalChaptersCompleted,
         averageCompletion,
@@ -358,8 +417,55 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
         },
     };
 
+    const lecturesWorkedOn = new Set();
+    const taskStats: Record<string, { completed: number; total: number }> = {};
+    const chaptersWorkedOn = new Set();
+    
+    profile.subjects.forEach(subject => {
+        subject.tasks.forEach(task => {
+            if (!taskStats[task]) {
+                taskStats[task] = { completed: 0, total: 0 };
+            }
+        });
 
-    return { chartData: data, chartConfig: config, summaryStats: stats, lineChartData: lineData, hasEnoughHistory: enoughHistory, questionStats, questionHistoryLineData, questionTimeChartConfig, sessions };
+        subject.chapters.forEach(chapter => {
+            let chapterWorkedOn = false;
+            const allCheckedStates = chapter.checkedState || {};
+            
+            Object.keys(allCheckedStates).forEach(key => {
+                const parts = key.split('-');
+                const taskName = parts[parts.length - 1];
+                const lectureNum = parts[parts.length - 2];
+                
+                if (taskStats[taskName]) {
+                    taskStats[taskName].completed++;
+                }
+                
+                lecturesWorkedOn.add(`${subject.name}-${chapter.name}-${lectureNum}`);
+                chapterWorkedOn = true;
+            });
+
+            if (chapterWorkedOn) {
+                chaptersWorkedOn.add(chapter.name);
+            }
+
+            subject.tasks.forEach(task => {
+                if (taskStats[task]) {
+                    taskStats[task].total += chapter.lectureCount;
+                }
+            });
+        });
+    });
+
+    const overallStats = {
+        totalChapters: chaptersWorkedOn.size,
+        totalLectures: lecturesWorkedOn.size,
+        taskBreakdown: Object.entries(taskStats)
+            .map(([name, { completed, total }]) => ({ name, completed, total }))
+            .sort((a,b) => a.name.localeCompare(b.name)),
+    };
+
+    return { overallStats, chartData, chartConfig, summaryStats, lineChartData, hasEnoughHistory, questionStats, questionHistoryLineData, questionTimeChartConfig, sessions };
   }, [profile, selectedChapters]);
 
   const handleChapterSelect = useCallback((subjectName: string, chapterName: string, checked: boolean) => {
@@ -405,6 +511,8 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
           <TabsTrigger value="weekly">Weekly</TabsTrigger>
         </TabsList>
         <TabsContent value="overall" className="space-y-6">
+            <StatsDashboard title="Lifetime Stats" stats={overallStats} data={[]} />
+
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <Card className="hover:bg-card/90 transition-colors hover:shadow-primary/10 hover:shadow-md">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
