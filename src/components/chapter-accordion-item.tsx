@@ -166,13 +166,15 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
                   )}
                 </div>
               </div>
-               <div className="hidden sm:flex items-center gap-3 shrink-0">
+               <div className="flex items-center shrink-0 gap-2">
                  <span className="font-medium tabular-nums whitespace-nowrap text-sm text-muted-foreground">{completedTasks}/{totalTasks}</span>
+                 {/* 
+                  You can adjust the progress bar size here. 
+                  w-12 is width (3rem), h-2 is height (0.5rem).
+                  Try other Tailwind classes like w-16, w-20 or h-3. 
+                 */}
                  <Progress value={progress} indicatorClassName={progressColorClass} className="w-12 h-2" />
                  <span className="font-bold tabular-nums text-foreground whitespace-nowrap w-12 text-left">{Math.round(progress)}%</span>
-              </div>
-              <div className="flex sm:hidden items-center gap-2 shrink-0">
-                  <span className="font-bold tabular-nums text-foreground whitespace-nowrap">{Math.round(progress)}%</span>
               </div>
               <ChevronDown className="accordion-chevron h-4 w-4 shrink-0 transition-transform duration-200" />
             </AccordionPrimitive.Trigger>
