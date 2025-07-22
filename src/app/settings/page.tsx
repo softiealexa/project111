@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { LoaderCircle, User, Palette, Shield, Download, Upload, MessageSquarePlus, Moon, Sun, Check, LogOut, ArrowLeft } from 'lucide-react';
+import { LoaderCircle, User, Palette, Shield, Download, Upload, MessageSquarePlus, Moon, Sun, Check, LogOut, ArrowLeft, Database } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -52,8 +52,8 @@ const ProfileTab = ({ onContactClick }: { onContactClick: () => void }) => {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Public Profile</CardTitle>
-                <CardDescription>Manage your public information and account settings.</CardDescription>
+                <CardTitle>User Profile</CardTitle>
+                <CardDescription>Manage your profile and account settings.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="space-y-1 rounded-lg border p-4">
@@ -61,7 +61,12 @@ const ProfileTab = ({ onContactClick }: { onContactClick: () => void }) => {
                         <Label className="font-semibold">Username</Label>
                         <p className="font-semibold text-foreground">{userDoc.username}</p>
                     </div>
-                    <p className="text-xs text-muted-foreground">Usernames cannot be changed after registration.</p>
+                     <Separator className="my-3"/>
+                     <div className="flex items-center justify-between">
+                        <Label className="font-semibold">Login Email</Label>
+                        <p className="text-sm text-foreground">{user.email}</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground pt-2">Usernames and login emails cannot be changed after registration.</p>
                 </div>
 
                 <div className="space-y-3 rounded-lg border p-4">
@@ -96,7 +101,7 @@ const ProfileTab = ({ onContactClick }: { onContactClick: () => void }) => {
                 <div className="space-y-2 rounded-lg border p-4">
                     <Label className="font-semibold">Password</Label>
                      <p className="text-sm text-muted-foreground">
-                        To change your email / password, please{' '}
+                        To change your password, please{' '}
                         <Button variant="link" className="p-0 h-auto text-sm" onClick={onContactClick}>
                             contact the developer
                         </Button>
@@ -201,16 +206,50 @@ const AppearanceTab = () => {
 };
 
 
-// Account and Data Tabs
-const AccountAndDataTab = ({ onContactOpenChange }: { onContactOpenChange: (open: boolean) => void }) => {
-    const { signOutUser, exportData, importData } = useData();
+// Account Tab
+const AccountTab = ({ onContactOpenChange }: { onContactOpenChange: (open: boolean) => void }) => {
+    const { signOutUser } = useData();
     const router = useRouter();
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleSignOut = async () => {
         await signOutUser();
         router.push('/');
     };
+    
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Account Management</CardTitle>
+                <CardDescription>Manage your account settings and sessions.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div>
+                        <h4 className="font-medium">Contact Developer</h4>
+                        <p className="text-sm text-muted-foreground">Report a bug or request a new feature.</p>
+                    </div>
+                    <Button onClick={() => onContactOpenChange(true)}>
+                        <MessageSquarePlus className="mr-2" /> Open Form
+                    </Button>
+                </div>
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div>
+                        <h4 className="font-medium">Logout</h4>
+                        <p className="text-sm text-muted-foreground">Sign out of your account on this device.</p>
+                    </div>
+                    <Button variant="outline" onClick={handleSignOut}>
+                        <LogOut className="mr-2" /> Logout
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
+
+// Data Tab
+const DataTab = () => {
+    const { exportData, importData } = useData();
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleImportClick = () => {
         fileInputRef.current?.click();
@@ -227,68 +266,39 @@ const AccountAndDataTab = ({ onContactOpenChange }: { onContactOpenChange: (open
     };
     
     return (
-        <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Account Management</CardTitle>
-                    <CardDescription>Manage your account settings and data.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between rounded-lg border p-4">
-                        <div>
-                            <h4 className="font-medium">Contact Developer</h4>
-                            <p className="text-sm text-muted-foreground">Report a bug or request a new feature.</p>
-                        </div>
-                        <Button onClick={() => onContactOpenChange(true)}>
-                            <MessageSquarePlus className="mr-2" /> Open Form
-                        </Button>
+        <Card>
+            <CardHeader>
+                <CardTitle>Data Management</CardTitle>
+                <CardDescription>Export your data or import it to another account. This can be used as a backup.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    className="hidden"
+                    accept=".json"
+                />
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div>
+                        <h4 className="font-medium">Import Data</h4>
+                        <p className="text-sm text-muted-foreground">Load data from a previously exported file.</p>
                     </div>
-                    <div className="flex items-center justify-between rounded-lg border p-4">
-                        <div>
-                            <h4 className="font-medium">Logout</h4>
-                            <p className="text-sm text-muted-foreground">Sign out of your account on this device.</p>
-                        </div>
-                        <Button variant="outline" onClick={handleSignOut}>
-                            <LogOut className="mr-2" /> Logout
-                        </Button>
+                    <Button variant="outline" onClick={handleImportClick}>
+                        <Upload className="mr-2" /> Import
+                    </Button>
+                </div>
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div>
+                        <h4 className="font-medium">Export Data</h4>
+                        <p className="text-sm text-muted-foreground">Save all your profile data to a JSON file.</p>
                     </div>
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Data Management</CardTitle>
-                    <CardDescription>Export your data or import it to another account.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                        <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                        className="hidden"
-                        accept=".json"
-                    />
-                    <div className="flex items-center justify-between rounded-lg border p-4">
-                        <div>
-                            <h4 className="font-medium">Import Data</h4>
-                            <p className="text-sm text-muted-foreground">Load data from a previously exported file.</p>
-                        </div>
-                        <Button variant="outline" onClick={handleImportClick}>
-                            <Upload className="mr-2" /> Import
-                        </Button>
-                    </div>
-                    <div className="flex items-center justify-between rounded-lg border p-4">
-                        <div>
-                            <h4 className="font-medium">Export Data</h4>
-                            <p className="text-sm text-muted-foreground">Save all your profile data to a JSON file.</p>
-                        </div>
-                        <Button variant="outline" onClick={exportData}>
-                            <Download className="mr-2" /> Export
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
+                    <Button variant="outline" onClick={exportData}>
+                        <Download className="mr-2" /> Export
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
     );
 };
 
@@ -330,10 +340,11 @@ export default function SettingsPage() {
             </div>
         </div>
         <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="profile" className="gap-2"><User /> Profile</TabsTrigger>
             <TabsTrigger value="appearance" className="gap-2"><Palette /> Appearance</TabsTrigger>
-            <TabsTrigger value="account" className="gap-2"><Shield /> Account & Data</TabsTrigger>
+            <TabsTrigger value="account" className="gap-2"><Shield /> Account</TabsTrigger>
+            <TabsTrigger value="data" className="gap-2"><Database /> Data</TabsTrigger>
           </TabsList>
           
           <TabsContent value="profile">
@@ -343,7 +354,10 @@ export default function SettingsPage() {
             <AppearanceTab />
           </TabsContent>
           <TabsContent value="account">
-            <AccountAndDataTab onContactOpenChange={setIsContactOpen} />
+            <AccountTab onContactOpenChange={setIsContactOpen} />
+          </TabsContent>
+          <TabsContent value="data">
+            <DataTab />
           </TabsContent>
         </Tabs>
       </main>
