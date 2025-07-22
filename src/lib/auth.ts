@@ -2,7 +2,7 @@
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged as onFirebaseAuthStateChanged, signOut as firebaseSignOut, updateProfile, User as FirebaseUser, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { db, auth, isFirebaseConfigured } from './firebase';
-import type { Profile, AppUser } from './types';
+import type { Profile, AppUser, Subject, Note, ImportantLink, SmartTodo, SimpleTodo, ProgressPoint, QuestionSession, ExamCountdown, TimeEntry, Project, TimesheetData } from './types';
 
 const FIREBASE_NOT_CONFIGURED_ERROR = "Firebase is not configured. Please add your credentials to a .env.local file for local development, and to your Vercel project's Environment Variables for deployment.";
 
@@ -162,8 +162,25 @@ export const getUserData = async (uid: string): Promise<UserData | null> => {
     return null;
 }
 
-// Function to save only a specific field of the user's data (e.g., profiles, activeProfileName)
-export const saveUserData = async (uid: string, data: Partial<{ profiles: Profile[], activeProfileName: string | null }>) => {
+type UserDataToSave = Partial<{
+  profiles: Profile[];
+  activeProfileName: string | null;
+  subjects: Subject[];
+  plannerNotes: Record<string, string>;
+  notes: Note[];
+  importantLinks: ImportantLink[];
+  todos: SmartTodo[];
+  simpleTodos: SimpleTodo[];
+  progressHistory: ProgressPoint[];
+  questionSessions: QuestionSession[];
+  examCountdowns: ExamCountdown[];
+  timeEntries: TimeEntry[];
+  projects: Project[];
+  timesheetData: TimesheetData;
+}>;
+
+
+export const saveUserData = async (uid: string, data: UserDataToSave) => {
     if (!isFirebaseConfigured || !db) {
         throw new Error(FIREBASE_NOT_CONFIGURED_ERROR);
     }

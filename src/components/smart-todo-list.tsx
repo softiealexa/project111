@@ -4,12 +4,13 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format, addDays, subDays, startOfDay } from 'date-fns';
 import { Calendar as CalendarIcon, Plus, Trash2, Edit, ChevronLeft, ChevronRight, CornerDownLeft } from 'lucide-react';
+import * as CheckboxPrimitive from "@radix-ui/react-checkbox";
+import { Check } from "lucide-react";
 
 import { useData } from "@/contexts/data-context";
-import type { SmartTodo, CheckedState } from "@/lib/types";
+import type { SmartTodo } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -73,7 +74,9 @@ export default function SmartTodoList() {
     if (task.status === 'pending') {
         updateTodo({ ...task, status: 'completed', completedAt: Date.now() });
     } else {
-        updateTodo({ ...task, status: 'pending', completedAt: undefined });
+        const updatedTask = { ...task, status: 'pending' as const };
+        delete updatedTask.completedAt; // Ensure completedAt is removed
+        updateTodo(updatedTask);
     }
   };
 
@@ -192,12 +195,17 @@ export default function SmartTodoList() {
                           key={task.id}
                           className="group flex items-center gap-3 p-2 rounded-md transition-colors hover:bg-muted/50"
                       >
-                          <Checkbox
+                          <CheckboxPrimitive.Root
                               id={`task-${task.id}`}
-                              checked={{ status: task.status === 'completed' ? 'checked' : 'unchecked' }}
+                              checked={task.status === 'completed'}
                               onCheckedChange={() => handleToggleTask(task)}
+                              className="peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                               aria-label={`Mark task as ${task.status === 'completed' ? 'incomplete' : 'complete'}`}
-                          />
+                          >
+                            <CheckboxPrimitive.Indicator className={cn("flex items-center justify-center text-current")}>
+                                <Check className="h-4 w-4" />
+                            </CheckboxPrimitive.Indicator>
+                          </CheckboxPrimitive.Root>
                           <Label
                               htmlFor={`task-${task.id}`}
                               className={cn(

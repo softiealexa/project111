@@ -229,24 +229,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [loading]);
 
-  const saveData = useCallback(async (data: Partial<{ profiles: Profile[], activeProfileName: string | null }>) => {
+  const saveData = useCallback(async (dataToSave: Partial<Profile & {activeProfileName: string | null}>) => {
     if (typeof window === 'undefined') return;
 
-    if ('profiles' in data && 'activeProfileName' in data) {
-        const localKey = getLocalKey(user?.displayName || null);
-        const dataToStore = { profiles: data.profiles, activeProfileName: data.activeProfileName };
-        localStorage.setItem(localKey, JSON.stringify(dataToStore));
-    }
+    // For local storage, we always save the entire profiles object
+    const localKey = getLocalKey(user?.displayName || null);
+    const fullLocalData = {
+      profiles: 'profiles' in dataToSave ? dataToSave.profiles : profiles,
+      activeProfileName: 'activeProfileName' in dataToSave ? dataToSave.activeProfileName : activeProfileName
+    };
+    localStorage.setItem(localKey, JSON.stringify(fullLocalData));
     
+    // For Firestore, we only save the specific field that was passed in
     if (user) {
         try {
-            await saveUserData(user.uid, data);
+            await saveUserData(user.uid, dataToSave);
         } catch (error) {
             console.error("Failed to save data to Firestore", error);
             toast({ title: "Sync Error", description: "Could not save progress to the cloud.", variant: "destructive" });
         }
     }
-  }, [user, toast]);
+  }, [user, toast, profiles, activeProfileName]);
 
   const activeProfile = useMemo(() => {
     return profiles.find(p => p.name === activeProfileName);
@@ -293,7 +296,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return { ...profile, progressHistory: history };
   }, [calculateOverallProgress]);
 
-  const updateProfiles = useCallback((newProfiles: Profile[], newActiveProfileName: string | null) => {
+  const updateProfiles = useCallback((newProfiles: Profile[], newActiveProfileName: string | null, dataToSync: Partial<Profile>) => {
     const profileToUpdate = newProfiles.find(p => p.name === newActiveProfileName);
     let profilesToSave = newProfiles;
 
@@ -303,7 +306,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
     
     setProfiles(profilesToSave);
-    saveData({ profiles: profilesToSave, activeProfileName: newActiveProfileName });
+    saveData({ ...dataToSync, profiles: profilesToSave, activeProfileName: newActiveProfileName });
   }, [saveData, updateProfileWithProgress]);
 
 
@@ -314,10 +317,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const hasTodayEntry = history.some(p => p.date === todayStr);
 
       if (!hasTodayEntry) {
-        updateProfiles(profiles, activeProfileName);
+         const updatedProfile = updateProfileWithProgress(activeProfile);
+         const newProfiles = profiles.map(p => p.name === activeProfileName ? updatedProfile : p);
+         setProfiles(newProfiles);
+         saveData({ progressHistory: updatedProfile.progressHistory });
       }
     }
-  }, [activeProfile, loading, profiles, activeProfileName, updateProfiles]);
+  }, [activeProfile, loading, profiles, activeProfileName, updateProfileWithProgress, saveData]);
 
 
   useEffect(() => {
@@ -423,7 +429,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     if (updated) {
         const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, todos: allTodos } : p);
-        updateProfiles(newProfiles, activeProfileName);
+        updateProfiles(newProfiles, activeProfileName, { todos: allTodos });
     }
     
     localStorage.setItem(lastRolloverKey, todayStr);
@@ -433,9 +439,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const addProfile = useCallback((name: string) => {
     const newProfile: Profile = { name, subjects: [], todos: [] };
     const newProfiles = [...profiles, newProfile];
-    updateProfiles(newProfiles, name);
+    setProfiles(newProfiles);
+    setActiveProfileName(name);
+    saveData({ profiles: newProfiles, activeProfileName: name });
     window.location.reload();
-  }, [profiles, updateProfiles]);
+  }, [profiles, saveData]);
   
   const removeProfile = useCallback((name: string) => {
     if (profiles.length <= 1) {
@@ -447,10 +455,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (activeProfileName === name) {
         newActiveProfileName = newProfiles[0].name;
     }
+    setProfiles(newProfiles);
     setActiveProfileName(newActiveProfileName);
-    updateProfiles(newProfiles, newActiveProfileName);
+    saveData({ profiles: newProfiles, activeProfileName: newActiveProfileName });
     toast({ title: "Profile Removed", description: `Profile "${name}" has been removed.`});
-  }, [profiles, activeProfileName, updateProfiles, toast]);
+  }, [profiles, activeProfileName, saveData, toast]);
 
   const renameProfile = useCallback((oldName: string, newName: string) => {
     const trimmedNewName = newName.trim();
@@ -463,10 +472,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (activeProfileName === oldName) {
         newActiveProfileName = trimmedNewName;
     }
+    setProfiles(newProfiles);
     setActiveProfileName(newActiveProfileName);
-    updateProfiles(newProfiles, newActiveProfileName);
+    saveData({ profiles: newProfiles, activeProfileName: newActiveProfileName });
     toast({ title: "Profile Renamed", description: `"${oldName}" is now "${trimmedNewName}".`});
-  }, [profiles, activeProfileName, updateProfiles, toast]);
+  }, [profiles, activeProfileName, saveData, toast]);
 
   const switchProfile = useCallback((name: string) => {
     setActiveProfileName(name);
@@ -477,7 +487,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const updateSubjects = useCallback((newSubjects: Subject[]) => {
     if (!activeProfileName) return;
     const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, subjects: newSubjects } : p);
-    updateProfiles(newProfiles, activeProfileName);
+    updateProfiles(newProfiles, activeProfileName, { subjects: newSubjects });
   }, [activeProfileName, profiles, updateProfiles]);
 
   const addSubject = useCallback((subjectName: string, iconName: string) => {
@@ -594,33 +604,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [activeProfile, updateSubjects, toast]);
 
   const updateChapterDeadline = useCallback((subjectName: string, chapterName: string, deadline: number | null) => {
-    if (!activeProfileName) return;
-    const newProfiles = profiles.map(p => {
-        if (p.name === activeProfileName) {
-            const newSubjects = p.subjects.map(s => {
-                if (s.name === subjectName) {
-                    const newChapters = s.chapters.map(c => {
-                        if (c.name === chapterName) {
-                            const newChapter = { ...c };
-                            if (deadline) {
-                                newChapter.deadline = deadline;
-                            } else {
-                                delete newChapter.deadline;
-                            }
-                            return newChapter;
-                        }
-                        return c;
-                    });
-                    return { ...s, chapters: newChapters };
+    if (!activeProfile) return;
+    const newSubjects = activeProfile.subjects.map(s => {
+        if (s.name === subjectName) {
+            const newChapters = s.chapters.map(c => {
+                if (c.name === chapterName) {
+                    const newChapter = { ...c };
+                    if (deadline) {
+                        newChapter.deadline = deadline;
+                    } else {
+                        delete newChapter.deadline;
+                    }
+                    return newChapter;
                 }
-                return s;
+                return c;
             });
-            return { ...p, subjects: newSubjects };
+            return { ...s, chapters: newChapters };
         }
-        return p;
+        return s;
     });
-    updateProfiles(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, updateProfiles]);
+    updateSubjects(newSubjects);
+  }, [activeProfile, updateSubjects]);
 
   const updateTasks = useCallback((subjectName: string, newTasks: string[]) => {
     if (!activeProfile) return;
@@ -686,136 +690,86 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [activeProfile, updateSubjects, toast]);
 
   const updatePlannerNote = useCallback((dateKey: string, note: string) => {
-    if (!activeProfileName) return;
-    const newProfiles = profiles.map(p => {
-        if (p.name === activeProfileName) {
-            const newPlannerNotes = { ...(p.plannerNotes || {}) };
-            if (note) {
-                newPlannerNotes[dateKey] = note;
-            } else {
-                delete newPlannerNotes[dateKey];
-            }
-            return { ...p, plannerNotes: newPlannerNotes };
-        }
-        return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, updateProfiles]);
+    if (!activeProfile) return;
+    const newPlannerNotes = { ...(activeProfile.plannerNotes || {}) };
+    if (note) {
+        newPlannerNotes[dateKey] = note;
+    } else {
+        delete newPlannerNotes[dateKey];
+    }
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, plannerNotes: newPlannerNotes } : p);
+    updateProfiles(newProfiles, activeProfileName, { plannerNotes: newPlannerNotes });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
   const addNote = useCallback((title: string, content: string): Note | undefined => {
-    if (!activeProfileName) return;
+    if (!activeProfile) return;
     const newNote: Note = {
         id: crypto.randomUUID(),
         title,
         content,
         createdAt: Date.now(),
     };
-    const newProfiles = profiles.map(p => {
-        if (p.name === activeProfileName) {
-            const currentNotes = p.notes || [];
-            const updatedNotes = [newNote, ...currentNotes];
-            return { ...p, notes: updatedNotes };
-        }
-        return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
+    const updatedNotes = [newNote, ...(activeProfile.notes || [])];
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, notes: updatedNotes } : p);
+    updateProfiles(newProfiles, activeProfileName, { notes: updatedNotes });
     toast({
         title: 'Note Saved',
         description: `Your note "${title || 'Untitled'}" has been saved.`,
     });
     return newNote;
-  }, [activeProfileName, profiles, updateProfiles, toast]);
+  }, [activeProfile, activeProfileName, profiles, updateProfiles, toast]);
 
   const updateNote = useCallback((updatedNote: Note) => {
-    if (!activeProfileName) return;
-    const newProfiles = profiles.map(p => {
-        if (p.name === activeProfileName) {
-            const updatedNotes = (p.notes || []).map(n => n.id === updatedNote.id ? updatedNote : n);
-            return { ...p, notes: updatedNotes };
-        }
-        return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, updateProfiles]);
+    if (!activeProfile) return;
+    const updatedNotes = (activeProfile.notes || []).map(n => n.id === updatedNote.id ? updatedNote : n);
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, notes: updatedNotes } : p);
+    updateProfiles(newProfiles, activeProfileName, { notes: updatedNotes });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
   const deleteNote = useCallback((noteId: string) => {
-    if (!activeProfileName) return;
-    const newProfiles = profiles.map(p => {
-        if (p.name === activeProfileName) {
-            const updatedNotes = (p.notes || []).filter(n => n.id !== noteId);
-            return { ...p, notes: updatedNotes };
-        }
-        return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, updateProfiles]);
+    if (!activeProfile) return;
+    const updatedNotes = (activeProfile.notes || []).filter(n => n.id !== noteId);
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, notes: updatedNotes } : p);
+    updateProfiles(newProfiles, activeProfileName, { notes: updatedNotes });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
   const setNotes = useCallback((notes: Note[]) => {
-    if (!activeProfileName) return;
-    const newProfiles = profiles.map(p => {
-        if (p.name === activeProfileName) {
-            return { ...p, notes: notes };
-        }
-        return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, updateProfiles]);
+    if (!activeProfile) return;
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, notes } : p);
+    updateProfiles(newProfiles, activeProfileName, { notes });
+  }, [activeProfileName, profiles, updateProfiles, activeProfile]);
   
 
   const addLink = useCallback((title: string, url: string) => {
-    if (!activeProfileName) return;
-    const newLink: ImportantLink = {
-      id: crypto.randomUUID(),
-      title,
-      url,
-    };
-    const newProfiles = profiles.map(p => {
-      if (p.name === activeProfileName) {
-        const updatedLinks = [...(p.importantLinks || []), newLink];
-        return { ...p, importantLinks: updatedLinks };
-      }
-      return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, updateProfiles]);
+    if (!activeProfile) return;
+    const newLink: ImportantLink = { id: crypto.randomUUID(), title, url };
+    const updatedLinks = [...(activeProfile.importantLinks || []), newLink];
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, importantLinks: updatedLinks } : p);
+    updateProfiles(newProfiles, activeProfileName, { importantLinks: updatedLinks });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
   const updateLink = useCallback((updatedLink: ImportantLink) => {
-    if (!activeProfileName) return;
-    const newProfiles = profiles.map(p => {
-      if (p.name === activeProfileName) {
-        const updatedLinks = (p.importantLinks || []).map(l => l.id === updatedLink.id ? updatedLink : l);
-        return { ...p, importantLinks: updatedLinks };
-      }
-      return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, updateProfiles]);
+    if (!activeProfile) return;
+    const updatedLinks = (activeProfile.importantLinks || []).map(l => l.id === updatedLink.id ? updatedLink : l);
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, importantLinks: updatedLinks } : p);
+    updateProfiles(newProfiles, activeProfileName, { importantLinks: updatedLinks });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
   const deleteLink = useCallback((linkId: string) => {
-    if (!activeProfileName) return;
-    const newProfiles = profiles.map(p => {
-      if (p.name === activeProfileName) {
-        const updatedLinks = (p.importantLinks || []).filter(l => l.id !== linkId);
-        return { ...p, importantLinks: updatedLinks };
-      }
-      return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, updateProfiles]);
+    if (!activeProfile) return;
+    const updatedLinks = (activeProfile.importantLinks || []).filter(l => l.id !== linkId);
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, importantLinks: updatedLinks } : p);
+    updateProfiles(newProfiles, activeProfileName, { importantLinks: updatedLinks });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
   
   const setLinks = useCallback((links: ImportantLink[]) => {
-    if (!activeProfileName) return;
-    const newProfiles = profiles.map(p => {
-        if (p.name === activeProfileName) {
-            return { ...p, importantLinks: links };
-        }
-        return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, updateProfiles]);
+    if (!activeProfile) return;
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, importantLinks: links } : p);
+    updateProfiles(newProfiles, activeProfileName, { importantLinks: links });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
   const addTodo = useCallback((text: string, forDate: string) => {
-    if (!activeProfileName) return;
+    if (!activeProfile) return;
     const newTodo: SmartTodo = {
       id: crypto.randomUUID(),
       text,
@@ -823,53 +777,33 @@ export function DataProvider({ children }: { children: ReactNode }) {
       status: 'pending',
       createdAt: Date.now(),
     };
-    const newProfiles = profiles.map(p => {
-      if (p.name === activeProfileName) {
-        const updatedTodos = [newTodo, ...(p.todos || [])];
-        return { ...p, todos: updatedTodos };
-      }
-      return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, updateProfiles]);
+    const updatedTodos = [newTodo, ...(activeProfile.todos || [])];
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, todos: updatedTodos } : p);
+    updateProfiles(newProfiles, activeProfileName, { todos: updatedTodos });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
   const updateTodo = useCallback((updatedTodo: SmartTodo) => {
-    if (!activeProfileName) return;
-    const newProfiles = profiles.map(p => {
-      if (p.name === activeProfileName) {
-        const updatedTodos = (p.todos || []).map(t => t.id === updatedTodo.id ? updatedTodo : t);
-        return { ...p, todos: updatedTodos };
-      }
-      return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, updateProfiles]);
+    if (!activeProfile) return;
+    const updatedTodos = (activeProfile.todos || []).map(t => t.id === updatedTodo.id ? updatedTodo : t);
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, todos: updatedTodos } : p);
+    updateProfiles(newProfiles, activeProfileName, { todos: updatedTodos });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
   const deleteTodo = useCallback((todoId: string) => {
-    if (!activeProfileName) return;
-    const newProfiles = profiles.map(p => {
-      if (p.name === activeProfileName) {
-        const updatedTodos = (p.todos || []).filter(t => t.id !== todoId);
-        return { ...p, todos: updatedTodos };
-      }
-      return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, updateProfiles]);
+    if (!activeProfile) return;
+    const updatedTodos = (activeProfile.todos || []).filter(t => t.id !== todoId);
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, todos: updatedTodos } : p);
+    updateProfiles(newProfiles, activeProfileName, { todos: updatedTodos });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
   const setTodos = useCallback((todos: SmartTodo[]) => {
-    if (!activeProfileName) return;
-    const newProfiles = profiles.map(p => {
-      if (p.name === activeProfileName) {
-        return { ...p, todos: todos };
-      }
-      return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, updateProfiles]);
+    if (!activeProfile) return;
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, todos } : p);
+    updateProfiles(newProfiles, activeProfileName, { todos });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
   const addSimpleTodo = useCallback((text: string, priority: Priority, deadline?: number) => {
-    if (!activeProfileName) return;
+    if (!activeProfile) return;
     const newTodo: SimpleTodo = {
       id: crypto.randomUUID(),
       text,
@@ -877,242 +811,137 @@ export function DataProvider({ children }: { children: ReactNode }) {
       createdAt: Date.now(),
       priority,
     };
-    if (deadline) {
-      newTodo.deadline = deadline;
-    }
-    const newProfiles = profiles.map(p => {
-      if (p.name === activeProfileName) {
-        const updatedTodos = [...(p.simpleTodos || []), newTodo];
-        return { ...p, simpleTodos: updatedTodos };
-      }
-      return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, updateProfiles]);
+    if (deadline) newTodo.deadline = deadline;
+    const updatedTodos = [...(activeProfile.simpleTodos || []), newTodo];
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, simpleTodos: updatedTodos } : p);
+    updateProfiles(newProfiles, activeProfileName, { simpleTodos: updatedTodos });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
   const updateSimpleTodo = useCallback((updatedTodo: SimpleTodo) => {
-    if (!activeProfileName) return;
-    const newProfiles = profiles.map(p => {
-      if (p.name === activeProfileName) {
-        const updatedTodos = (p.simpleTodos || []).map(t => t.id === updatedTodo.id ? updatedTodo : t);
-        return { ...p, simpleTodos: updatedTodos };
-      }
-      return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, updateProfiles]);
+    if (!activeProfile) return;
+    const updatedTodos = (activeProfile.simpleTodos || []).map(t => t.id === updatedTodo.id ? updatedTodo : t);
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, simpleTodos: updatedTodos } : p);
+    updateProfiles(newProfiles, activeProfileName, { simpleTodos: updatedTodos });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
   const deleteSimpleTodo = useCallback((todoId: string) => {
-    if (!activeProfileName) return;
-    const newProfiles = profiles.map(p => {
-      if (p.name === activeProfileName) {
-        const updatedTodos = (p.simpleTodos || []).filter(t => t.id !== todoId);
-        return { ...p, simpleTodos: updatedTodos };
-      }
-      return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, updateProfiles]);
+    if (!activeProfile) return;
+    const updatedTodos = (activeProfile.simpleTodos || []).filter(t => t.id !== todoId);
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, simpleTodos: updatedTodos } : p);
+    updateProfiles(newProfiles, activeProfileName, { simpleTodos: updatedTodos });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
   
   const setSimpleTodos = useCallback((todos: SimpleTodo[]) => {
-    if (!activeProfileName) return;
-    const newProfiles = profiles.map(p => {
-      if (p.name === activeProfileName) {
-        return { ...p, simpleTodos: todos };
-      }
-      return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, updateProfiles]);
+    if (!activeProfile) return;
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, simpleTodos: todos } : p);
+    updateProfiles(newProfiles, activeProfileName, { simpleTodos: todos });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
   
   const addQuestionSession = useCallback((session: QuestionSession) => {
-    if (!activeProfileName) return;
-    const newProfiles = profiles.map(p => {
-      if (p.name === activeProfileName) {
-        const currentSessions = p.questionSessions || [];
-        const updatedSessions = [session, ...currentSessions].slice(0, 50);
-        return { ...p, questionSessions: updatedSessions };
-      }
-      return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, updateProfiles]);
+    if (!activeProfile) return;
+    const currentSessions = activeProfile.questionSessions || [];
+    const updatedSessions = [session, ...currentSessions].slice(0, 50);
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, questionSessions: updatedSessions } : p);
+    updateProfiles(newProfiles, activeProfileName, { questionSessions: updatedSessions });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
   const addTimeEntry = useCallback((entry: Omit<TimeEntry, 'id'>): TimeEntry | undefined => {
-    if (!activeProfileName) return;
-    const newEntry: TimeEntry = {
-        id: crypto.randomUUID(),
-        ...entry
-    };
-    const newProfiles = profiles.map(p => {
-        if (p.name === activeProfileName) {
-            const updatedEntries = [newEntry, ...(p.timeEntries || [])];
-            return { ...p, timeEntries: updatedEntries };
-        }
-        return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
+    if (!activeProfile) return;
+    const newEntry: TimeEntry = { id: crypto.randomUUID(), ...entry };
+    const updatedEntries = [newEntry, ...(activeProfile.timeEntries || [])];
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, timeEntries: updatedEntries } : p);
+    updateProfiles(newProfiles, activeProfileName, { timeEntries: updatedEntries });
     return newEntry;
-  }, [activeProfileName, profiles, updateProfiles]);
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
   const updateTimeEntry = useCallback((updatedEntry: TimeEntry) => {
-    if (!activeProfileName) return;
-    const newProfiles = profiles.map(p => {
-        if (p.name === activeProfileName) {
-            const updatedEntries = (p.timeEntries || []).map(entry => entry.id === updatedEntry.id ? updatedEntry : entry);
-            return { ...p, timeEntries: updatedEntries };
-        }
-        return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, updateProfiles]);
+    if (!activeProfile) return;
+    const updatedEntries = (activeProfile.timeEntries || []).map(entry => entry.id === updatedEntry.id ? updatedEntry : entry);
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, timeEntries: updatedEntries } : p);
+    updateProfiles(newProfiles, activeProfileName, { timeEntries: updatedEntries });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
   const deleteTimeEntry = useCallback((entryId: string) => {
-    if (!activeProfileName) return;
-    const newProfiles = profiles.map(p => {
-        if (p.name === activeProfileName) {
-            const updatedEntries = (p.timeEntries || []).filter(entry => entry.id !== entryId);
-            return { ...p, timeEntries: updatedEntries };
-        }
-        return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, updateProfiles]);
+    if (!activeProfile) return;
+    const updatedEntries = (activeProfile.timeEntries || []).filter(entry => entry.id !== entryId);
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, timeEntries: updatedEntries } : p);
+    updateProfiles(newProfiles, activeProfileName, { timeEntries: updatedEntries });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
   const setTimeEntries = useCallback((entries: TimeEntry[]) => {
-    if (!activeProfileName) return;
-    const newProfiles = profiles.map(p => {
-        if (p.name === activeProfileName) {
-            return { ...p, timeEntries: entries };
-        }
-        return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, updateProfiles]);
+    if (!activeProfile) return;
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, timeEntries: entries } : p);
+    updateProfiles(newProfiles, activeProfileName, { timeEntries: entries });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
   const addProject = useCallback((name: string, color: string) => {
-    if (!activeProfileName) return;
+    if (!activeProfile) return;
     const newProject: Project = { id: crypto.randomUUID(), name, color };
-    const newProfiles = profiles.map(p => {
-      if (p.name === activeProfileName) {
-        const updatedProjects = [...(p.projects || []), newProject];
-        return { ...p, projects: updatedProjects };
-      }
-      return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, updateProfiles]);
+    const updatedProjects = [...(activeProfile.projects || []), newProject];
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, projects: updatedProjects } : p);
+    updateProfiles(newProfiles, activeProfileName, { projects: updatedProjects });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
   const updateProject = useCallback((updatedProject: Project) => {
-    if (!activeProfileName) return;
-    const newProfiles = profiles.map(p => {
-      if (p.name === activeProfileName) {
-        const updatedProjects = (p.projects || []).map(proj => proj.id === updatedProject.id ? updatedProject : proj);
-        return { ...p, projects: updatedProjects };
-      }
-      return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, updateProfiles]);
+    if (!activeProfile) return;
+    const updatedProjects = (activeProfile.projects || []).map(proj => proj.id === updatedProject.id ? updatedProject : proj);
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, projects: updatedProjects } : p);
+    updateProfiles(newProfiles, activeProfileName, { projects: updatedProjects });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
   const deleteProject = useCallback((projectId: string) => {
-    if (!activeProfileName) return;
-    const newProfiles = profiles.map(p => {
-      if (p.name === activeProfileName) {
-        const updatedProjects = (p.projects || []).filter(proj => proj.id !== projectId);
-        return { ...p, projects: updatedProjects };
-      }
-      return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
+    if (!activeProfile) return;
+    const updatedProjects = (activeProfile.projects || []).filter(proj => proj.id !== projectId);
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, projects: updatedProjects } : p);
+    updateProfiles(newProfiles, activeProfileName, { projects: updatedProjects });
     toast({ title: "Project Deleted", description: "The project has been successfully deleted.", variant: "destructive" });
-  }, [activeProfileName, profiles, updateProfiles, toast]);
+  }, [activeProfile, activeProfileName, profiles, updateProfiles, toast]);
 
   const updateTimesheetEntry = useCallback((projectId: string, date: string, seconds: number) => {
-    if (!activeProfileName) return;
-    const newProfiles = profiles.map(p => {
-      if (p.name === activeProfileName) {
-        const newTimesheetData = { ...(p.timesheetData || {}) };
-        if (!newTimesheetData[projectId]) {
-          newTimesheetData[projectId] = {};
-        }
-        if (seconds > 0) {
-            newTimesheetData[projectId][date] = seconds;
-        } else {
-            delete newTimesheetData[projectId][date];
-        }
-        
-        return { ...p, timesheetData: newTimesheetData };
-      }
-      return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, updateProfiles]);
+    if (!activeProfile) return;
+    const newTimesheetData = { ...(activeProfile.timesheetData || {}) };
+    if (!newTimesheetData[projectId]) newTimesheetData[projectId] = {};
+    if (seconds > 0) newTimesheetData[projectId][date] = seconds;
+    else delete newTimesheetData[projectId][date];
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, timesheetData: newTimesheetData } : p);
+    updateProfiles(newProfiles, activeProfileName, { timesheetData: newTimesheetData });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
   
   const setTimesheetData = useCallback((data: TimesheetData) => {
-    if (!activeProfileName) return;
-    const newProfiles = profiles.map(p => {
-      if (p.name === activeProfileName) {
-        return { ...p, timesheetData: data };
-      }
-      return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, updateProfiles]);
+    if (!activeProfile) return;
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, timesheetData: data } : p);
+    updateProfiles(newProfiles, activeProfileName, { timesheetData: data });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
   const addExamCountdown = useCallback((title: string, date: Date) => {
-    if (!activeProfileName) return;
-    const newCountdown: ExamCountdown = {
-        id: crypto.randomUUID(),
-        title,
-        date: date.getTime(),
-    };
-    const newProfiles = profiles.map(p => {
-        if (p.name === activeProfileName) {
-            const updatedCountdowns = [...(p.examCountdowns || []), newCountdown];
-            return { ...p, examCountdowns: updatedCountdowns };
-        }
-        return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
+    if (!activeProfile) return;
+    const newCountdown: ExamCountdown = { id: crypto.randomUUID(), title, date: date.getTime() };
+    const updatedCountdowns = [...(activeProfile.examCountdowns || []), newCountdown];
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, examCountdowns: updatedCountdowns } : p);
+    updateProfiles(newProfiles, activeProfileName, { examCountdowns: updatedCountdowns });
     toast({ title: "Countdown Added", description: `"${title}" has been added.` });
-  }, [activeProfileName, profiles, updateProfiles, toast]);
+  }, [activeProfile, activeProfileName, profiles, updateProfiles, toast]);
 
   const updateExamCountdown = useCallback((updatedCountdown: ExamCountdown) => {
-    if (!activeProfileName) return;
-    const newProfiles = profiles.map(p => {
-      if (p.name === activeProfileName) {
-        const updatedCountdowns = (p.examCountdowns || []).map(cd => cd.id === updatedCountdown.id ? updatedCountdown : cd);
-        return { ...p, examCountdowns: updatedCountdowns };
-      }
-      return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
+    if (!activeProfile) return;
+    const updatedCountdowns = (activeProfile.examCountdowns || []).map(cd => cd.id === updatedCountdown.id ? updatedCountdown : cd);
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, examCountdowns: updatedCountdowns } : p);
+    updateProfiles(newProfiles, activeProfileName, { examCountdowns: updatedCountdowns });
     toast({ title: "Countdown Updated", description: `"${updatedCountdown.title}" has been updated.` });
-  }, [activeProfileName, profiles, updateProfiles, toast]);
+  }, [activeProfile, activeProfileName, profiles, updateProfiles, toast]);
 
   const deleteExamCountdown = useCallback((countdownId: string) => {
-    if (!activeProfileName) return;
-    const newProfiles = profiles.map(p => {
-      if (p.name === activeProfileName) {
-        const updatedCountdowns = (p.examCountdowns || []).filter(cd => cd.id !== countdownId);
-        return { ...p, examCountdowns: updatedCountdowns };
-      }
-      return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, updateProfiles]);
+    if (!activeProfile) return;
+    const updatedCountdowns = (activeProfile.examCountdowns || []).filter(cd => cd.id !== countdownId);
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, examCountdowns: updatedCountdowns } : p);
+    updateProfiles(newProfiles, activeProfileName, { examCountdowns: updatedCountdowns });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
   
   const setExamCountdowns = useCallback((countdowns: ExamCountdown[]) => {
-    if (!activeProfileName) return;
-    const newProfiles = profiles.map(p => {
-      if (p.name === activeProfileName) {
-        return { ...p, examCountdowns: countdowns };
-      }
-      return p;
-    });
-    updateProfiles(newProfiles, activeProfileName);
-  }, [activeProfileName, profiles, updateProfiles]);
+    if (!activeProfile) return;
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, examCountdowns: countdowns } : p);
+    updateProfiles(newProfiles, activeProfileName, { examCountdowns: countdowns });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
 
   const exportData = useCallback(() => {

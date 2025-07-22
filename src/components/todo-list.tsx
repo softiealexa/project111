@@ -47,7 +47,7 @@ const deadlineColors = {
     default: '',
 };
 
-function SortableTodoItem({ todo, onToggle, onDelete }: { todo: SimpleTodo; onToggle: (id: string, newStatus: TaskStatus, completedAt?: number) => void; onDelete: (id: string) => void; }) {
+function SortableTodoItem({ todo, onToggle, onDelete }: { todo: SimpleTodo; onToggle: (id: string, newStatus: TaskStatus) => void; onDelete: (id: string) => void; }) {
   const {
     attributes,
     listeners,
@@ -82,10 +82,8 @@ function SortableTodoItem({ todo, onToggle, onDelete }: { todo: SimpleTodo; onTo
       <CheckboxPrimitive.Root
         id={`task-${todo.id}`}
         checked={isChecked}
-        onCheckedChange={(newCheckedState: boolean) => {
-            const newStatus = newCheckedState ? 'checked' : 'unchecked';
-            const newCompletedAt = newCheckedState ? Date.now() : undefined;
-            onToggle(todo.id, newStatus, newCompletedAt);
+        onCheckedChange={(checked) => {
+            onToggle(todo.id, checked ? 'checked' : 'unchecked');
         }}
         className="peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
         aria-label={`Mark task as ${todo.status !== 'unchecked' ? 'incomplete' : 'complete'}`}
@@ -145,12 +143,12 @@ export default function SimpleTodoList() {
     setPriority('Medium');
   };
 
-  const handleToggleTask = (taskId: string, newStatus: TaskStatus, completedAt?: number) => {
+  const handleToggleTask = (taskId: string, newStatus: TaskStatus) => {
     const task = allTasks.find(t => t.id === taskId);
     if (task) {
       const updatedTask: SimpleTodo = { ...task, status: newStatus };
-      if (completedAt) {
-          updatedTask.completedAt = completedAt;
+      if (newStatus === 'checked') {
+          updatedTask.completedAt = Date.now();
       } else {
           delete updatedTask.completedAt;
       }
