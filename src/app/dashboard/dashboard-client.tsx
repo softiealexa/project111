@@ -171,7 +171,7 @@ export default function DashboardClient() {
 
             <TabsContent value="tools" forceMount={isClient || undefined} className={cn(mainTab !== 'tools' && 'hidden')}>
               <Tabs value={activeTool} onValueChange={setActiveTool} orientation={isMobile ? 'horizontal' : 'vertical'} className="w-full">
-                  <div className={cn("grid gap-6", !isMobile && "grid-cols-1 md:grid-cols-[200px_1fr] lg:grid-cols-[250px_1fr]")}>
+                  <div className={cn("grid gap-6", !isMobile && "grid-cols-1 md:grid-cols-[200px_1fr] lg:grid-cols-[200px_1fr]")}>
                       {isMobile ? (
                           <Select value={activeTool} onValueChange={setActiveTool}>
                               <SelectTrigger className="w-full">
