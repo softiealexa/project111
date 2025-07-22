@@ -20,7 +20,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useData } from "@/contexts/data-context";
-import type { SimpleTodo, Priority, CheckedState } from "@/lib/types";
+import type { SimpleTodo, Priority, TaskStatus } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -46,7 +46,7 @@ const deadlineColors = {
     default: '',
 };
 
-function SortableTodoItem({ todo, onToggle, onDelete }: { todo: SimpleTodo; onToggle: (id: string, newStatus: CheckedState) => void; onDelete: (id: string) => void; }) {
+function SortableTodoItem({ todo, onToggle, onDelete }: { todo: SimpleTodo; onToggle: (id: string, newStatus: TaskStatus, completedAt?: number) => void; onDelete: (id: string) => void; }) {
   const {
     attributes,
     listeners,
@@ -70,6 +70,8 @@ function SortableTodoItem({ todo, onToggle, onDelete }: { todo: SimpleTodo; onTo
     if (isToday(deadlineDate)) return 'approaching';
     return 'default';
   }, [todo.deadline, todo.status]);
+  
+  const isChecked = todo.status !== 'unchecked';
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} className={cn("group flex items-center gap-3 p-2 rounded-md transition-colors hover:bg-muted/50", isDragging && "shadow-lg bg-card")}>
@@ -78,10 +80,13 @@ function SortableTodoItem({ todo, onToggle, onDelete }: { todo: SimpleTodo; onTo
       </span>
       <Checkbox
         id={`task-${todo.id}`}
-        checked={{status: todo.status, completedAt: todo.completedAt}}
-        onCheckedChange={(newCheckedState) => onToggle(todo.id, newCheckedState)}
+        checked={isChecked}
+        onCheckedChange={(newCheckedState) => {
+            const newStatus = newCheckedState ? 'checked' : 'unchecked';
+            const newCompletedAt = newCheckedState ? Date.now() : undefined;
+            onToggle(todo.id, newStatus, newCompletedAt);
+        }}
         aria-label={`Mark task as ${todo.status !== 'unchecked' ? 'incomplete' : 'complete'}`}
-        className="h-5 w-5 rounded-full"
       />
       <Label htmlFor={`task-${todo.id}`} className={cn("flex-grow cursor-pointer", todo.status !== 'unchecked' && "line-through text-muted-foreground")}>
         {todo.text}
@@ -134,10 +139,10 @@ export default function SimpleTodoList() {
     setPriority('Medium');
   };
 
-  const handleToggleTask = (taskId: string, newStatus: CheckedState) => {
+  const handleToggleTask = (taskId: string, newStatus: TaskStatus, completedAt?: number) => {
     const task = allTasks.find(t => t.id === taskId);
     if (task) {
-      updateSimpleTodo({ ...task, status: newStatus.status, completedAt: newStatus.completedAt });
+      updateSimpleTodo({ ...task, status: newStatus, completedAt: completedAt });
     }
   };
 
