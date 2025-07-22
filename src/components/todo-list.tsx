@@ -3,6 +3,8 @@
 
 import { useState, useMemo } from 'react';
 import { Plus, Trash2, Calendar as CalendarIcon } from 'lucide-react';
+import * as CheckboxPrimitive from "@radix-ui/react-checkbox";
+import { Check } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -23,7 +25,6 @@ import { useData } from "@/contexts/data-context";
 import type { SimpleTodo, Priority, TaskStatus } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -78,16 +79,21 @@ function SortableTodoItem({ todo, onToggle, onDelete }: { todo: SimpleTodo; onTo
       <span {...listeners} className="cursor-grab touch-none text-muted-foreground hover:text-foreground p-1">
         <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5.5 4.625C5.5 4.34886 5.27614 4.125 5 4.125C4.72386 4.125 4.5 4.34886 4.5 4.625V10.375C4.5 10.6511 4.72386 10.875 5 10.875C5.27614 10.875 5.5 10.6511 5.5 10.375V4.625ZM10.5 4.625C10.5 4.34886 10.2761 4.125 10 4.125C9.72386 4.125 9.5 4.34886 9.5 4.625V10.375C9.5 10.6511 9.72386 10.875 10 10.875C10.2761 10.875 10.5 10.6511 10.5 10.375V4.625Z" fill="currentColor"></path></svg>
       </span>
-      <Checkbox
+      <CheckboxPrimitive.Root
         id={`task-${todo.id}`}
         checked={isChecked}
-        onCheckedChange={(newCheckedState) => {
+        onCheckedChange={(newCheckedState: boolean) => {
             const newStatus = newCheckedState ? 'checked' : 'unchecked';
             const newCompletedAt = newCheckedState ? Date.now() : undefined;
             onToggle(todo.id, newStatus, newCompletedAt);
         }}
+        className="peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
         aria-label={`Mark task as ${todo.status !== 'unchecked' ? 'incomplete' : 'complete'}`}
-      />
+      >
+        <CheckboxPrimitive.Indicator className={cn("flex items-center justify-center text-current")}>
+            <Check className="h-4 w-4" />
+        </CheckboxPrimitive.Indicator>
+      </CheckboxPrimitive.Root>
       <Label htmlFor={`task-${todo.id}`} className={cn("flex-grow cursor-pointer", todo.status !== 'unchecked' && "line-through text-muted-foreground")}>
         {todo.text}
       </Label>

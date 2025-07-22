@@ -119,11 +119,7 @@ export function LectureRow({ lectureNum, chapter, subject, checkedState, onCheck
                             <Checkbox 
                                 id={checkboxId} 
                                 checked={checkedState[checkboxId] || { status: 'unchecked' }} 
-                                onCheckedChange={(status) => {
-                                    if (typeof status !== 'boolean') {
-                                        onCheckboxChange(checkboxId, status)
-                                    }
-                                }} 
+                                onCheckedChange={(status) => onCheckboxChange(checkboxId, status)}
                             />
                             <Label htmlFor={checkboxId} className="text-sm font-normal text-muted-foreground cursor-pointer">
                                 {task}
