@@ -30,3 +30,15 @@ export async function getAllUsers(): Promise<AppUser[]> {
     return userList;
 }
 
+export async function exportAllUsersData(): Promise<string> {
+    // This server action should also have robust permission checks in a real app.
+    if (!db) {
+        throw new Error("Firebase is not configured. Could not export data.");
+    }
+
+    const usersCol = collection(db, 'users');
+    const userSnapshot = await getDocs(usersCol);
+    const allUserData = userSnapshot.docs.map(doc => doc.data());
+    
+    return JSON.stringify(allUserData, null, 2);
+}

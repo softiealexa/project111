@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ShieldAlert, Users, LoaderCircle, MessageSquare, ChevronDown, Archive, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
+import { ShieldAlert, Users, LoaderCircle, MessageSquare, ChevronDown, Archive, ChevronLeft, ChevronRight, Pencil, DownloadCloud } from 'lucide-react';
 import { collection, query, orderBy, Timestamp, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppUser, Feedback, FeedbackStatus } from '@/lib/types';
@@ -25,6 +25,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/loading-spinner';
+import { exportAllUsersData } from '@/lib/admin';
+import { useToast } from '@/hooks/use-toast';
 
 const EditUserDialog = dynamic(() => import('@/components/edit-user-dialog').then(mod => mod.EditUserDialog), {
   loading: () => <Button variant="ghost" size="icon" disabled><Pencil className="h-4 w-4" /></Button>
@@ -96,6 +98,7 @@ const FeedbackTable = ({ feedbackItems, onStatusChange }: { feedbackItems: Displ
 export default function AdminPage() {
     const { user, userDoc, loading: authLoading } = useData();
     const router = useRouter();
+    const { toast } = useToast();
     const [users, setUsers] = useState<AppUser[]>([]);
     const [feedback, setFeedback] = useState<DisplayFeedback[]>([]);
     const [loading, setLoading] = useState(true);
@@ -105,6 +108,7 @@ export default function AdminPage() {
     const [usersPerPage, setUsersPerPage] = useState(8);
     const [editingUser, setEditingUser] = useState<AppUser | null>(null);
     const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
 
     const isUserAdmin = useMemo(() => {
         return userDoc?.role === 'admin';
@@ -219,6 +223,28 @@ export default function AdminPage() {
         }
     };
 
+    const handleExport = async () => {
+        setIsExporting(true);
+        try {
+            const dataStr = await exportAllUsersData();
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            const dateStr = format(new Date(), 'yyyy-MM-dd');
+            link.download = `trackacademic_all_users_${dateStr}.json`;
+            link.href = url;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            toast({ title: "Export Successful", description: "All user data has been downloaded." });
+        } catch (error: any) {
+            toast({ title: "Export Failed", description: error.message, variant: "destructive" });
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     const { newMessages, resolvedMessages } = useMemo(() => {
         const filtered = feedbackFilter === 'All'
             ? feedback
@@ -275,19 +301,25 @@ export default function AdminPage() {
         <TooltipProvider>
             <Navbar/>
             <main className="max-w-7xl mx-auto py-8 px-4">
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
                     <h1 className="text-3xl font-bold">Admin Panel</h1>
-                    <Select value={feedbackFilter} onValueChange={setFeedbackFilter}>
-                        <SelectTrigger className="w-[200px]">
-                            <SelectValue placeholder="Filter by type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="All">All Feedback Types</SelectItem>
-                            <SelectItem value="Bug Report">Bug Report</SelectItem>
-                            <SelectItem value="Feature Request">Feature Request</SelectItem>
-                            <SelectItem value="Other">Other</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <div className="flex items-center gap-2">
+                         <Button onClick={handleExport} disabled={isExporting}>
+                            {isExporting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <DownloadCloud className="mr-2 h-4 w-4" />}
+                            Export All User Data
+                        </Button>
+                        <Select value={feedbackFilter} onValueChange={setFeedbackFilter}>
+                            <SelectTrigger className="w-[200px]">
+                                <SelectValue placeholder="Filter by type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="All">All Feedback Types</SelectItem>
+                                <SelectItem value="Bug Report">Bug Report</SelectItem>
+                                <SelectItem value="Feature Request">Feature Request</SelectItem>
+                                <SelectItem value="Other">Other</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
                 
                 {error ? (
