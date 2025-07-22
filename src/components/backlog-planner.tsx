@@ -23,28 +23,24 @@ type PlannerMode = 'calculateDays' | 'calculatePace';
 export default function BacklogPlanner() {
     const { activeProfile } = useData();
     const { toast } = useToast();
-    const [backlogLectures, setBacklogLectures] = useState('50');
+    const [backlogLectures, setBacklogLectures] = useState('');
     const [newLecturesPerDay, setNewLecturesPerDay] = useState('3');
     const [studyDaysPerWeek, setStudyDaysPerWeek] = useState('6');
     const [pacePerDay, setPacePerDay] = useState('4');
     const [deadline, setDeadline] = useState<Date | undefined>();
     const [mode, setMode] = useState<PlannerMode>('calculateDays');
 
-    const handleCalculateBacklog = useCallback(() => {
-        if (!activeProfile) {
-            toast({
-                title: 'No Profile Found',
-                description: 'Could not find an active profile to calculate backlog from.',
-                variant: 'destructive',
-            });
-            return;
-        }
+    const calculateCurrentBacklog = useCallback(() => {
+        if (!activeProfile) return 0;
 
         let incompleteLectureCount = 0;
         activeProfile.subjects.forEach(subject => {
+            // Find a task that is explicitly named 'Lecture', case-insensitive
             const lectureTaskName = subject.tasks.find(t => t.toLowerCase() === 'lecture');
+            
+            // If no 'Lecture' task is defined for this subject, we cannot calculate its backlog.
             if (!lectureTaskName) {
-                return; 
+                return;
             }
 
             subject.chapters.forEach(chapter => {
@@ -59,14 +55,23 @@ export default function BacklogPlanner() {
                 }
             });
         });
-        
-        setBacklogLectures(String(incompleteLectureCount));
+        return incompleteLectureCount;
+    }, [activeProfile]);
+    
+    useEffect(() => {
+        // Set initial backlog on component mount
+        setBacklogLectures(String(calculateCurrentBacklog()));
+    }, [calculateCurrentBacklog]);
+
+
+    const handleCalculateClick = () => {
+        const calculatedBacklog = calculateCurrentBacklog();
+        setBacklogLectures(String(calculatedBacklog));
         toast({
             title: 'Backlog Calculated',
-            description: `Found ${incompleteLectureCount} incomplete lectures.`,
+            description: `Found ${calculatedBacklog} incomplete lectures.`,
         });
-
-    }, [activeProfile, toast]);
+    };
 
     const result = useMemo(() => {
         const totalBacklog = parseInt(backlogLectures, 10);
@@ -165,14 +170,14 @@ export default function BacklogPlanner() {
                     </TabsList>
                 </Tabs>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="grid gap-2">
                          <Label htmlFor="backlog-lectures">Current Backlog (Lectures)</Label>
                          <div className="flex items-center gap-2">
                             <Input id="backlog-lectures" type="number" value={backlogLectures} onChange={(e) => setBacklogLectures(e.target.value)} placeholder="e.g., 50" className="flex-1"/>
                              <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <Button variant="outline" onClick={handleCalculateBacklog} className="h-10" aria-label="Calculate backlog from subjects">
+                                    <Button variant="outline" onClick={handleCalculateClick} className="h-10" aria-label="Calculate backlog from subjects">
                                         <RefreshCcw className="h-4 w-4"/>
                                     </Button>
                                 </TooltipTrigger>
@@ -190,13 +195,15 @@ export default function BacklogPlanner() {
                         <Label htmlFor="study-days">Days/Week with New Lectures</Label>
                         <Input id="study-days" type="number" value={studyDaysPerWeek} onChange={(e) => setStudyDaysPerWeek(e.target.value)} placeholder="e.g., 6" min="1" max="7"/>
                     </div>
+                </div>
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {mode === 'calculateDays' ? (
-                        <div className="grid gap-2 md:col-span-2 lg:col-span-3">
+                        <div className="grid gap-2">
                             <Label htmlFor="pace">Total Lectures to Complete per Day (Your Pace)</Label>
                             <Input id="pace" type="number" value={pacePerDay} onChange={(e) => setPacePerDay(e.target.value)} placeholder="e.g., 4" />
                         </div>
                     ) : (
-                         <div className="grid gap-2 md:col-span-2 lg:col-span-3">
+                         <div className="grid gap-2">
                             <Label htmlFor="deadline-picker">Your Deadline</Label>
                              <Popover>
                                 <PopoverTrigger asChild>
