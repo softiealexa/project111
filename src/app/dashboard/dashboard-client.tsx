@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import LiveClock from '@/components/live-clock';
 import { getIconComponent } from '@/lib/icons';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Pencil, Timer, ListTodo, CalendarDays, Link as LinkIcon, Keyboard, Target, Beaker, CheckSquare } from 'lucide-react';
+import { Pencil, Timer, ListTodo, CalendarDays, Link as LinkIcon, Keyboard, Target, Beaker, CheckSquare, Calculator } from 'lucide-react';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { useSearchParams } from 'next/navigation';
 
@@ -47,6 +47,9 @@ const ExamCountdown = dynamic(() => import('@/components/exam-countdown'), {
 });
 const UnitConverter = dynamic(() => import('@/components/unit-converter'), {
     loading: () => <LoadingSpinner containerClassName="h-96" text="Loading Converter..." />
+});
+const BacklogPlanner = dynamic(() => import('@/components/backlog-planner'), {
+    loading: () => <LoadingSpinner containerClassName="h-96" text="Loading Planner..." />
 });
 
 
@@ -161,6 +164,10 @@ export default function DashboardClient() {
                               <CheckSquare className="h-5 w-5" />
                               Simple To-Do
                           </TabsTrigger>
+                          <TabsTrigger value="backlog-planner" className="justify-start gap-2 py-2.5 text-base">
+                              <Calculator className="h-5 w-5" />
+                              Backlog Planner
+                          </TabsTrigger>
                           <TabsTrigger value="unit-converter" className="justify-start gap-2 py-2.5 text-base">
                               <Beaker className="h-5 w-5" />
                               Unit Converter
@@ -196,6 +203,9 @@ export default function DashboardClient() {
                           </TabsContent>
                           <TabsContent value="simple-todo" className="mt-0">
                               <SimpleTodoList />
+                          </TabsContent>
+                           <TabsContent value="backlog-planner" className="mt-0">
+                              <BacklogPlanner />
                           </TabsContent>
                           <TabsContent value="unit-converter" className="mt-0">
                               <UnitConverter />
