@@ -116,6 +116,17 @@ export default function AdminPage() {
         return userDoc?.role === 'admin';
     }, [userDoc]);
 
+    const handleFirestoreError = (err: any) => {
+        if (err.code === 'permission-denied' || err.code === 'PERMISSION_DENIED') {
+            setError("Permission Denied: Your Firestore security rules are correctly blocking this request. To grant access, you must update your rules in the Firebase Console to allow admins to read the 'users' and 'feedback' collections.");
+        } else if (err.code === 'failed-precondition') {
+            setError(`Query requires an index. Please check the browser console for a link to create it in Firebase.`);
+        } else {
+            setError(`An unexpected error occurred: ${err.message}`);
+        }
+        setLoading(false);
+    };
+
     useEffect(() => {
         if (authLoading) return;
 
@@ -156,10 +167,7 @@ export default function AdminPage() {
             });
             
             setUsers(fetchedUsers);
-        }, (err) => {
-             setError(`An unexpected error occurred fetching users: ${err.message}`);
-             setLoading(false);
-        });
+        }, handleFirestoreError);
 
         const feedbackCol = collection(db, 'feedback');
         const feedbackQuery = query(feedbackCol, orderBy('createdAt', 'desc'));
@@ -176,16 +184,7 @@ export default function AdminPage() {
             });
             setFeedback(fetchedFeedback);
             setLoading(false);
-        }, (err: any) => {
-             if (err.code === 'permission-denied' || err.code === 'PERMISSION_DENIED') {
-                setError("Permission Denied: Your Firestore security rules are correctly blocking this request. To grant access, you must update your rules in the Firebase Console to allow admins to read the 'users' and 'feedback' collections.");
-            } else if (err.code === 'failed-precondition') {
-                setError(`Query requires an index. Please check the browser console for a link to create it in Firebase.`);
-            } else {
-                setError(`An unexpected error occurred: ${err.message}`);
-            }
-            setLoading(false);
-        });
+        }, handleFirestoreError);
 
         return () => {
             usersUnsubscribe();
@@ -507,5 +506,3 @@ export default function AdminPage() {
         </TooltipProvider>
     );
 }
-
-    
