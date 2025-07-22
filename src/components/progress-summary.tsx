@@ -848,6 +848,3 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
     </Tabs>
   );
 }
-
-
-
