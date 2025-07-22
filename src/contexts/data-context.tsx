@@ -870,17 +870,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const addSimpleTodo = useCallback((text: string, priority: Priority, deadline?: number) => {
     if (!activeProfileName) return;
-    const newTodo: SimpleTodo = {
+    const newTodo: Partial<SimpleTodo> = {
       id: crypto.randomUUID(),
       text,
       status: 'unchecked',
       createdAt: Date.now(),
       priority,
-      deadline,
     };
+    if (deadline) {
+        newTodo.deadline = deadline;
+    }
     const newProfiles = profiles.map(p => {
       if (p.name === activeProfileName) {
-        const updatedTodos = [...(p.simpleTodos || []), newTodo];
+        const updatedTodos = [...(p.simpleTodos || []), newTodo as SimpleTodo];
         return { ...p, simpleTodos: updatedTodos };
       }
       return p;
