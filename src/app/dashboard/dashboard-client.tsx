@@ -148,11 +148,11 @@ export default function DashboardClient() {
               </Tabs>
             </TabsContent>
 
-            <TabsContent value="progress" forceMount={isClient} className={cn(mainTab !== 'progress' && 'hidden')}>
+            <TabsContent value="progress" forceMount={isClient || undefined} className={cn(mainTab !== 'progress' && 'hidden')}>
               <ProgressSummary profile={activeProfile} />
             </TabsContent>
 
-            <TabsContent value="tools" forceMount={isClient} className={cn(mainTab !== 'tools' && 'hidden')}>
+            <TabsContent value="tools" forceMount={isClient || undefined} className={cn(mainTab !== 'tools' && 'hidden')}>
               <Tabs defaultValue="todo" orientation="vertical" className="w-full">
                   <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] lg:grid-cols-[250px_1fr] gap-6">
                       <TabsList className="flex-col h-auto items-stretch justify-start bg-transparent border-none p-0">
