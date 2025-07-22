@@ -15,6 +15,8 @@ import { cn } from '@/lib/utils';
 import { Calendar } from './ui/calendar';
 import { useData } from '@/contexts/data-context';
 import { useToast } from '@/hooks/use-toast';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+
 
 type PlannerMode = 'calculateDays' | 'calculatePace';
 
@@ -168,9 +170,16 @@ export default function BacklogPlanner() {
                          <Label htmlFor="backlog-lectures">Current Backlog (Lectures)</Label>
                          <div className="flex items-center gap-2">
                             <Input id="backlog-lectures" type="number" value={backlogLectures} onChange={(e) => setBacklogLectures(e.target.value)} placeholder="e.g., 50" className="flex-1"/>
-                             <Button variant="outline" onClick={handleCalculateBacklog} className="h-10" aria-label="Calculate backlog from subjects">
-                                <RefreshCcw className="h-4 w-4"/>
-                            </Button>
+                             <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="outline" onClick={handleCalculateBacklog} className="h-10" aria-label="Calculate backlog from subjects">
+                                        <RefreshCcw className="h-4 w-4"/>
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Calculate backlog from my subjects</p>
+                                </TooltipContent>
+                             </Tooltip>
                         </div>
                     </div>
                     <div className="grid gap-2">
