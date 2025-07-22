@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -40,10 +40,9 @@ export default function BacklogPlanner() {
 
         let incompleteLectureCount = 0;
         activeProfile.subjects.forEach(subject => {
-            // Check if 'Lecture' is a defined task for this subject
             const lectureTaskName = subject.tasks.find(t => t.toLowerCase() === 'lecture');
             if (!lectureTaskName) {
-                return; // Skip subjects without a 'Lecture' task
+                return; 
             }
 
             subject.chapters.forEach(chapter => {
@@ -166,14 +165,13 @@ export default function BacklogPlanner() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div className="grid gap-2">
-                         <div className="flex items-center justify-between">
-                            <Label htmlFor="backlog-lectures">Current Backlog (Lectures)</Label>
-                            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground" onClick={handleCalculateBacklog}>
+                         <Label htmlFor="backlog-lectures">Current Backlog (Lectures)</Label>
+                         <div className="flex items-center gap-2">
+                            <Input id="backlog-lectures" type="number" value={backlogLectures} onChange={(e) => setBacklogLectures(e.target.value)} placeholder="e.g., 50" className="flex-1"/>
+                             <Button variant="outline" onClick={handleCalculateBacklog} className="h-10" aria-label="Calculate backlog from subjects">
                                 <RefreshCcw className="h-4 w-4"/>
-                                <span className="sr-only">Calculate Backlog from Subjects</span>
                             </Button>
                         </div>
-                        <Input id="backlog-lectures" type="number" value={backlogLectures} onChange={(e) => setBacklogLectures(e.target.value)} placeholder="e.g., 50" />
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="new-lectures">New Lectures per Day</Label>
