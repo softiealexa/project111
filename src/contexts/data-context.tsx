@@ -229,16 +229,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [loading]);
 
-  const saveData = useCallback(async (profilesToSave: Profile[], activeNameToSave: string | null) => {
+  const saveData = useCallback(async (data: Partial<{ profiles: Profile[], activeProfileName: string | null }>) => {
     if (typeof window === 'undefined') return;
 
-    const localKey = getLocalKey(user?.displayName || null);
-    const dataToStore = { profiles: profilesToSave, activeProfileName: activeNameToSave };
-    localStorage.setItem(localKey, JSON.stringify(dataToStore));
-
+    if ('profiles' in data && 'activeProfileName' in data) {
+        const localKey = getLocalKey(user?.displayName || null);
+        const dataToStore = { profiles: data.profiles, activeProfileName: data.activeProfileName };
+        localStorage.setItem(localKey, JSON.stringify(dataToStore));
+    }
+    
     if (user) {
         try {
-            await saveUserData(user.uid, profilesToSave, activeNameToSave);
+            await saveUserData(user.uid, data);
         } catch (error) {
             console.error("Failed to save data to Firestore", error);
             toast({ title: "Sync Error", description: "Could not save progress to the cloud.", variant: "destructive" });
@@ -301,7 +303,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
     
     setProfiles(profilesToSave);
-    saveData(profilesToSave, newActiveProfileName);
+    saveData({ profiles: profilesToSave, activeProfileName: newActiveProfileName });
   }, [saveData, updateProfileWithProgress]);
 
 
@@ -469,8 +471,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const switchProfile = useCallback((name: string) => {
     setActiveProfileName(name);
     setActiveSubjectName(null);
-    saveData(profiles, name);
-  }, [profiles, saveData]);
+    saveData({ activeProfileName: name });
+  }, [saveData]);
 
   const updateSubjects = useCallback((newSubjects: Subject[]) => {
     if (!activeProfileName) return;
@@ -1157,7 +1159,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                       setSidebarWidth(data.settings.sidebarWidth || DEFAULT_SIDEBAR_WIDTH);
                   }
 
-                  saveData(processed, data.activeProfileName);
+                  saveData({ profiles: processed, activeProfileName: data.activeProfileName });
                   toast({ title: "Import Successful", description: "Your data has been restored." });
               } else {
                   throw new Error("Invalid file format.");

@@ -161,14 +161,11 @@ export const getUserData = async (uid: string): Promise<UserData | null> => {
     return null;
 }
 
-export const saveUserData = async (uid: string, profiles: Profile[], activeProfileName: string | null) => {
+// Function to save only a specific field of the user's data (e.g., profiles, activeProfileName)
+export const saveUserData = async (uid: string, data: Partial<{ profiles: Profile[], activeProfileName: string | null }>) => {
     if (!isFirebaseConfigured || !db) {
         throw new Error(FIREBASE_NOT_CONFIGURED_ERROR);
     }
     const userDocRef = doc(db, 'users', uid);
-    // Data is now fully serializable, no need to strip icons.
-    await setDoc(userDocRef, { 
-        profiles: profiles,
-        activeProfileName: activeProfileName 
-    }, { merge: true });
-}
+    await setDoc(userDocRef, data, { merge: true });
+};
