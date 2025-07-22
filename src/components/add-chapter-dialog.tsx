@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -14,24 +15,36 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PlusCircle } from "lucide-react";
 import type { Chapter } from "@/lib/types";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { CalendarIcon, X } from "lucide-react";
+import { Calendar } from "./ui/calendar";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface AddChapterDialogProps {
   onAddChapter: (newChapter: Chapter) => void;
+  children: React.ReactNode;
+  existingChapterNames: string[];
 }
 
-export function AddChapterDialog({ onAddChapter }: AddChapterDialogProps) {
+export function AddChapterDialog({ onAddChapter, children, existingChapterNames }: AddChapterDialogProps) {
   const [open, setOpen] = useState(false);
   const [chapterName, setChapterName] = useState("");
   const [lectureCount, setLectureCount] = useState("");
+  const [deadline, setDeadline] = useState<Date | undefined>();
   const [error, setError] = useState("");
 
   const handleSubmit = () => {
     const lectures = parseInt(lectureCount, 10);
-    if (!chapterName.trim()) {
+    const trimmedName = chapterName.trim();
+
+    if (!trimmedName) {
         setError("Chapter name is required.");
+        return;
+    }
+    if (existingChapterNames.some(name => name.toLowerCase() === trimmedName.toLowerCase())) {
+        setError("A chapter with this name already exists in this subject.");
         return;
     }
     if (isNaN(lectures) || lectures < 1 || lectures > 25) {
@@ -39,27 +52,34 @@ export function AddChapterDialog({ onAddChapter }: AddChapterDialogProps) {
         return;
     }
 
-    onAddChapter({ name: chapterName, lectureCount: lectures });
+    onAddChapter({ 
+        name: trimmedName, 
+        lectureCount: lectures,
+        deadline: deadline ? deadline.getTime() : undefined,
+    });
+
     setChapterName("");
     setLectureCount("");
+    setDeadline(undefined);
     setError("");
     setOpen(false);
   };
 
+  const handleOpenChange = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (!isOpen) {
+        setChapterName("");
+        setLectureCount("");
+        setDeadline(undefined);
+        setError("");
+    }
+  }
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <DialogTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <PlusCircle className="h-5 w-5" />
-            </Button>
-          </DialogTrigger>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>Add Chapter</p>
-        </TooltipContent>
-      </Tooltip>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogTrigger asChild>
+          {children}
+        </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Add New Chapter</DialogTitle>
@@ -79,19 +99,53 @@ export function AddChapterDialog({ onAddChapter }: AddChapterDialogProps) {
               placeholder="e.g. Conic Sections"
             />
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="lectures">
-              Lectures
-            </Label>
-            <Input
-              id="lectures"
-              type="number"
-              value={lectureCount}
-              onChange={(e) => setLectureCount(e.target.value)}
-              placeholder="1-25"
-              min="1"
-              max="25"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+                <Label htmlFor="lectures">
+                Lectures
+                </Label>
+                <Input
+                id="lectures"
+                type="number"
+                value={lectureCount}
+                onChange={(e) => setLectureCount(e.target.value)}
+                placeholder="1-25"
+                min="1"
+                max="25"
+                />
+            </div>
+             <div className="grid gap-2">
+                <Label htmlFor="deadline">Deadline (Optional)</Label>
+                <Popover>
+                    <PopoverTrigger asChild>
+                    <Button
+                        id="deadline"
+                        variant={"outline"}
+                        className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !deadline && "text-muted-foreground"
+                        )}
+                    >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {deadline ? format(deadline, "PPP") : <span>Pick a date</span>}
+                        {deadline && (
+                            <div className="p-1 rounded-full hover:bg-muted-foreground/20 absolute right-2" onClick={(e) => {e.stopPropagation(); setDeadline(undefined);}}>
+                                <X className="h-4 w-4" />
+                            </div>
+                        )}
+                    </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                    <Calendar
+                        mode="single"
+                        selected={deadline}
+                        onSelect={setDeadline}
+                        initialFocus
+                        disabled={{ before: new Date() }}
+                    />
+                    </PopoverContent>
+                </Popover>
+            </div>
           </div>
           {error && <p className="pt-2 text-sm text-center text-destructive">{error}</p>}
         </div>

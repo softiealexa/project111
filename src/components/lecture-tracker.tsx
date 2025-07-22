@@ -68,7 +68,7 @@ export default function LectureTracker({ subject }: LectureTrackerProps) {
                 key={`${subject.name}-${chapter.name}-${index}`} 
                 id={`${subject.name}-${chapter.name}-${index}`}
                 chapter={chapter} 
-                subjectName={subject.name} 
+                subject={subject}
                 index={index}
               />
             ))}

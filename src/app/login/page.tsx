@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -10,13 +11,22 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Book } from 'lucide-react';
 import { signInWithUsername } from '@/lib/auth';
+import { useData } from '@/contexts/data-context';
+import { LoadingSpinner } from '@/components/loading-spinner';
 
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { user, loading: authLoading } = useData();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, authLoading, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +35,7 @@ export default function LoginPage() {
     const { error } = await signInWithUsername(username, password);
 
     if (error) {
-      console.error(error);
+      console.log('Login failed:', error);
       const errorMessage = typeof error === 'string' ? error : 'An unexpected error occurred during login.';
       toast({
         title: 'Login Failed',
@@ -37,11 +47,17 @@ export default function LoginPage() {
         title: 'Success',
         description: 'Logged in successfully.',
       });
-      router.push('/dashboard');
+      // The redirect will be handled by the useEffect hook watching the user state change
     }
 
     setIsLoading(false);
   };
+
+  if (authLoading || user) {
+    return (
+      <LoadingSpinner containerClassName="min-h-screen" text="Loading..." />
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">

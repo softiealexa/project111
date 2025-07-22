@@ -14,17 +14,21 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FolderPlus } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { iconMap, iconNames } from "@/lib/icons";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface AddSubjectDialogProps {
-  onAddSubject: (subjectName: string) => void;
+  onAddSubject: (subjectName: string, iconName: string) => void;
   existingSubjects: string[];
+  children: React.ReactNode;
 }
 
-export function AddSubjectDialog({ onAddSubject, existingSubjects }: AddSubjectDialogProps) {
+export function AddSubjectDialog({ onAddSubject, existingSubjects, children }: AddSubjectDialogProps) {
   const [open, setOpen] = useState(false);
   const [subjectName, setSubjectName] = useState("");
+  const [selectedIcon, setSelectedIcon] = useState("Book");
   const [error, setError] = useState("");
 
   const handleSubmit = () => {
@@ -38,8 +42,9 @@ export function AddSubjectDialog({ onAddSubject, existingSubjects }: AddSubjectD
         return;
     }
 
-    onAddSubject(trimmedName);
+    onAddSubject(trimmedName, selectedIcon);
     setSubjectName("");
+    setSelectedIcon("Book");
     setError("");
     setOpen(false);
   };
@@ -48,45 +53,65 @@ export function AddSubjectDialog({ onAddSubject, existingSubjects }: AddSubjectD
     setOpen(isOpen);
     if (!isOpen) {
         setSubjectName("");
+        setSelectedIcon("Book");
         setError("");
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-       <Tooltip>
-        <TooltipTrigger asChild>
-            <DialogTrigger asChild>
-                <Button variant="ghost" size="icon">
-                <FolderPlus className="h-5 w-5" />
-                </Button>
-            </DialogTrigger>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>Add Subject</p>
-        </TooltipContent>
-      </Tooltip>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogTrigger asChild>
+        {children}
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add New Subject</DialogTitle>
           <DialogDescription>
-            Enter a name for the new subject. Click save when you're done.
+            Enter a name and choose an icon for the new subject.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="name" className="text-right">
+          <div className="grid gap-2">
+            <Label htmlFor="name">
               Subject Name
             </Label>
             <Input
               id="name"
               value={subjectName}
               onChange={(e) => setSubjectName(e.target.value)}
-              className="col-span-3"
               placeholder="e.g. Biology"
             />
           </div>
-          {error && <p className="col-span-4 text-sm text-destructive text-center pt-2">{error}</p>}
+           <div className="grid gap-2">
+            <Label>Icon</Label>
+            <ScrollArea className="h-60 w-full rounded-md border">
+              <RadioGroup
+                  value={selectedIcon}
+                  onValueChange={setSelectedIcon}
+                  className="grid grid-cols-4 gap-2 p-4"
+              >
+                  {iconNames.map((name) => {
+                      const IconComponent = iconMap[name];
+                      return (
+                          <div key={name}>
+                              <RadioGroupItem value={name} id={name} className="sr-only" />
+                              <Label 
+                                  htmlFor={name} 
+                                  className={cn(
+                                      "flex flex-col items-center justify-center gap-1 rounded-md p-1.5 border-2 border-muted bg-popover hover:bg-accent hover:text-accent-foreground cursor-pointer aspect-square",
+                                      selectedIcon === name && "border-primary"
+                                  )}
+                              >
+                                  <IconComponent className="h-5 w-5" />
+                                  <span className="text-xs font-normal">{name}</span>
+                              </Label>
+                          </div>
+                      )
+                  })}
+              </RadioGroup>
+            </ScrollArea>
+          </div>
+          {error && <p className="text-sm text-destructive text-center pt-2">{error}</p>}
         </div>
         <DialogFooter>
            <DialogClose asChild>

@@ -61,6 +61,9 @@ function Calendar({
           <ChevronRight className={cn("h-4 w-4", className)} {...props} />
         ),
       }}
+      // This ensures the calendar always renders 6 weeks, preventing height changes.
+      numberOfMonths={1}
+      fixedWeeks
       {...props}
     />
   )
