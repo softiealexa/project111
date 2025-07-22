@@ -3,6 +3,7 @@
 
 import * as React from "react"
 import * as PopoverPrimitive from "@radix-ui/react-popover"
+import { Search } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -115,7 +116,6 @@ const CommandEmpty = React.forwardRef<
  
 CommandEmpty.displayName = "CommandEmpty"
 
-import { Search } from "lucide-react"
 import { Input } from "./input"
 
 
