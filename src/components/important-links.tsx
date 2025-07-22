@@ -110,24 +110,27 @@ export default function ImportantLinks() {
   }
 
   const handleSave = () => {
-    if (!title.trim() || !url.trim()) {
+    const trimmedTitle = title.trim();
+    const trimmedUrl = url.trim();
+
+    if (!trimmedTitle || !trimmedUrl) {
       setError('Both title and URL are required.');
       return;
     }
-    if (!isValidUrl(url)) {
+    if (!isValidUrl(trimmedUrl)) {
       setError('Please enter a valid URL (e.g., https://example.com).');
       return;
     }
 
     if (isEditing) {
-      updateLink({ ...isEditing, title, url });
-      toast({ title: 'Link Updated', description: `"${title}" has been updated.` });
+      updateLink({ ...isEditing, title: trimmedTitle, url: trimmedUrl });
+      toast({ title: 'Link Updated', description: `"${trimmedTitle}" has been updated.` });
     } else {
-      addLink(title, url);
-      toast({ title: 'Link Added', description: `"${title}" has been added.` });
+      addLink(trimmedTitle, trimmedUrl);
+      toast({ title: 'Link Added', description: `"${trimmedTitle}" has been added.` });
     }
 
-    handleOpenChange(false); // Close dialog and trigger cleanup
+    handleOpenChange(false);
   };
 
   const handleOpenDialog = (link: ImportantLink | null = null) => {
