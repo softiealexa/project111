@@ -142,7 +142,13 @@ export default function SimpleTodoList() {
   const handleToggleTask = (taskId: string, newStatus: TaskStatus, completedAt?: number) => {
     const task = allTasks.find(t => t.id === taskId);
     if (task) {
-      updateSimpleTodo({ ...task, status: newStatus, completedAt: completedAt });
+      const updatedTask: SimpleTodo = { ...task, status: newStatus };
+      if (completedAt) {
+          updatedTask.completedAt = completedAt;
+      } else {
+          delete updatedTask.completedAt;
+      }
+      updateSimpleTodo(updatedTask);
     }
   };
 
