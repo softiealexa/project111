@@ -21,6 +21,9 @@ const SIDEBAR_WIDTH_KEY = 'trackacademic_sidebar_width';
 const PROGRESS_DOWNLOAD_PROMPT_KEY = 'trackacademic_progress_prompt';
 const DEFAULT_SIDEBAR_WIDTH = 448; // Corresponds to md (28rem)
 
+type DataToSave = Partial<Profile & { profiles: Profile[], activeProfileName: string | null }>;
+
+
 interface DataContextType {
   user: FirebaseUser | null;
   userDoc: AppUser | null;
@@ -229,7 +232,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [loading]);
 
-  const saveData = useCallback(async (dataToSave: Partial<Profile & {activeProfileName: string | null}>) => {
+  const saveData = useCallback(async (dataToSave: DataToSave) => {
     if (typeof window === 'undefined') return;
 
     // For local storage, we always save the entire profiles object
@@ -296,7 +299,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return { ...profile, progressHistory: history };
   }, [calculateOverallProgress]);
 
-  const updateProfiles = useCallback((newProfiles: Profile[], newActiveProfileName: string | null, dataToSync: Partial<Profile>) => {
+  const updateProfiles = useCallback((newProfiles: Profile[], newActiveProfileName: string | null, dataToSync: DataToSave) => {
     const profileToUpdate = newProfiles.find(p => p.name === newActiveProfileName);
     let profilesToSave = newProfiles;
 
