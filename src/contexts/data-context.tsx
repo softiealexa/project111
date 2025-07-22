@@ -391,30 +391,36 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return;
     }
 
-    let todos = activeProfile.todos || [];
+    let allTodos = activeProfile.todos || [];
     let updated = false;
 
-    const uniquePastDates = [...new Set(todos.map(t => t.forDate).filter(d => d < todayStr))];
+    const uniquePastDates = [...new Set(allTodos.map(t => t.forDate).filter(d => d < todayStr))];
     
     uniquePastDates.forEach(dateStr => {
-        const incompleteTasks = todos.filter(t => t.forDate === dateStr && t.status === 'pending');
+        const incompleteTasksOnDate = allTodos.filter(t => t.forDate === dateStr && t.status === 'pending');
 
-        if (incompleteTasks.length > 0) {
-            const rolledOverTasks = incompleteTasks.map(task => ({
+        if (incompleteTasksOnDate.length > 0) {
+            const rolledOverTasks = incompleteTasksOnDate.map(task => ({
                 ...task,
                 id: crypto.randomUUID(),
                 forDate: todayStr,
                 rolledOver: true,
                 createdAt: Date.now()
             }));
+            
+            // Add new rolled-over tasks
+            allTodos = [...allTodos, ...rolledOverTasks];
+            
+            // Remove the original incomplete tasks from their old date
+            const originalTaskIds = incompleteTasksOnDate.map(t => t.id);
+            allTodos = allTodos.filter(t => !originalTaskIds.includes(t.id));
 
-            todos = [...todos, ...rolledOverTasks];
             updated = true;
         }
     });
 
     if (updated) {
-        const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, todos } : p);
+        const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, todos: allTodos } : p);
         updateProfiles(newProfiles, activeProfileName);
     }
     
