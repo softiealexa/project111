@@ -25,8 +25,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/loading-spinner';
-import { exportAllUsersData } from '@/lib/admin';
+import { exportUsersData } from '@/lib/admin';
 import { useToast } from '@/hooks/use-toast';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const EditUserDialog = dynamic(() => import('@/components/edit-user-dialog').then(mod => mod.EditUserDialog), {
   loading: () => <Button variant="ghost" size="icon" disabled><Pencil className="h-4 w-4" /></Button>
@@ -109,6 +110,7 @@ export default function AdminPage() {
     const [editingUser, setEditingUser] = useState<AppUser | null>(null);
     const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
+    const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
     const isUserAdmin = useMemo(() => {
         return userDoc?.role === 'admin';
@@ -226,18 +228,18 @@ export default function AdminPage() {
     const handleExport = async () => {
         setIsExporting(true);
         try {
-            const dataStr = await exportAllUsersData();
+            const dataStr = await exportUsersData(selectedUsers);
             const dataBlob = new Blob([dataStr], { type: 'application/json' });
             const url = URL.createObjectURL(dataBlob);
             const link = document.createElement('a');
             const dateStr = format(new Date(), 'yyyy-MM-dd');
-            link.download = `trackacademic_all_users_${dateStr}.json`;
+            link.download = `trackacademic_selected_users_${dateStr}.json`;
             link.href = url;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
-            toast({ title: "Export Successful", description: "All user data has been downloaded." });
+            toast({ title: "Export Successful", description: `${selectedUsers.length} user(s) have been exported.` });
         } catch (error: any) {
             toast({ title: "Export Failed", description: error.message, variant: "destructive" });
         } finally {
@@ -269,6 +271,27 @@ export default function AdminPage() {
         setUsersPerPage(Number(value));
         setCurrentPage(1); // Reset to first page
     };
+
+    const handleSelectUser = (userId: string, isSelected: boolean) => {
+        if (isSelected) {
+            setSelectedUsers(prev => [...prev, userId]);
+        } else {
+            setSelectedUsers(prev => prev.filter(id => id !== userId));
+        }
+    };
+
+    const handleSelectAllOnPage = (isSelected: boolean) => {
+        const pageUserIds = paginatedUsers.map(u => u.uid);
+        if (isSelected) {
+            setSelectedUsers(prev => [...new Set([...prev, ...pageUserIds])]);
+        } else {
+            setSelectedUsers(prev => prev.filter(id => !pageUserIds.includes(id)));
+        }
+    };
+
+    const allOnPageSelected = useMemo(() => {
+        return paginatedUsers.length > 0 && paginatedUsers.every(u => selectedUsers.includes(u.uid));
+    }, [paginatedUsers, selectedUsers]);
 
 
     if (authLoading || (isUserAdmin && loading)) {
@@ -304,9 +327,9 @@ export default function AdminPage() {
                 <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
                     <h1 className="text-3xl font-bold">Admin Panel</h1>
                     <div className="flex items-center gap-2">
-                         <Button onClick={handleExport} disabled={isExporting}>
+                         <Button onClick={handleExport} disabled={isExporting || selectedUsers.length === 0}>
                             {isExporting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <DownloadCloud className="mr-2 h-4 w-4" />}
-                            Export All User Data
+                            Export Selected ({selectedUsers.length})
                         </Button>
                         <Select value={feedbackFilter} onValueChange={setFeedbackFilter}>
                             <SelectTrigger className="w-[200px]">
@@ -329,43 +352,7 @@ export default function AdminPage() {
                         <AlertDescription>{error}</AlertDescription>
                     </Alert>
                 ) : (
-                    <Accordion type="multiple" defaultValue={["item-2", "item-3"]} className="w-full space-y-4">
-                        <AccordionItem value="item-2" className="rounded-lg border bg-card text-card-foreground shadow-sm">
-                             <AccordionTrigger className="p-6 text-left hover:no-underline [&[data-state=open]>svg]:rotate-180">
-                                <div className="flex-1">
-                                    <CardTitle className="flex items-center gap-2">
-                                        <MessageSquare />
-                                        New User Feedback
-                                    </CardTitle>
-                                    <CardDescription className="pt-1.5">
-                                        Active messages from users that are pending or in progress.
-                                    </CardDescription>
-                                </div>
-                                <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
-                            </AccordionTrigger>
-                            <AccordionContent className="px-6 pb-6 pt-0">
-                                <FeedbackTable feedbackItems={newMessages} onStatusChange={handleStatusChange} />
-                            </AccordionContent>
-                        </AccordionItem>
-
-                        <AccordionItem value="item-3" className="rounded-lg border bg-card text-card-foreground shadow-sm">
-                             <AccordionTrigger className="p-6 text-left hover:no-underline [&[data-state=open]>svg]:rotate-180">
-                                <div className="flex-1">
-                                    <CardTitle className="flex items-center gap-2">
-                                        <Archive />
-                                        Resolved Feedback
-                                    </CardTitle>
-                                    <CardDescription className="pt-1.5">
-                                        Messages that have been marked as done or fixed.
-                                    </CardDescription>
-                                </div>
-                                <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
-                            </AccordionTrigger>
-                            <AccordionContent className="px-6 pb-6 pt-0">
-                                <FeedbackTable feedbackItems={resolvedMessages} onStatusChange={handleStatusChange} />
-                            </AccordionContent>
-                        </AccordionItem>
-
+                    <Accordion type="multiple" defaultValue={["item-1", "item-2", "item-3"]} className="w-full space-y-4">
                         <AccordionItem value="item-1" className="rounded-lg border bg-card text-card-foreground shadow-sm">
                              <AccordionTrigger className="p-6 text-left hover:no-underline [&[data-state=open]>svg]:rotate-180">
                                 <div className="flex-1">
@@ -383,6 +370,13 @@ export default function AdminPage() {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
+                                            <TableHead className="w-[50px]">
+                                                <Checkbox
+                                                    checked={{status: allOnPageSelected ? 'checked' : 'unchecked'}}
+                                                    onCheckedChange={() => handleSelectAllOnPage(!allOnPageSelected)}
+                                                    aria-label="Select all on page"
+                                                />
+                                            </TableHead>
                                             <TableHead>Username</TableHead>
                                             <TableHead>Login Email</TableHead>
                                             <TableHead>Google Email</TableHead>
@@ -392,7 +386,14 @@ export default function AdminPage() {
                                     </TableHeader>
                                     <TableBody>
                                         {paginatedUsers.length > 0 ? paginatedUsers.map((appUser) => (
-                                            <TableRow key={appUser.uid}>
+                                            <TableRow key={appUser.uid} data-state={selectedUsers.includes(appUser.uid) && "selected"}>
+                                                <TableCell>
+                                                    <Checkbox
+                                                        checked={{ status: selectedUsers.includes(appUser.uid) ? 'checked' : 'unchecked'}}
+                                                        onCheckedChange={() => handleSelectUser(appUser.uid, !selectedUsers.includes(appUser.uid))}
+                                                        aria-label={`Select user ${appUser.username}`}
+                                                    />
+                                                </TableCell>
                                                 <TableCell className="font-medium">{appUser.username}</TableCell>
                                                 <TableCell className="text-muted-foreground">{appUser.email}</TableCell>
                                                 <TableCell>{appUser.googleEmail || 'Not Set'}</TableCell>
@@ -415,7 +416,7 @@ export default function AdminPage() {
                                             </TableRow>
                                         )) : (
                                             <TableRow>
-                                                <TableCell colSpan={5} className="h-24 text-center">
+                                                <TableCell colSpan={6} className="h-24 text-center">
                                                     No users found.
                                                 </TableCell>
                                             </TableRow>
@@ -464,9 +465,47 @@ export default function AdminPage() {
                                 </div>
                             </AccordionContent>
                         </AccordionItem>
+
+                        <AccordionItem value="item-2" className="rounded-lg border bg-card text-card-foreground shadow-sm">
+                             <AccordionTrigger className="p-6 text-left hover:no-underline [&[data-state=open]>svg]:rotate-180">
+                                <div className="flex-1">
+                                    <CardTitle className="flex items-center gap-2">
+                                        <MessageSquare />
+                                        New User Feedback
+                                    </CardTitle>
+                                    <CardDescription className="pt-1.5">
+                                        Active messages from users that are pending or in progress.
+                                    </CardDescription>
+                                </div>
+                                <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+                            </AccordionTrigger>
+                            <AccordionContent className="px-6 pb-6 pt-0">
+                                <FeedbackTable feedbackItems={newMessages} onStatusChange={handleStatusChange} />
+                            </AccordionContent>
+                        </AccordionItem>
+
+                        <AccordionItem value="item-3" className="rounded-lg border bg-card text-card-foreground shadow-sm">
+                             <AccordionTrigger className="p-6 text-left hover:no-underline [&[data-state=open]>svg]:rotate-180">
+                                <div className="flex-1">
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Archive />
+                                        Resolved Feedback
+                                    </CardTitle>
+                                    <CardDescription className="pt-1.5">
+                                        Messages that have been marked as done or fixed.
+                                    </CardDescription>
+                                </div>
+                                <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+                            </AccordionTrigger>
+                            <AccordionContent className="px-6 pb-6 pt-0">
+                                <FeedbackTable feedbackItems={resolvedMessages} onStatusChange={handleStatusChange} />
+                            </AccordionContent>
+                        </AccordionItem>
                     </Accordion>
                 )}
             </main>
         </TooltipProvider>
     );
 }
+
+    

@@ -1,7 +1,7 @@
 
 'use server';
 
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, where, documentId } from 'firebase/firestore';
 import { db } from './firebase';
 import type { AppUser } from './types';
 
@@ -30,15 +30,34 @@ export async function getAllUsers(): Promise<AppUser[]> {
     return userList;
 }
 
-export async function exportAllUsersData(): Promise<string> {
+export async function exportUsersData(uids: string[]): Promise<string> {
     // This server action should also have robust permission checks in a real app.
     if (!db) {
         throw new Error("Firebase is not configured. Could not export data.");
     }
+    
+    if (!uids || uids.length === 0) {
+        return "[]";
+    }
 
-    const usersCol = collection(db, 'users');
-    const userSnapshot = await getDocs(usersCol);
-    const allUserData = userSnapshot.docs.map(doc => doc.data());
+    // Firestore 'in' queries are limited to 30 elements.
+    // We chunk the UIDs to handle more than 30 selections.
+    const chunks: string[][] = [];
+    for (let i = 0; i < uids.length; i += 30) {
+        chunks.push(uids.slice(i, i + 30));
+    }
+    
+    const allUserData: any[] = [];
+    
+    for (const chunk of chunks) {
+        const usersQuery = query(collection(db, 'users'), where(documentId(), 'in', chunk));
+        const userSnapshot = await getDocs(usersQuery);
+        userSnapshot.docs.forEach(doc => {
+            allUserData.push(doc.data());
+        });
+    }
     
     return JSON.stringify(allUserData, null, 2);
 }
+
+    
