@@ -13,6 +13,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Pencil, Timer, ListTodo, CalendarDays, Link as LinkIcon, Keyboard, Target, Beaker, CheckSquare, Calculator } from 'lucide-react';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { useSearchParams } from 'next/navigation';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 
 // Lazy load components for better performance
 const LectureTracker = dynamic(() => import("@/components/lecture-tracker"), {
@@ -52,6 +55,18 @@ const BacklogPlanner = dynamic(() => import('@/components/backlog-planner'), {
     loading: () => <LoadingSpinner containerClassName="h-96" text="Loading Planner..." />
 });
 
+const tools = [
+  { value: 'todo', label: 'Smart To-Do', icon: ListTodo },
+  { value: 'simple-todo', label: 'Simple To-Do', icon: CheckSquare },
+  { value: 'backlog-planner', label: 'Backlog Planner', icon: Calculator },
+  { value: 'unit-converter', label: 'Unit Converter', icon: Beaker },
+  { value: 'links', label: 'Important Links', icon: LinkIcon },
+  { value: 'question-timer', label: 'Question Timer', icon: Keyboard },
+  { value: 'notes', label: 'Notes Writer', icon: Pencil },
+  { value: 'planner', label: 'Study Planner', icon: CalendarDays },
+  { value: 'timer', label: 'Pomodoro Timer', icon: Timer },
+  { value: 'countdown', label: 'Exam Countdown', icon: Target },
+];
 
 export default function DashboardClient() {
   const { activeProfile, activeSubjectName, setActiveSubjectName } = useData();
@@ -59,7 +74,9 @@ export default function DashboardClient() {
 
   const searchParams = useSearchParams();
   const [mainTab, setMainTab] = useState('subjects');
+  const [activeTool, setActiveTool] = useState('todo');
   const [isClient, setIsClient] = useState(false);
+  const isMobile = useIsMobile();
   
   useEffect(() => {
     // This ensures that background tabs only render on the client after initial hydration
@@ -153,51 +170,36 @@ export default function DashboardClient() {
             </TabsContent>
 
             <TabsContent value="tools" forceMount={isClient || undefined} className={cn(mainTab !== 'tools' && 'hidden')}>
-              <Tabs defaultValue="todo" orientation="vertical" className="w-full">
-                  <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] lg:grid-cols-[250px_1fr] gap-6">
-                      <TabsList className="flex-col h-auto items-stretch justify-start bg-transparent border-none p-0">
-                          <TabsTrigger value="todo" className="justify-start gap-2 py-2.5 text-base">
-                              <ListTodo className="h-5 w-5" />
-                              Smart To-Do
-                          </TabsTrigger>
-                           <TabsTrigger value="simple-todo" className="justify-start gap-2 py-2.5 text-base">
-                              <CheckSquare className="h-5 w-5" />
-                              Simple To-Do
-                          </TabsTrigger>
-                          <TabsTrigger value="backlog-planner" className="justify-start gap-2 py-2.5 text-base">
-                              <Calculator className="h-5 w-5" />
-                              Backlog Planner
-                          </TabsTrigger>
-                          <TabsTrigger value="unit-converter" className="justify-start gap-2 py-2.5 text-base">
-                              <Beaker className="h-5 w-5" />
-                              Unit Converter
-                          </TabsTrigger>
-                           <TabsTrigger value="links" className="justify-start gap-2 py-2.5 text-base">
-                              <LinkIcon className="h-5 w-5" />
-                              Important Links
-                           </TabsTrigger>
-                           <TabsTrigger value="question-timer" className="justify-start gap-2 py-2.5 text-base">
-                              <Keyboard className="h-5 w-5" />
-                              Question Timer
-                            </TabsTrigger>
-                          <TabsTrigger value="notes" className="justify-start gap-2 py-2.5 text-base">
-                              <Pencil className="h-5 w-5" />
-                              Notes Writer
-                          </TabsTrigger>
-                          <TabsTrigger value="planner" className="justify-start gap-2 py-2.5 text-base">
-                              <CalendarDays className="h-5 w-5" />
-                              Study Planner
-                          </TabsTrigger>
-                          <TabsTrigger value="timer" className="justify-start gap-2 py-2.5 text-base">
-                              <Timer className="h-5 w-5" />
-                              Pomodoro Timer
-                          </TabsTrigger>
-                          <TabsTrigger value="countdown" className="justify-start gap-2 py-2.5 text-base">
-                              <Target className="h-5 w-5" />
-                              Exam Countdown
-                          </TabsTrigger>
-                      </TabsList>
-                      <div className="md:col-start-2">
+              <Tabs value={activeTool} onValueChange={setActiveTool} orientation={isMobile ? 'horizontal' : 'vertical'} className="w-full">
+                  <div className={cn("grid gap-6", !isMobile && "grid-cols-1 md:grid-cols-[200px_1fr] lg:grid-cols-[250px_1fr]")}>
+                      {isMobile ? (
+                          <Select value={activeTool} onValueChange={setActiveTool}>
+                              <SelectTrigger className="w-full">
+                                  <SelectValue placeholder="Select a tool" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                  {tools.map(tool => (
+                                      <SelectItem key={tool.value} value={tool.value}>
+                                          <div className="flex items-center gap-2">
+                                              <tool.icon className="h-5 w-5" />
+                                              <span>{tool.label}</span>
+                                          </div>
+                                      </SelectItem>
+                                  ))}
+                              </SelectContent>
+                          </Select>
+                      ) : (
+                          <TabsList className="flex-col h-auto items-stretch justify-start bg-transparent border-none p-0">
+                            {tools.map(tool => (
+                                <TabsTrigger key={tool.value} value={tool.value} className="justify-start gap-2 py-2.5 text-base">
+                                    <tool.icon className="h-5 w-5" />
+                                    {tool.label}
+                                </TabsTrigger>
+                            ))}
+                          </TabsList>
+                      )}
+
+                      <div className={cn(!isMobile && "md:col-start-2")}>
                           <TabsContent value="todo" className="mt-0">
                               <SmartTodoList />
                           </TabsContent>
