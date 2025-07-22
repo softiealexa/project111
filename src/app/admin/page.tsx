@@ -118,7 +118,7 @@ export default function AdminPage() {
 
     const handleFirestoreError = (err: any) => {
         if (err.code === 'permission-denied' || err.code === 'PERMISSION_DENIED') {
-            setError("Permission Denied: Your Firestore security rules are correctly blocking this request. To grant access, you must update your rules in the Firebase Console to allow admins to read the 'users' and 'feedback' collections.");
+            setError("Permission Denied. Please ensure you have the correct Firestore security rules in place to allow admin access. Your rules should explicitly grant read/write access to the 'users' and 'feedback' collections for users where `request.auth.uid` has an `admin` role in their user document.");
         } else if (err.code === 'failed-precondition') {
             setError(`Query requires an index. Please check the browser console for a link to create it in Firebase.`);
         } else {
@@ -128,70 +128,74 @@ export default function AdminPage() {
     };
 
     useEffect(() => {
-        if (authLoading) return;
+        // First, handle authentication state changes.
+        if (authLoading) return; // Wait until auth state is resolved
 
         if (!user) {
             router.push('/login');
             return;
         }
 
-        if (!isUserAdmin) {
+        // If the user document is loaded and they are not an admin, stop loading and show access denied.
+        if (userDoc && !isUserAdmin) {
             setLoading(false);
             return;
         }
 
-        if (!db) {
-            setError("Database connection is not available.");
-            setLoading(false);
-            return;
+        // Only proceed to fetch data if we have confirmed the user is an admin.
+        if (isUserAdmin) {
+            if (!db) {
+                setError("Database connection is not available.");
+                setLoading(false);
+                return;
+            }
+
+            const usersCol = collection(db, 'users');
+            const usersUnsubscribe = onSnapshot(usersCol, (snapshot) => {
+                const fetchedUsers = snapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return {
+                        uid: doc.id,
+                        username: data.displayName || data.username,
+                        email: data.email,
+                        googleEmail: data.googleEmail,
+                        role: data.role,
+                    } as AppUser;
+                });
+
+                // Sort users to show admins at the top
+                fetchedUsers.sort((a, b) => {
+                    if (a.role === 'admin' && b.role !== 'admin') return -1;
+                    if (b.role === 'admin' && a.role !== 'admin') return 1;
+                    return (a.username || '').localeCompare(b.username || '');
+                });
+                
+                setUsers(fetchedUsers);
+            }, handleFirestoreError);
+
+            const feedbackCol = collection(db, 'feedback');
+            const feedbackQuery = query(feedbackCol, orderBy('createdAt', 'desc'));
+            const feedbackUnsubscribe = onSnapshot(feedbackQuery, (snapshot) => {
+                const fetchedFeedback = snapshot.docs.map(doc => {
+                    const data = doc.data() as Feedback;
+                    const createdAt = data.createdAt as Timestamp;
+                    return {
+                        id: doc.id,
+                        ...data,
+                        createdAt: createdAt ? createdAt.toDate() : new Date(),
+                        status: data.status || 'Pending',
+                    };
+                });
+                setFeedback(fetchedFeedback);
+                setLoading(false);
+            }, handleFirestoreError);
+
+            return () => {
+                usersUnsubscribe();
+                feedbackUnsubscribe();
+            };
         }
-
-        const usersCol = collection(db, 'users');
-        const usersUnsubscribe = onSnapshot(usersCol, (snapshot) => {
-            const fetchedUsers = snapshot.docs.map(doc => {
-                const data = doc.data();
-                return {
-                    uid: doc.id,
-                    username: data.displayName || data.username,
-                    email: data.email,
-                    googleEmail: data.googleEmail,
-                    role: data.role,
-                } as AppUser;
-            });
-
-            // Sort users to show admins at the top
-            fetchedUsers.sort((a, b) => {
-                if (a.role === 'admin' && b.role !== 'admin') return -1;
-                if (b.role === 'admin' && a.role !== 'admin') return 1;
-                return (a.username || '').localeCompare(b.username || '');
-            });
-            
-            setUsers(fetchedUsers);
-        }, handleFirestoreError);
-
-        const feedbackCol = collection(db, 'feedback');
-        const feedbackQuery = query(feedbackCol, orderBy('createdAt', 'desc'));
-        const feedbackUnsubscribe = onSnapshot(feedbackQuery, (snapshot) => {
-            const fetchedFeedback = snapshot.docs.map(doc => {
-                const data = doc.data() as Feedback;
-                const createdAt = data.createdAt as Timestamp;
-                return {
-                    id: doc.id,
-                    ...data,
-                    createdAt: createdAt ? createdAt.toDate() : new Date(),
-                    status: data.status || 'Pending',
-                };
-            });
-            setFeedback(fetchedFeedback);
-            setLoading(false);
-        }, handleFirestoreError);
-
-        return () => {
-            usersUnsubscribe();
-            feedbackUnsubscribe();
-        };
-
-    }, [user, authLoading, router, isUserAdmin]);
+    }, [user, authLoading, router, userDoc, isUserAdmin]);
     
     const handleStatusChange = async (id: string, newStatus: FeedbackStatus) => {
         if (!db) {
@@ -293,7 +297,7 @@ export default function AdminPage() {
     }, [paginatedUsers, selectedUsers]);
 
 
-    if (authLoading || (isUserAdmin && loading)) {
+    if (authLoading || (user && !userDoc)) {
         return (
             <div className="flex h-screen w-full items-center justify-center">
                 <LoaderCircle className="h-12 w-12 animate-spin text-primary" />
@@ -315,6 +319,14 @@ export default function AdminPage() {
                         </p>
                     </CardContent>
                 </Card>
+            </div>
+        );
+    }
+    
+    if (loading) {
+         return (
+            <div className="flex h-screen w-full items-center justify-center">
+                <LoaderCircle className="h-12 w-12 animate-spin text-primary" />
             </div>
         );
     }
@@ -372,7 +384,7 @@ export default function AdminPage() {
                                             <TableHead className="w-[50px]">
                                                 <Checkbox
                                                     checked={{status: allOnPageSelected ? 'checked' : 'unchecked'}}
-                                                    onCheckedChange={() => handleSelectAllOnPage(!allOnPageSelected)}
+                                                    onCheckedChange={(status) => handleSelectAllOnPage(status.status === 'checked')}
                                                     aria-label="Select all on page"
                                                 />
                                             </TableHead>
@@ -389,7 +401,7 @@ export default function AdminPage() {
                                                 <TableCell>
                                                     <Checkbox
                                                         checked={{ status: selectedUsers.includes(appUser.uid) ? 'checked' : 'unchecked'}}
-                                                        onCheckedChange={() => handleSelectUser(appUser.uid, !selectedUsers.includes(appUser.uid))}
+                                                        onCheckedChange={(status) => handleSelectUser(appUser.uid, status.status === 'checked')}
                                                         aria-label={`Select user ${appUser.username}`}
                                                     />
                                                 </TableCell>
