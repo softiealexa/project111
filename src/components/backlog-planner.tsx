@@ -12,6 +12,7 @@ import { addDays, format, differenceInDays, startOfToday } from 'date-fns';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { cn } from '@/lib/utils';
+import { Calendar } from './ui/calendar';
 
 type PlannerMode = 'calculateDays' | 'calculatePace';
 
@@ -204,5 +205,3 @@ export default function BacklogPlanner() {
         </Card>
     );
 }
-
-    
