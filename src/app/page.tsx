@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Book, ArrowRight, BarChart3, Timer, Settings, ListTodo, TrendingUp, CheckCircle } from 'lucide-react';
+import { Book, ArrowRight, BarChart3, Timer, Settings, ListTodo, TrendingUp, CheckCircle, ShieldCheck, Component, Clock } from 'lucide-react';
 import { useData } from '@/contexts/data-context';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -207,6 +207,66 @@ export default function LandingPage() {
                     <CardContent>
                         <p className="text-muted-foreground">
                             Create an account to sync progress to the cloud, or use guest mode and export your data anytime. Your data is yours.
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+          </div>
+        </section>
+
+        {/* What's New Section */}
+        <section id="updates" className="w-full bg-muted/40">
+          <div className="container space-y-8 py-12 md:py-24">
+            <div className="mx-auto flex max-w-[58rem] flex-col items-center space-y-4 text-center">
+              <h2 className="font-headline text-3xl font-bold leading-[1.1] sm:text-4xl md:text-5xl">
+                Recent Updates & New Features
+              </h2>
+              <p className="max-w-[85%] leading-normal text-muted-foreground sm:text-lg sm:leading-7">
+                TrackAcademic is always evolving. Here's a look at the powerful new tools and enhancements recently added to help you study smarter.
+              </p>
+            </div>
+            <div className="mx-auto grid justify-center gap-6 sm:grid-cols-2 md:max-w-[64rem]">
+                <Card className="text-left bg-card hover:bg-card/95 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-primary/10">
+                    <CardHeader>
+                        <Clock className="mb-3 h-8 w-8 text-primary" />
+                        <CardTitle>Clockify Time Tracker</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground">
+                            Go beyond academic tracking with a full-featured time tracker. Log time against projects, create detailed timesheets, and get a clear picture of where your hours are going.
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card className="text-left bg-card hover:bg-card/95 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-primary/10">
+                    <CardHeader>
+                        <ListTodo className="mb-3 h-8 w-8 text-primary" />
+                        <CardTitle>Backlog & Pace Planner</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground">
+                        Feeling behind? The new planner helps you calculate how long it will take to clear your backlog or determine the daily pace needed to meet a deadline.
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card className="text-left bg-card hover:bg-card/95 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-primary/10">
+                    <CardHeader>
+                        <ShieldCheck className="mb-3 h-8 w-8 text-primary" />
+                        <CardTitle>Enhanced Admin Panel</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground">
+                            A completely new admin experience. Admins can now manage all registered users, view, and update the status of all user feedback directly within the app.
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card className="text-left bg-card hover:bg-card/95 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-primary/10">
+                    <CardHeader>
+                        <Component className="mb-3 h-8 w-8 text-primary" />
+                        <CardTitle>New Utility Tools</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground">
+                            Added an Exam Countdown to keep an eye on important dates and a comprehensive Unit Converter for all your scientific calculation needs.
                         </p>
                     </CardContent>
                 </Card>
