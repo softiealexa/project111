@@ -7,16 +7,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from './ui/button';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
-import { PartyPopper, CalendarCheck, Calendar as CalendarIcon, Target } from 'lucide-react';
+import { PartyPopper, CalendarCheck, Calendar as CalendarIcon, Target, RefreshCcw } from 'lucide-react';
 import { addDays, format, differenceInDays, startOfToday } from 'date-fns';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { cn } from '@/lib/utils';
 import { Calendar } from './ui/calendar';
+import { useData } from '@/contexts/data-context';
+import { useToast } from '@/hooks/use-toast';
 
 type PlannerMode = 'calculateDays' | 'calculatePace';
 
 export default function BacklogPlanner() {
+    const { activeProfile } = useData();
+    const { toast } = useToast();
     const [backlogLectures, setBacklogLectures] = useState('50');
     const [newLecturesPerDay, setNewLecturesPerDay] = useState('3');
     const [studyDaysPerWeek, setStudyDaysPerWeek] = useState('6');
@@ -24,13 +28,56 @@ export default function BacklogPlanner() {
     const [deadline, setDeadline] = useState<Date | undefined>();
     const [mode, setMode] = useState<PlannerMode>('calculateDays');
 
+    const handleCalculateBacklog = useCallback(() => {
+        if (!activeProfile) {
+            toast({
+                title: 'No Profile Found',
+                description: 'Could not find an active profile to calculate backlog from.',
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        let incompleteLectureCount = 0;
+        activeProfile.subjects.forEach(subject => {
+            // Check if 'Lecture' is a defined task for this subject
+            const lectureTaskName = subject.tasks.find(t => t.toLowerCase() === 'lecture');
+            if (!lectureTaskName) {
+                return; // Skip subjects without a 'Lecture' task
+            }
+
+            subject.chapters.forEach(chapter => {
+                for (let i = 1; i <= chapter.lectureCount; i++) {
+                    const lectureKey = `Lecture-${i}`;
+                    const checkboxId = `${subject.name}-${chapter.name}-${lectureKey}-${lectureTaskName}`;
+                    const isCompleted = chapter.checkedState?.[checkboxId]?.status === 'checked' || chapter.checkedState?.[checkboxId]?.status === 'checked-red';
+                    
+                    if (!isCompleted) {
+                        incompleteLectureCount++;
+                    }
+                }
+            });
+        });
+        
+        setBacklogLectures(String(incompleteLectureCount));
+        toast({
+            title: 'Backlog Calculated',
+            description: `Found ${incompleteLectureCount} incomplete lectures.`,
+        });
+
+    }, [activeProfile, toast]);
+
     const result = useMemo(() => {
         const totalBacklog = parseInt(backlogLectures, 10);
         const newPerDay = parseInt(newLecturesPerDay, 10);
         const workDays = parseInt(studyDaysPerWeek, 10);
         
-        if (isNaN(totalBacklog) || isNaN(newPerDay) || isNaN(workDays) || totalBacklog <= 0 || workDays < 1 || workDays > 7) {
+        if (isNaN(totalBacklog) || isNaN(newPerDay) || isNaN(workDays) || totalBacklog < 0 || workDays < 1 || workDays > 7) {
             return { days: null, requiredPace: null, message: "Please enter valid numbers in all backlog and workload fields." };
+        }
+        
+        if (totalBacklog === 0) {
+            return { days: 0, date: format(new Date(), 'PPP'), requiredPace: null, message: null };
         }
 
         if (mode === 'calculateDays') {
@@ -119,7 +166,13 @@ export default function BacklogPlanner() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div className="grid gap-2">
-                        <Label htmlFor="backlog-lectures">Current Backlog (Lectures)</Label>
+                         <div className="flex items-center justify-between">
+                            <Label htmlFor="backlog-lectures">Current Backlog (Lectures)</Label>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground" onClick={handleCalculateBacklog}>
+                                <RefreshCcw className="h-4 w-4"/>
+                                <span className="sr-only">Calculate Backlog from Subjects</span>
+                            </Button>
+                        </div>
                         <Input id="backlog-lectures" type="number" value={backlogLectures} onChange={(e) => setBacklogLectures(e.target.value)} placeholder="e.g., 50" />
                     </div>
                     <div className="grid gap-2">
@@ -180,10 +233,12 @@ export default function BacklogPlanner() {
                                     <AlertTitle className="text-lg">Estimated Completion Time</AlertTitle>
                                     <AlertDescription className="space-y-2 mt-2">
                                         <p className="text-3xl font-bold text-foreground">{result.days} days</p>
-                                        <p className="flex items-center gap-2 text-muted-foreground">
-                                            <CalendarCheck className="h-4 w-4"/>
-                                            You should be caught up by <span className="font-semibold text-foreground">{result.date}</span>.
-                                        </p>
+                                        {result.date &&
+                                            <p className="flex items-center gap-2 text-muted-foreground">
+                                                <CalendarCheck className="h-4 w-4"/>
+                                                You should be caught up by <span className="font-semibold text-foreground">{result.date}</span>.
+                                            </p>
+                                        }
                                     </AlertDescription>
                                 </>
                             ) : (
