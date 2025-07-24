@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -7,7 +8,7 @@ import React from 'react';
 const script = `
 (function() {
   try {
-    const mode = localStorage.getItem('trackacademic_mode');
+    const mode = localStorage.getItem('studytracker_mode');
     // Default to dark mode if no preference is found
     if (mode === 'light') {
       document.documentElement.classList.remove('dark');

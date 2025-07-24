@@ -23,11 +23,11 @@ export default function LandingPageClient({ imageUrls }: LandingPageClientProps)
 
   const images = useMemo(() => {
     if (!imageUrls || imageUrls.length === 0) {
-      return [{ src: '/og-image.png', alt: 'TrackAcademic Dashboard', hint: 'dashboard study' }];
+      return [{ src: '/og-image.png', alt: 'StudyTracker Dashboard', hint: 'dashboard study' }];
     }
     return imageUrls.map(url => ({
       src: url,
-      alt: `TrackAcademic Feature - ${url.split('/').pop()?.split('.')[0] || 'view'}`,
+      alt: `StudyTracker Feature - ${url.split('/').pop()?.split('.')[0] || 'view'}`,
       hint: 'dashboard interface'
     }));
   }, [imageUrls]);
@@ -66,7 +66,7 @@ export default function LandingPageClient({ imageUrls }: LandingPageClientProps)
         <div className="container flex h-14 max-w-screen-2xl items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <Book className="h-6 w-6 text-primary" />
-            <span className="font-headline text-xl font-bold">TrackAcademic</span>
+            <span className="font-headline text-xl font-bold">StudyTracker</span>
           </Link>
           <nav className="flex items-center gap-2">
             <Button asChild variant="ghost" size="sm">
@@ -92,7 +92,7 @@ export default function LandingPageClient({ imageUrls }: LandingPageClientProps)
                         <span className="text-primary">One Chapter at a Time.</span>
                     </h1>
                     <p className="max-w-xl text-lg text-muted-foreground sm:text-xl">
-                       TrackAcademic is your all-in-one planner to organize subjects, track progress with visual feedback, and stay focused with built-in productivity tools.
+                       StudyTracker is your all-in-one planner to organize subjects, track progress with visual feedback, and stay focused with built-in productivity tools.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4">
                         <Button asChild size="lg">
@@ -171,7 +171,7 @@ export default function LandingPageClient({ imageUrls }: LandingPageClientProps)
                 Everything You Need to Succeed
               </h2>
               <p className="max-w-[85%] leading-normal text-muted-foreground sm:text-lg sm:leading-7">
-                From detailed progress tracking to integrated study tools, TrackAcademic is designed to help you stay on top of your coursework.
+                From detailed progress tracking to integrated study tools, StudyTracker is designed to help you stay on top of your coursework.
               </p>
             </div>
             <div className="mx-auto grid justify-center gap-6 sm:grid-cols-2 md:max-w-[64rem]">
@@ -231,7 +231,7 @@ export default function LandingPageClient({ imageUrls }: LandingPageClientProps)
                 Recent Updates & New Features
               </h2>
               <p className="max-w-[85%] leading-normal text-muted-foreground sm:text-lg sm:leading-7">
-                TrackAcademic is always evolving. Here's a look at the powerful new tools and enhancements recently added to help you study smarter.
+                StudyTracker is always evolving. Here's a look at the powerful new tools and enhancements recently added to help you study smarter.
               </p>
             </div>
             <div className="mx-auto grid justify-center gap-6 sm:grid-cols-2 md:max-w-[64rem]">
@@ -305,11 +305,11 @@ export default function LandingPageClient({ imageUrls }: LandingPageClientProps)
             <div className="flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0">
                 <Link href="/" className="flex items-center gap-2">
                     <Book className="h-6 w-6 text-primary" />
-                    <span className="font-headline text-lg font-bold">TrackAcademic</span>
+                    <span className="font-headline text-lg font-bold">StudyTracker</span>
                 </Link>
             </div>
              <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
-                Built for focused learners. &copy; {currentYear} TrackAcademic.
+                Built for focused learners. &copy; {currentYear} StudyTracker.
             </p>
          </div>
       </footer>

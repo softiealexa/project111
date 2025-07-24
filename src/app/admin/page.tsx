@@ -236,7 +236,7 @@ export default function AdminPage() {
             const url = URL.createObjectURL(dataBlob);
             const link = document.createElement('a');
             const dateStr = format(new Date(), 'yyyy-MM-dd');
-            link.download = `trackacademic_selected_users_${dateStr}.json`;
+            link.download = `studytracker_selected_users_${dateStr}.json`;
             link.href = url;
             document.body.appendChild(link);
             link.click();

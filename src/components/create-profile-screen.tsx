@@ -18,7 +18,7 @@ export default function CreateProfileScreen({ onProfileCreate }: { onProfileCrea
         <div className="flex items-center justify-center min-h-screen bg-background p-4">
             <Card className="w-full max-w-sm">
                 <CardHeader className="text-center">
-                    <CardTitle className="text-2xl">Welcome to TrackAcademic!</CardTitle>
+                    <CardTitle className="text-2xl">Welcome to StudyTracker!</CardTitle>
                     <CardDescription>Create a profile to get started.</CardDescription>
                 </CardHeader>
                 <CardContent>

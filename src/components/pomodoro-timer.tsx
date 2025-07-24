@@ -90,7 +90,7 @@ export default function PomodoroTimer() {
     if (typeof window !== 'undefined') {
         document.title = `${formatTime(time)} - ${
         sessionType === 'pomodoro' ? 'Pomodoro' : (sessionType === 'shortBreak' ? 'Short Break' : 'Long Break')
-        } | TrackAcademic`;
+        } | StudyTracker`;
     }
   }, [time, sessionType]);
 

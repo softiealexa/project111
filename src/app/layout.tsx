@@ -21,8 +21,8 @@ const fontHeadline = Space_Grotesk({
     variable: '--font-headline'
 });
 
-const APP_NAME = "TrackAcademic";
-const APP_DESCRIPTION = "The simplest way to track your academic progress, chapter by chapter. Stay organized with a Pomodoro timer, notes writer, and customizable subject tracking. Conquer your courses with TrackAcademic.";
+const APP_NAME = "StudyTracker";
+const APP_DESCRIPTION = "The simplest way to track your academic progress, chapter by chapter. Stay organized with a Pomodoro timer, notes writer, and customizable subject tracking. Conquer your courses with StudyTracker.";
 const APP_URL = "https://trackacademic.app"; // Replace with your actual domain
 
 export const metadata: Metadata = {
@@ -33,9 +33,9 @@ export const metadata: Metadata = {
   description: APP_DESCRIPTION,
   applicationName: APP_NAME,
   keywords: ['academic tracker', 'study planner', 'progress tracker', 'student tools', 'pomodoro timer', 'notes app', 'course management', 'lecture tracker', 'jee prep', 'neet prep'],
-  authors: [{ name: "TrackAcademic Team" }],
-  creator: "TrackAcademic Team",
-  publisher: "TrackAcademic Team",
+  authors: [{ name: "StudyTracker Team" }],
+  creator: "StudyTracker Team",
+  publisher: "StudyTracker Team",
   metadataBase: new URL(APP_URL),
   openGraph: {
     type: "website",
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
       url: `${APP_URL}/og-image.png`, // Replace with your actual OG image URL
       width: 1200,
       height: 630,
-      alt: "TrackAcademic Dashboard Preview",
+      alt: "StudyTracker Dashboard Preview",
     }],
   },
   twitter: {

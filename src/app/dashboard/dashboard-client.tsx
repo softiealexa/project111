@@ -124,7 +124,7 @@ export default function DashboardClient() {
 
   return (
     <div className="flex w-full flex-col items-center bg-background text-foreground pb-12">
-      <h1 className="sr-only">TrackAcademic Dashboard</h1>
+      <h1 className="sr-only">StudyTracker Dashboard</h1>
       <div className="w-full max-w-5xl flex-1 px-4 pt-8">
         {activeProfile.subjects.length > 0 ? (
           <Tabs value={mainTab} onValueChange={setMainTab} className="w-full">
@@ -244,7 +244,7 @@ export default function DashboardClient() {
       </div>
 
       <footer className="w-full max-w-5xl px-4 py-6 mt-8 text-center text-sm text-muted-foreground">
-        <p>Built for focused learners. &copy; {currentYear} TrackAcademic.</p>
+        <p>Built for focused learners. &copy; {currentYear} StudyTracker.</p>
       </footer>
     </div>
   );

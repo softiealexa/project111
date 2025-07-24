@@ -48,7 +48,7 @@ export default function Navbar() {
             <Link href="/dashboard?tab=subjects" className="flex items-center gap-2 sm:gap-2.5 text-foreground hover:text-primary transition-colors">
               <Book className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
               <span className="font-headline text-xl sm:text-2xl font-bold bg-gradient-to-r from-primary via-foreground/90 to-primary bg-clip-text text-transparent">
-                TrackAcademic
+                StudyTracker
               </span>
             </Link>
             <div className="flex items-center gap-1 sm:gap-2">

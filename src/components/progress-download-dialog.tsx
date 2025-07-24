@@ -15,7 +15,7 @@ import { useData } from "@/contexts/data-context";
 import { DownloadCloud, PartyPopper } from "lucide-react";
 import { getISOWeek, getYear } from 'date-fns';
 
-const PROGRESS_DOWNLOAD_PROMPT_KEY = 'trackacademic_progress_prompt';
+const PROGRESS_DOWNLOAD_PROMPT_KEY = 'studytracker_progress_prompt';
 
 export default function ProgressDownloadDialog() {
   const { showProgressDownloadPrompt, setShowProgressDownloadPrompt, exportData } = useData();

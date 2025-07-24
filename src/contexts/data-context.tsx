@@ -14,11 +14,11 @@ import { LoadingSpinner } from '@/components/loading-spinner';
 const CreateProfileScreen = lazy(() => import('@/components/create-profile-screen'));
 
 // --- Local Storage Keys ---
-const LOCAL_PROFILE_KEY_PREFIX = 'trackacademic_profile_';
-const THEME_KEY = 'trackacademic_theme';
-const MODE_KEY = 'trackacademic_mode';
-const SIDEBAR_WIDTH_KEY = 'trackacademic_sidebar_width';
-const PROGRESS_DOWNLOAD_PROMPT_KEY = 'trackacademic_progress_prompt';
+const LOCAL_PROFILE_KEY_PREFIX = 'studytracker_profile_';
+const THEME_KEY = 'studytracker_theme';
+const MODE_KEY = 'studytracker_mode';
+const SIDEBAR_WIDTH_KEY = 'studytracker_sidebar_width';
+const PROGRESS_DOWNLOAD_PROMPT_KEY = 'studytracker_progress_prompt';
 const DEFAULT_SIDEBAR_WIDTH = 448; // Corresponds to md (28rem)
 
 type DataToSave = Partial<Profile & { profiles: Profile[], activeProfileName: string | null }>;
@@ -967,7 +967,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const link = document.createElement('a');
     const dateStr = format(new Date(), 'dd-MM-yy');
     const username = user?.displayName || 'guest';
-    link.download = `trackacademic_data_${username}_${dateStr}.json`;
+    link.download = `studytracker_data_${username}_${dateStr}.json`;
     link.href = url;
     document.body.appendChild(link);
     link.click();
