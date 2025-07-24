@@ -75,14 +75,13 @@ export default function LiveClock() {
 
   return (
     <div ref={containerRef}>
-      <Button
-        variant="ghost"
+      <div
         onClick={handleFullscreen}
-        className="hidden sm:flex flex-col items-center justify-center text-center bg-muted hover:bg-muted/90 rounded-md px-4 py-1.5 h-[52px] w-[120px] text-foreground"
+        className="hidden sm:flex flex-col items-center justify-center text-center bg-muted rounded-md px-4 py-1.5 h-[52px] w-[120px] text-foreground cursor-pointer"
       >
         <span className="text-lg font-semibold text-foreground">{timeString}</span>
         <span className="text-xs text-muted-foreground">{dateString}</span>
-      </Button>
+      </div>
     </div>
   );
 }
