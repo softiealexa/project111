@@ -69,7 +69,7 @@ export function LectureRow({ lectureNum, chapter, subject, checkedState, onCheck
     };
 
     return (
-        <div className="group flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg p-3 transition-colors hover:bg-muted/50">
+        <div className="group flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-2 rounded-lg p-3 transition-colors hover:bg-muted/50">
             <div className="flex items-center gap-2 mr-auto pr-4">
                 <LectureNotesDialog
                     lectureNum={lectureNum}
@@ -111,7 +111,7 @@ export function LectureRow({ lectureNum, chapter, subject, checkedState, onCheck
                  )}
             </div>
             
-            <div className="flex items-center gap-x-4">
+            <div className="flex items-center flex-wrap gap-x-4 gap-y-2">
                 {subject.tasks.map((task) => {
                     const checkboxId = `${subject.name}-${chapter.name}-Lecture-${lectureNum}-${task}`;
                     return (
