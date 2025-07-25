@@ -68,6 +68,28 @@ export function LectureRow({ lectureNum, chapter, subject, checkedState, onCheck
         });
         updateSubjects(newSubjects);
     };
+    
+    const hasMoreThanSixTasks = subject.tasks.length > 6;
+
+    const taskElements = subject.tasks.map((task) => {
+        const checkboxId = `${subject.name}-${chapter.name}-Lecture-${lectureNum}-${task}`;
+        return (
+            <div key={task} className="flex items-center space-x-2">
+                <Checkbox 
+                    id={checkboxId} 
+                    checked={checkedState[checkboxId] || { status: 'unchecked' }} 
+                    onCheckedChange={(status) => {
+                        if (typeof status !== 'boolean') {
+                            onCheckboxChange(checkboxId, status)
+                        }
+                    }}
+                />
+                <Label htmlFor={checkboxId} className="text-sm font-normal text-muted-foreground cursor-pointer whitespace-nowrap">
+                    {task}
+                </Label>
+            </div>
+        );
+    });
 
     return (
         <div className="group flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-2 rounded-lg p-3 transition-colors hover:bg-muted/50">
@@ -112,30 +134,18 @@ export function LectureRow({ lectureNum, chapter, subject, checkedState, onCheck
                  )}
             </div>
             
-            <ScrollArea className="w-full sm:max-w-lg whitespace-nowrap">
-              <div className="flex items-center gap-x-4 pb-2.5">
-                  {subject.tasks.map((task) => {
-                      const checkboxId = `${subject.name}-${chapter.name}-Lecture-${lectureNum}-${task}`;
-                      return (
-                          <div key={task} className="flex items-center space-x-2">
-                              <Checkbox 
-                                  id={checkboxId} 
-                                  checked={checkedState[checkboxId] || { status: 'unchecked' }} 
-                                  onCheckedChange={(status) => {
-                                      if (typeof status !== 'boolean') {
-                                          onCheckboxChange(checkboxId, status)
-                                      }
-                                  }}
-                              />
-                              <Label htmlFor={checkboxId} className="text-sm font-normal text-muted-foreground cursor-pointer whitespace-nowrap">
-                                  {task}
-                              </Label>
-                          </div>
-                      );
-                  })}
-              </div>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
+            {hasMoreThanSixTasks ? (
+                <ScrollArea className="w-full sm:max-w-lg whitespace-nowrap">
+                    <div className="flex items-center gap-x-4 pb-2.5">
+                        {taskElements}
+                    </div>
+                    <ScrollBar orientation="horizontal" />
+                </ScrollArea>
+            ) : (
+                <div className="flex items-center flex-wrap gap-x-4 gap-y-2">
+                    {taskElements}
+                </div>
+            )}
         </div>
     );
 }
