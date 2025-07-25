@@ -112,7 +112,7 @@ export function LectureRow({ lectureNum, chapter, subject, checkedState, onCheck
                  )}
             </div>
             
-            <ScrollArea className="w-full whitespace-nowrap">
+            <ScrollArea className="w-full sm:max-w-md whitespace-nowrap">
               <div className="flex items-center gap-x-4 pb-2.5">
                   {subject.tasks.map((task) => {
                       const checkboxId = `${subject.name}-${chapter.name}-Lecture-${lectureNum}-${task}`;
