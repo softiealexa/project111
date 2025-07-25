@@ -12,6 +12,7 @@ import { LectureNotesDialog } from './lecture-notes-dialog';
 import { Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DialogTrigger } from './ui/dialog';
+import { ScrollArea, ScrollBar } from './ui/scroll-area';
 
 interface LectureRowProps {
   lectureNum: number;
@@ -70,7 +71,7 @@ export function LectureRow({ lectureNum, chapter, subject, checkedState, onCheck
 
     return (
         <div className="group flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-2 rounded-lg p-3 transition-colors hover:bg-muted/50">
-            <div className="flex items-center gap-2 mr-auto pr-4">
+            <div className="flex items-center gap-2 mr-auto pr-4 shrink-0">
                 <LectureNotesDialog
                     lectureNum={lectureNum}
                     currentNote={note}
@@ -111,27 +112,30 @@ export function LectureRow({ lectureNum, chapter, subject, checkedState, onCheck
                  )}
             </div>
             
-            <div className="flex items-center flex-wrap gap-x-4 gap-y-2">
-                {subject.tasks.map((task) => {
-                    const checkboxId = `${subject.name}-${chapter.name}-Lecture-${lectureNum}-${task}`;
-                    return (
-                        <div key={task} className="flex items-center space-x-2">
-                            <Checkbox 
-                                id={checkboxId} 
-                                checked={checkedState[checkboxId] || { status: 'unchecked' }} 
-                                onCheckedChange={(status) => {
-                                    if (typeof status !== 'boolean') {
-                                        onCheckboxChange(checkboxId, status)
-                                    }
-                                }}
-                            />
-                            <Label htmlFor={checkboxId} className="text-sm font-normal text-muted-foreground cursor-pointer">
-                                {task}
-                            </Label>
-                        </div>
-                    );
-                })}
-            </div>
+            <ScrollArea className="w-full whitespace-nowrap">
+              <div className="flex items-center gap-x-4 pb-2.5">
+                  {subject.tasks.map((task) => {
+                      const checkboxId = `${subject.name}-${chapter.name}-Lecture-${lectureNum}-${task}`;
+                      return (
+                          <div key={task} className="flex items-center space-x-2">
+                              <Checkbox 
+                                  id={checkboxId} 
+                                  checked={checkedState[checkboxId] || { status: 'unchecked' }} 
+                                  onCheckedChange={(status) => {
+                                      if (typeof status !== 'boolean') {
+                                          onCheckboxChange(checkboxId, status)
+                                      }
+                                  }}
+                              />
+                              <Label htmlFor={checkboxId} className="text-sm font-normal text-muted-foreground cursor-pointer whitespace-nowrap">
+                                  {task}
+                              </Label>
+                          </div>
+                      );
+                  })}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
         </div>
     );
 }
