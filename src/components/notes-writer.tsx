@@ -1,8 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo, Suspense } from 'react';
-import dynamic from 'next/dynamic';
+import { useState, useMemo, useEffect } from 'react';
 import { useData } from '@/contexts/data-context';
 import type { Note } from '@/lib/types';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,9 +10,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { ScrollArea } from './ui/scroll-area';
-import { Plus, Trash2, GripVertical, LoaderCircle } from 'lucide-react';
+import { Plus, Trash2, GripVertical, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import {
   DndContext,
   closestCenter,
@@ -31,12 +30,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-const SortableNoteItem = dynamic(() => import('./notes-writer').then(mod => mod.SortableNoteItem), {
-    loading: () => <div className="h-24 animate-pulse rounded-lg border bg-muted" />,
-    ssr: false
-});
-
-function SortableNoteItemComponent({ note, selectNote, handleDelete }: { note: Note, selectNote: (note: Note) => void, handleDelete: (id: string, title: string) => void }) {
+function SortableNoteItem({ note, selectNote, handleDelete }: { note: Note, selectNote: (note: Note) => void, handleDelete: (id: string, title: string) => void }) {
   const {
     attributes,
     listeners,
@@ -90,7 +84,7 @@ export default function NotesWriter() {
 
   const noteIsDirty = useMemo(() => {
     if (activeNote) {
-        return title !== activeNote.title || content !== activeNote.content;
+        return title.trim() !== activeNote.title.trim() || content.trim() !== activeNote.content.trim();
     }
     return title.trim() !== '' || content.trim() !== '';
   }, [activeNote, title, content]);
@@ -100,7 +94,6 @@ export default function NotesWriter() {
       setTitle(activeNote.title);
       setContent(activeNote.content);
     } else {
-      // When there's no active note, clear the form for a new one.
       setTitle('');
       setContent('');
     }
@@ -117,22 +110,22 @@ export default function NotesWriter() {
     }
     
     if (activeNote) {
-        // Update existing note
-        const updated = { ...activeNote, title, content };
+        const updated = { ...activeNote, title: title.trim(), content: content.trim() };
         updateNote(updated);
-        // We call setActiveNote to update the component's state with the saved version,
-        // which also sets noteIsDirty to false.
         setActiveNote(updated); 
         toast({
             title: 'Note Updated',
             description: `Your note "${title || 'Untitled'}" has been updated.`,
         });
     } else {
-        // Add new note
         const newNote = addNote(title, content);
         if (newNote) {
             setActiveNote(newNote);
         }
+        toast({
+            title: 'Note Saved',
+            description: `Your new note "${title || 'Untitled'}" has been saved.`,
+        });
     }
   };
   
@@ -179,8 +172,7 @@ export default function NotesWriter() {
       const oldIndex = savedNotes.findIndex((note) => note.id === active.id);
       const newIndex = savedNotes.findIndex((note) => note.id === over.id);
       if (oldIndex !== -1 && newIndex !== -1) {
-        const reorderedNotes = arrayMove(savedNotes, oldIndex, newIndex);
-        setNotes(reorderedNotes);
+        setNotes(arrayMove(savedNotes, oldIndex, newIndex));
       }
     }
   };
@@ -217,33 +209,30 @@ export default function NotesWriter() {
                         className="min-h-[96px] text-base"
                     />
                 </div>
-                <div className="flex gap-2">
-                    <Button onClick={handleSave} disabled={!noteIsDirty}>
-                        {activeNote ? 'Update Note' : 'Save New Note'}
-                    </Button>
-                    {activeNote && (
-                         <Button variant="destructive" onClick={() => handleDelete(activeNote.id, activeNote.title || 'Untitled')}>
-                            Delete Note
-                        </Button>
-                    )}
-                </div>
+                <Button onClick={handleSave} disabled={!noteIsDirty}>
+                    {activeNote ? 'Update Note' : 'Save New Note'}
+                </Button>
             </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-            <CardTitle>Saved Notes</CardTitle>
-            <CardDescription>Your previously saved notes. Click to edit, or drag to reorder.</CardDescription>
-        </CardHeader>
-        <CardContent>
-            <ScrollArea className="h-[400px] pr-4">
+      <Accordion type="single" collapsible defaultValue="item-1" className="w-full">
+        <AccordionItem value="item-1" className="border-none">
+          <Card>
+            <AccordionTrigger className="p-6 hover:no-underline [&[data-state=open]>svg]:rotate-180">
+              <div className="flex-1 text-left">
+                <CardTitle>Saved Notes</CardTitle>
+                <CardDescription className="pt-1.5">Your previously saved notes. Click to edit, or drag to reorder.</CardDescription>
+              </div>
+              <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+            </AccordionTrigger>
+            <AccordionContent className="px-6 pb-6">
                 {savedNotes.length > 0 ? (
                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                         <SortableContext items={savedNotes.map(n => n.id)} strategy={verticalListSortingStrategy}>
                             <div className="space-y-3">
                                 {savedNotes.map(note => (
-                                    <SortableNoteItemComponent
+                                    <SortableNoteItem
                                         key={note.id}
                                         note={note}
                                         selectNote={selectNote}
@@ -258,10 +247,10 @@ export default function NotesWriter() {
                         <p className="text-center text-muted-foreground py-10">You have no saved notes yet.</p>
                     </div>
                 )}
-            </ScrollArea>
-        </CardContent>
-      </Card>
+            </AccordionContent>
+          </Card>
+        </AccordionItem>
+      </Accordion>
     </div>
   );
 }
-export { SortableNoteItemComponent as SortableNoteItem };

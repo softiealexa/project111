@@ -752,8 +752,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (!activeProfile) return;
     const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, notes } : p);
     updateProfiles(newProfiles, activeProfileName, { notes });
-  }, [activeProfileName, profiles, updateProfiles, activeProfile]);
-  
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
   const addLink = useCallback((title: string, url: string) => {
     if (!activeProfile) return;
