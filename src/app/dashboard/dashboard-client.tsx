@@ -58,11 +58,11 @@ const BacklogPlanner = dynamic(() => import('@/components/backlog-planner'), {
 const tools = [
   { value: 'todo', label: 'Smart To-Do', icon: ListTodo },
   { value: 'simple-todo', label: 'Simple To-Do', icon: CheckSquare },
+  { value: 'notes', label: 'Notes Writer', icon: Pencil },
   { value: 'backlog-planner', label: 'Backlog Planner', icon: Calculator },
   { value: 'unit-converter', label: 'Unit Converter', icon: Beaker },
   { value: 'links', label: 'Important Links', icon: LinkIcon },
   { value: 'question-timer', label: 'Question Timer', icon: Keyboard },
-  { value: 'notes', label: 'Notes Writer', icon: Pencil },
   { value: 'planner', label: 'Study Planner', icon: CalendarDays },
   { value: 'timer', label: 'Pomodoro Timer', icon: Timer },
   { value: 'countdown', label: 'Exam Countdown', icon: Target },
