@@ -911,8 +911,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const deleteProject = useCallback((projectId: string) => {
     if (!activeProfile) return;
     const updatedProjects = (activeProfile.projects || []).filter(proj => proj.id !== projectId);
-    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, projects: updatedProjects } : p);
-    updateProfiles(newProfiles, activeProfileName, { projects: updatedProjects });
+    const updatedTimeEntries = (activeProfile.timeEntries || []).map(entry => 
+        entry.projectId === projectId ? { ...entry, projectId: null } : entry
+    );
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, projects: updatedProjects, timeEntries: updatedTimeEntries } : p);
+    updateProfiles(newProfiles, activeProfileName, { projects: updatedProjects, timeEntries: updatedTimeEntries });
     toast({ title: "Project Deleted", description: "The project has been successfully deleted.", variant: "destructive" });
   }, [activeProfile, activeProfileName, profiles, updateProfiles, toast]);
 

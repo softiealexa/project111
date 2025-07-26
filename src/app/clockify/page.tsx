@@ -121,34 +121,6 @@ const formatSecondsToTime = (seconds: number): string => {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 };
 
-const PlaceholderContent = ({ title, icon: Icon, children }: { title: string, icon?: React.ElementType, children?: React.ReactNode }) => (
-    <div className="p-4 sm:p-6 bg-muted/30 flex-1">
-        <Card className="m-4 sm:m-6">
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    {Icon && <Icon className="h-6 w-6 text-muted-foreground" />}
-                    {title}
-                </CardTitle>
-                 <CardDescription>
-                    This feature is currently under development.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                 <Alert variant="destructive" className="mb-6">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Feature Not Implemented</AlertTitle>
-                    <AlertDescription>
-                        This section is a visual placeholder. Check back for future updates!
-                    </AlertDescription>
-                </Alert>
-                <div className="p-4 border-2 border-dashed rounded-lg bg-muted/50">
-                   {children}
-                </div>
-            </CardContent>
-        </Card>
-    </div>
-);
-
 const ReportsView = () => {
     const { activeProfile } = useData();
     const [dateRange, setDateRange] = useState('this-week');
@@ -501,7 +473,7 @@ const CalendarView = () => {
 
 const ProjectDetailsView = ({ project, onBack }: { project: Project, onBack: () => void }) => {
     return (
-        <PlaceholderContent title="Project Details View">
+        <div className="p-4 sm:p-6 bg-muted/30 flex-1">
              <div className="flex items-center gap-4 mb-4">
                 <Button variant="outline" size="icon" onClick={onBack}>
                     <ChevronLeft className="h-4 w-4" />
@@ -514,10 +486,24 @@ const ProjectDetailsView = ({ project, onBack }: { project: Project, onBack: () 
                     {project.name}
                 </h1>
             </div>
-            <div className="text-center text-muted-foreground py-10">
-                Project-specific reports and details will be shown here.
-            </div>
-        </PlaceholderContent>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Project Details</CardTitle>
+                    <CardDescription>
+                        Project-specific reports and details will be shown here. This feature is under development.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Alert variant="destructive" className="mb-6">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Feature Not Implemented</AlertTitle>
+                        <AlertDescription>
+                            This section is a visual placeholder. Check back for future updates!
+                        </AlertDescription>
+                    </Alert>
+                </CardContent>
+            </Card>
+        </div>
     );
 };
 
@@ -646,7 +632,7 @@ const ProjectsView = () => {
 
 
 const TimesheetView = () => {
-  const { activeProfile, updateTimesheetEntry } = useData();
+  const { activeProfile, updateTimesheetEntry, setTimesheetData } = useData();
   type TimeRange = 'Day' | 'Week';
   const [currentDate, setCurrentDate] = useState(new Date());
   const [timeRange, setTimeRange] = useState<TimeRange>('Week');
@@ -1426,7 +1412,10 @@ export default function ClockifyPage() {
                                 <CommandInput placeholder="Select project..." />
                                 <CommandEmpty>No project found.</CommandEmpty>
                                 <CommandGroup>
-                                    <CommandItem value="no-project" onSelect={() => setSelectedProjectId(null)}>
+                                    <CommandItem value="no-project" onSelect={() => {
+                                        setSelectedProjectId(null);
+                                        document.body.click();
+                                    }}>
                                          <X className="mr-2 h-4 w-4 text-destructive" /> No Project
                                     </CommandItem>
                                 </CommandGroup>
@@ -1438,7 +1427,6 @@ export default function ClockifyPage() {
                                         value={project.name}
                                         onSelect={() => {
                                             setSelectedProjectId(project.id);
-                                            // Manually close popover,shadcn bug
                                             document.body.click();
                                         }}
                                     >
