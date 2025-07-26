@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2, Edit2, Save } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from 'react-markdown';
@@ -60,7 +60,6 @@ export default function NotesPage() {
     const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
-    const [isEditing, setIsEditing] = useState(true);
 
     const activeNote = useMemo(() => allNotes.find(note => note.id === activeNoteId), [allNotes, activeNoteId]);
 
@@ -106,7 +105,6 @@ export default function NotesPage() {
         setActiveNoteId(null);
         setTitle('');
         setContent('');
-        setIsEditing(true);
     }, [noteIsDirty, handleSave]);
 
     const handleDelete = (e: React.MouseEvent, noteId: string) => {
@@ -117,7 +115,6 @@ export default function NotesPage() {
             setActiveNoteId(null);
             setTitle('');
             setContent('');
-            setIsEditing(true);
         }
     };
     
@@ -125,11 +122,9 @@ export default function NotesPage() {
         if (activeNote) {
             setTitle(activeNote.title);
             setContent(activeNote.content);
-            setIsEditing(true); 
         } else {
             setTitle('');
             setContent('');
-            setIsEditing(true);
         }
     }, [activeNote]);
 
@@ -190,12 +185,6 @@ export default function NotesPage() {
                                 placeholder="Untitled Note"
                                 className="text-xl font-bold border-none shadow-none focus-visible:ring-0 px-2 h-auto flex-1"
                             />
-                            <div className="flex items-center gap-2 pr-2">
-                                <Button variant={isEditing ? 'default' : 'outline'} size="sm" onClick={() => setIsEditing(!isEditing)}>
-                                    {isEditing ? <Edit2 className="mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
-                                    {isEditing ? 'Edit' : 'View'}
-                                </Button>
-                            </div>
                         </div>
 
                         <div className="flex-1 grid grid-cols-1 md:grid-cols-2 overflow-hidden">
