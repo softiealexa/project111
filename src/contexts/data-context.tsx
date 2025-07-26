@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback, Suspense, lazy } from 'react';
 import { usePathname } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
-import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, SimpleTodo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus, CheckedState, ExamCountdown } from '@/lib/types';
+import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, SimpleTodo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus, CheckedState, ExamCountdown, TimeOffPolicy, TimeOffRequest } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
 import { format, getISOWeek, getYear } from 'date-fns';
@@ -78,6 +78,7 @@ interface DataContextType {
   updateExamCountdown: (countdown: ExamCountdown) => void;
   deleteExamCountdown: (countdownId: string) => void;
   setExamCountdowns: (countdowns: ExamCountdown[]) => void;
+  addTimeOffRequest: (request: Omit<TimeOffRequest, 'id'>) => void;
   exportData: () => void;
   importData: (file: File) => void;
   signOutUser: () => Promise<void>;
@@ -146,6 +147,11 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
             return todo;
         });
 
+        const defaultPolicies: TimeOffPolicy[] = [
+            { id: 'vacation', name: 'Vacation', allowance: 15, color: '#2196f3'},
+            { id: 'sick', name: 'Sick Leave', allowance: 10, color: '#ff9800'},
+        ];
+
         return {
             ...profile,
             subjects: migratedSubjects,
@@ -160,6 +166,8 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
             timeEntries: profile.timeEntries || [],
             projects: profile.projects || [],
             timesheetData: profile.timesheetData || {},
+            timeOffPolicies: profile.timeOffPolicies || defaultPolicies,
+            timeOffRequests: profile.timeOffRequests || [],
         };
     });
 };
@@ -946,6 +954,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateProfiles(newProfiles, activeProfileName, { examCountdowns: countdowns });
   }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
+  const addTimeOffRequest = useCallback((request: Omit<TimeOffRequest, 'id'>) => {
+    if (!activeProfile) return;
+    const newRequest: TimeOffRequest = { ...request, id: crypto.randomUUID() };
+    const updatedRequests = [...(activeProfile.timeOffRequests || []), newRequest];
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, timeOffRequests: updatedRequests } : p);
+    updateProfiles(newProfiles, activeProfileName, { timeOffRequests: updatedRequests });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
+
 
   const exportData = useCallback(() => {
     if (typeof window === 'undefined' || profiles.length === 0) {
@@ -1023,6 +1039,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addQuestionSession, addTimeEntry, updateTimeEntry, deleteTimeEntry, setTimeEntries,
     addProject, updateProject, deleteProject, updateTimesheetEntry, setTimesheetData,
     addExamCountdown, updateExamCountdown, deleteExamCountdown, setExamCountdowns,
+    addTimeOffRequest,
     exportData, importData, signOutUser, refreshUserDoc,
     theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth,
     showProgressDownloadPrompt, setShowProgressDownloadPrompt,
@@ -1036,6 +1053,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addQuestionSession, addTimeEntry, updateTimeEntry, deleteTimeEntry, setTimeEntries,
     addProject, updateProject, deleteProject, updateTimesheetEntry, setTimesheetData,
     addExamCountdown, updateExamCountdown, deleteExamCountdown, setExamCountdowns,
+    addTimeOffRequest,
     exportData, importData, signOutUser, refreshUserDoc,
     theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth, setActiveSubjectName,
     showProgressDownloadPrompt

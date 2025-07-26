@@ -101,6 +101,22 @@ export interface ExamCountdown {
   date: number; // timestamp
 }
 
+export interface TimeOffPolicy {
+    id: string;
+    name: string;
+    allowance: number; // in days
+    color: string;
+}
+
+export interface TimeOffRequest {
+    id: string;
+    policyId: string;
+    from: number; // timestamp
+    to: number; // timestamp
+    status: 'pending' | 'approved' | 'rejected';
+    userName: string; // Simplified for now
+}
+
 export type SidebarWidth = number;
 
 export interface Profile {
@@ -117,6 +133,8 @@ export interface Profile {
   timeEntries?: TimeEntry[];
   projects?: Project[];
   timesheetData?: TimesheetData;
+  timeOffPolicies?: TimeOffPolicy[];
+  timeOffRequests?: TimeOffRequest[];
 }
 
 export interface AppUser {

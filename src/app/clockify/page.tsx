@@ -47,13 +47,15 @@ import {
   Sun,
   UserCheck,
   Plane,
+  CalendarDays,
+  User as UserIcon,
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandSeparator } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useData } from '@/contexts/data-context';
-import type { TimeEntry, Project } from '@/lib/types';
+import type { TimeEntry, Project, TimeOffPolicy, TimeOffRequest } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { startOfWeek, endOfWeek, eachDayOfInterval, format, addDays, subDays, startOfMonth, endOfMonth, getDaysInMonth, addMonths, subMonths, isSameDay, isToday as isTodayDateFns, isWithinInterval, subWeeks, startOfISOWeek, endOfISOWeek, endOfToday, startOfToday } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -63,6 +65,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LabelList, Cell } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Dialog, DialogTrigger } from '@/components/ui/dialog';
+import { DateRange } from "react-day-picker";
+import { Label } from '@/components/ui/label';
 
 interface TimeEntryGroup {
     day: string;
@@ -799,58 +804,200 @@ const TimesheetView = () => {
   )
 }
 
-const TimeOffView = () => (
-    <PlaceholderContent title="Time Off" icon={Coffee}>
-        <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="bg-background/50">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">Vacation</CardTitle>
-                        <Plane className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">10 <span className="text-sm font-normal text-muted-foreground">days</span></div>
-                        <p className="text-xs text-muted-foreground">+2 days accrued this year</p>
-                    </CardContent>
-                </Card>
-                <Card className="bg-background/50">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">Sick Leave</CardTitle>
-                         <UserCheck className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">5 <span className="text-sm font-normal text-muted-foreground">days</span></div>
-                        <p className="text-xs text-muted-foreground">Policy: 7 days/year</p>
-                    </CardContent>
-                </Card>
-                <Button className="h-full text-lg">
-                    Request Time Off
-                </Button>
+const RequestTimeOffDialog = ({ policies, onOpenChange, open }: { policies: TimeOffPolicy[], open: boolean, onOpenChange: (open: boolean) => void }) => {
+    const { addTimeOffRequest } = useData();
+    const [dateRange, setDateRange] = useState<DateRange | undefined>();
+    const [policyId, setPolicyId] = useState<string | undefined>(policies[0]?.id);
+
+    const handleSubmit = () => {
+        if (dateRange?.from && policyId) {
+            addTimeOffRequest && addTimeOffRequest({
+                policyId,
+                from: dateRange.from.getTime(),
+                to: (dateRange.to || dateRange.from).getTime(),
+                status: 'approved', // Simplified for now
+                userName: 'Current User'
+            });
+            onOpenChange(false);
+            setDateRange(undefined);
+        }
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Request Time Off</DialogTitle>
+                    <DialogDescription>Select dates and the policy for your request.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="grid gap-2">
+                        <Label>Policy</Label>
+                        <Select value={policyId} onValueChange={setPolicyId}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a policy" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {policies.map(p => (
+                                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label>Dates</Label>
+                        <com.components.ui.Calendar
+                            mode="range"
+                            selected={dateRange}
+                            onSelect={setDateRange}
+                            className="rounded-md border"
+                        />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                    <Button onClick={handleSubmit} disabled={!dateRange || !policyId}>Submit Request</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+const TimeOffView = () => {
+    const { activeProfile } = useData();
+    const [currentDate, setCurrentDate] = useState(new Date());
+    const [requestDialogOpen, setRequestDialogOpen] = useState(false);
+
+    const { policies = [], requests = [] } = useMemo(() => ({
+        policies: activeProfile?.timeOffPolicies,
+        requests: activeProfile?.timeOffRequests
+    }), [activeProfile]);
+    
+    const weekDays = useMemo(() => {
+        const start = startOfWeek(currentDate);
+        return eachDayOfInterval({start, end: endOfWeek(start)});
+    }, [currentDate]);
+
+    const absencesThisWeek = useMemo(() => {
+        const absences: Record<string, { userName: string, policy: TimeOffPolicy }[]> = {};
+        requests.forEach(req => {
+            const policy = policies.find(p => p.id === req.policyId);
+            if (!policy) return;
+
+            const dates = eachDayOfInterval({ start: new Date(req.from), end: new Date(req.to) });
+            dates.forEach(date => {
+                const dayKey = format(date, 'yyyy-MM-dd');
+                if (!absences[dayKey]) absences[dayKey] = [];
+                absences[dayKey].push({ userName: req.userName, policy });
+            })
+        });
+        return absences;
+    }, [requests, policies]);
+
+    return (
+        <div className="p-4 sm:p-6 bg-muted/30 flex-1 space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+                 <h1 className="text-2xl font-semibold">Time Off</h1>
+                <Dialog open={requestDialogOpen} onOpenChange={setRequestDialogOpen}>
+                    <DialogTrigger asChild>
+                         <Button>Request Time Off</Button>
+                    </DialogTrigger>
+                    {policies.length > 0 && 
+                        <RequestTimeOffDialog open={requestDialogOpen} onOpenChange={setRequestDialogOpen} policies={policies} />
+                    }
+                </Dialog>
             </div>
-            <div>
-                 <h4 className="text-lg font-semibold mb-2">Team Absences</h4>
-                 <div className="grid grid-cols-7 gap-1 text-center text-sm">
-                    {eachDayOfInterval({start: startOfWeek(new Date()), end: endOfWeek(new Date())}).map(day => (
-                        <div key={day.toString()} className="p-2 border rounded-md">
-                            <p className="font-semibold">{format(day, 'EEE')}</p>
-                            <p className="text-muted-foreground">{format(day, 'd')}</p>
-                            {format(day, 'd') === '18' && (
-                                <div className="mt-2 text-left">
-                                    <div className="flex items-center gap-2 p-1 rounded bg-blue-500/10 text-blue-700">
-                                        <Avatar className="h-5 w-5">
-                                            <AvatarFallback>JD</AvatarFallback>
-                                        </Avatar>
-                                        <span className="font-medium text-xs">John Doe</span>
-                                    </div>
-                                </div>
-                            )}
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {policies.map(policy => (
+                    <Card key={policy.id}>
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-sm font-medium">{policy.name}</CardTitle>
+                            {policy.name.toLowerCase().includes('vacation') && <Plane className="h-4 w-4 text-muted-foreground" />}
+                            {policy.name.toLowerCase().includes('sick') && <UserCheck className="h-4 w-4 text-muted-foreground" />}
+                        </CardHeader>
+                        <CardContent>
+                             <div className="text-2xl font-bold">{policy.allowance} <span className="text-sm font-normal text-muted-foreground">days</span></div>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
+
+            <Card>
+                <CardHeader>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <CardTitle>Team Absences</CardTitle>
+                        <div className='flex items-center rounded-md border bg-card'>
+                            <Button variant="ghost" onClick={() => setCurrentDate(subWeeks(currentDate, 1))} className="rounded-r-none h-9"><ChevronLeft className="mr-2 h-4 w-4"/> Prev</Button>
+                            <Button variant="ghost" onClick={() => setCurrentDate(new Date())} className="rounded-none border-x h-9">This Week</Button>
+                            <Button variant="ghost" onClick={() => setCurrentDate(addWeeks(currentDate, 1))} className="rounded-l-none h-9">Next <ChevronRight className="ml-2 h-4 w-4"/></Button>
                         </div>
-                    ))}
-                 </div>
-            </div>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                     <div className="grid grid-cols-7 border-t border-l">
+                         {weekDays.map(day => (
+                            <div key={day.toString()} className="p-2 border-b border-r min-h-[120px]">
+                                <p className="font-semibold text-sm">{format(day, 'EEE')}</p>
+                                <p className="text-muted-foreground text-xs">{format(day, 'd MMM')}</p>
+                                <div className="mt-2 space-y-1">
+                                    {(absencesThisWeek[format(day, 'yyyy-MM-dd')] || []).map((absence, i) => (
+                                         <div key={i} className="flex items-center gap-2 p-1.5 rounded text-xs" style={{backgroundColor: `${absence.policy.color}20`, color: absence.policy.color}}>
+                                            <UserIcon className="h-3 w-3" />
+                                            <span className="font-medium">{absence.userName}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                     </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>My Requests</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Type</TableHead>
+                                <TableHead>Dates</TableHead>
+                                <TableHead>Status</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {requests.length > 0 ? requests.map(req => {
+                                const policy = policies.find(p => p.id === req.policyId);
+                                return (
+                                    <TableRow key={req.id}>
+                                        <TableCell>
+                                            <span className="flex items-center gap-2">
+                                                <span className="h-2 w-2 rounded-full" style={{backgroundColor: policy?.color}}></span>
+                                                {policy?.name || 'Unknown'}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell>{format(new Date(req.from), 'PP')} - {format(new Date(req.to), 'PP')}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={req.status === 'approved' ? "default" : "secondary"} className={cn(req.status === 'approved' && "bg-green-500/80")}>
+                                                {req.status}
+                                            </Badge>
+                                        </TableCell>
+                                    </TableRow>
+                                )
+                            }) : (
+                                <TableRow>
+                                    <TableCell colSpan={3} className="h-24 text-center">No requests yet.</TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
         </div>
-    </PlaceholderContent>
-);
+    )
+};
 
 const ScheduleView = () => (
     <PlaceholderContent title="Schedule" icon={BarChart3}>

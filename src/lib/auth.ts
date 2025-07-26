@@ -1,8 +1,9 @@
 
+
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged as onFirebaseAuthStateChanged, signOut as firebaseSignOut, updateProfile, User as FirebaseUser, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { db, auth, isFirebaseConfigured } from './firebase';
-import type { Profile, AppUser, Subject, Note, ImportantLink, SmartTodo, SimpleTodo, ProgressPoint, QuestionSession, ExamCountdown, TimeEntry, Project, TimesheetData } from './types';
+import type { Profile, AppUser, Subject, Note, ImportantLink, SmartTodo, SimpleTodo, ProgressPoint, QuestionSession, ExamCountdown, TimeEntry, Project, TimesheetData, TimeOffPolicy, TimeOffRequest } from './types';
 
 const FIREBASE_NOT_CONFIGURED_ERROR = "Firebase is not configured. Please add your credentials to a .env.local file for local development, and to your Vercel project's Environment Variables for deployment.";
 
@@ -177,6 +178,8 @@ type UserDataToSave = Partial<{
   timeEntries: TimeEntry[];
   projects: Project[];
   timesheetData: TimesheetData;
+  timeOffPolicies: TimeOffPolicy[];
+  timeOffRequests: TimeOffRequest[];
 }>;
 
 
