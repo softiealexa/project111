@@ -29,6 +29,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { LoadingSpinner } from './loading-spinner';
 
 function SortableNoteItem({ note, selectNote, handleDelete }: { note: Note, selectNote: (note: Note) => void, handleDelete: (id: string, title: string) => void }) {
   const {
@@ -73,7 +74,7 @@ function SortableNoteItem({ note, selectNote, handleDelete }: { note: Note, sele
 }
 
 export default function NotesWriter() {
-  const { activeProfile, addNote, updateNote, deleteNote, setNotes } = useData();
+  const { activeProfile, addNote, updateNote, deleteNote, setNotes, loading } = useData();
   const { toast } = useToast();
   
   const [activeNote, setActiveNote] = useState<Note | null>(null);
@@ -134,6 +135,8 @@ export default function NotesWriter() {
           handleSave();
       }
       setActiveNote(null);
+      setTitle('');
+      setContent('');
   };
   
   const handleDelete = (noteId: string, noteTitle: string) => {
@@ -176,6 +179,10 @@ export default function NotesWriter() {
       }
     }
   };
+
+  if (loading) {
+    return <LoadingSpinner containerClassName="h-96" text="Loading Notes..." />;
+  }
 
   return (
     <div className="grid gap-6">
