@@ -50,7 +50,7 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useData } from '@/contexts/data-context';
 import type { TimeEntry, Project } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { startOfWeek, endOfWeek, eachDayOfInterval, format, addDays, subDays } from 'date-fns';
+import { startOfWeek, endOfWeek, eachDayOfInterval, format, addDays, subDays, startOfMonth, endOfMonth, getDaysInMonth, addMonths, subMonths, isSameDay, isToday as isTodayDateFns } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ProjectDialog } from '@/components/project-dialog';
@@ -126,6 +126,127 @@ const PlaceholderContent = ({ title }: { title: string }) => (
         </CardContent>
     </Card>
 );
+
+const CalendarView = () => {
+    const { activeProfile } = useData();
+    const [currentMonth, setCurrentMonth] = useState(new Date());
+    const [selectedDay, setSelectedDay] = useState(new Date());
+
+    const timeEntries = useMemo(() => activeProfile?.timeEntries || [], [activeProfile]);
+    const projects = useMemo(() => activeProfile?.projects || [], [activeProfile]);
+
+    const { monthDays, entriesByDay } = useMemo(() => {
+        const start = startOfMonth(currentMonth);
+        const end = endOfMonth(currentMonth);
+        const days = eachDayOfInterval({ start, end });
+
+        const entries: Record<string, TimeEntry[]> = {};
+        for (const entry of timeEntries) {
+            const dayKey = format(new Date(entry.startTime), 'yyyy-MM-dd');
+            if (!entries[dayKey]) {
+                entries[dayKey] = [];
+            }
+            entries[dayKey].push(entry);
+        }
+        return { monthDays: days, entriesByDay: entries };
+    }, [currentMonth, timeEntries]);
+
+    const selectedDayEntries = useMemo(() => {
+        const dayKey = format(selectedDay, 'yyyy-MM-dd');
+        return entriesByDay[dayKey] || [];
+    }, [selectedDay, entriesByDay]);
+
+    const goToPrevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
+    const goToNextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
+    const goToToday = () => {
+        setCurrentMonth(new Date());
+        setSelectedDay(new Date());
+    };
+
+    const firstDayOfMonth = startOfMonth(currentMonth);
+    const startingDayOfWeek = firstDayOfMonth.getDay(); // 0 for Sunday, 1 for Monday, etc.
+    const emptyDays = Array.from({ length: startingDayOfWeek });
+
+
+    return (
+        <div className="p-4 sm:p-6 bg-muted/30 flex-1 flex flex-col lg:flex-row gap-6">
+            <div className="lg:w-3/5">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <h2 className="text-xl font-semibold">{format(currentMonth, 'MMMM yyyy')}</h2>
+                        <div className="flex items-center gap-2">
+                             <Button variant="outline" onClick={goToToday}>Today</Button>
+                            <div className='flex items-center rounded-md border bg-card'>
+                                <Button variant="ghost" size="icon" onClick={goToPrevMonth} className="rounded-r-none"><ChevronLeft className="h-5 w-5" /></Button>
+                                <Button variant="ghost" size="icon" onClick={goToNextMonth} className="rounded-l-none"><ChevronRight className="h-5 w-5" /></Button>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid grid-cols-7 text-center font-semibold text-muted-foreground text-sm border-b pb-2 mb-2">
+                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => <div key={day}>{day}</div>)}
+                        </div>
+                         <div className="grid grid-cols-7 gap-1">
+                            {emptyDays.map((_, i) => <div key={`empty-${i}`}></div>)}
+                            {monthDays.map(day => {
+                                const dayKey = format(day, 'yyyy-MM-dd');
+                                const hasEntries = entriesByDay[dayKey]?.length > 0;
+                                return (
+                                    <button 
+                                        key={day.toISOString()} 
+                                        onClick={() => setSelectedDay(day)}
+                                        className={cn(
+                                            "h-16 w-full rounded-md p-1 flex flex-col items-start justify-start text-sm transition-colors relative",
+                                            isSameDay(day, selectedDay) ? "bg-primary text-primary-foreground" : "hover:bg-accent",
+                                            isTodayDateFns(day) && "ring-2 ring-primary ring-offset-2 ring-offset-background",
+                                        )}
+                                    >
+                                        <span className={cn("font-semibold", isSameDay(day, selectedDay) && "text-primary-foreground")}>{format(day, 'd')}</span>
+                                        {hasEntries && <div className="absolute bottom-2 left-1/2 -translate-x-1/2 h-1.5 w-1.5 rounded-full bg-primary/80 group-hover:bg-primary" />}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+            <div className="lg:w-2/5">
+                 <Card>
+                    <CardHeader>
+                        <CardTitle>Entries for {format(selectedDay, 'PPP')}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {selectedDayEntries.length > 0 ? (
+                            <div className="space-y-3">
+                                {selectedDayEntries.map(entry => {
+                                    const project = projects.find(p => p.id === entry.projectId);
+                                    return (
+                                        <div key={entry.id} className="p-3 border rounded-md bg-muted/50">
+                                            <p className="font-medium">{entry.task}</p>
+                                            <div className="flex justify-between items-center text-sm text-muted-foreground">
+                                                {project ? (
+                                                    <span className="flex items-center gap-2">
+                                                        <span className="h-2 w-2 rounded-full" style={{backgroundColor: project.color}}></span>
+                                                        {project.name}
+                                                    </span>
+                                                ) : <span>No Project</span>}
+                                                <span className="font-semibold">{formatDurationShort(entry.duration)}</span>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        ) : (
+                            <div className="text-center text-muted-foreground py-10">
+                                No entries for this day.
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
+};
 
 const ProjectDetailsView = ({ project, onBack }: { project: Project, onBack: () => void }) => {
     return (
@@ -727,6 +848,8 @@ export default function ClockifyPage() {
         );
       case 'Timesheet':
         return <TimesheetView />;
+      case 'Calendar':
+        return <CalendarView />;
       case 'Projects':
         return <ProjectsView />;
       default:
