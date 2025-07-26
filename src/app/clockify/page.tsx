@@ -65,7 +65,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LabelList, Cell } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Dialog, DialogTrigger, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DateRange } from "react-day-picker";
 import { Label } from '@/components/ui/label';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
@@ -239,7 +239,7 @@ const ReportsView = () => {
                                     <>
                                         <CommandSeparator />
                                         <CommandGroup>
-                                            <CommandItem onSelect={() => setSelectedProjects([])} className="justify-center text-center">
+                                            <CommandItem value="clear-filters" onSelect={() => setSelectedProjects([])} className="justify-center text-center">
                                                 Clear filters
                                             </CommandItem>
                                         </CommandGroup>
@@ -1396,7 +1396,7 @@ export default function ClockifyPage() {
                   <div className="flex flex-wrap items-center gap-4 p-2">
                       <Input 
                           placeholder="What are you working on?" 
-                          className="flex-1 min-w-[200px] border-none focus-visible:ring-0 focus-visible:ring-offset-0" 
+                          className="flex-1 min-w-[200px] border-none focus-visible:ring-0 focus-visible:ring-offset-0 text-base" 
                           value={task}
                           onChange={(e) => setTask(e.target.value)}
                       />
