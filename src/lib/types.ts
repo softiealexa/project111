@@ -117,6 +117,20 @@ export interface TimeOffRequest {
     userName: string; // Simplified for now
 }
 
+export interface TeamMember {
+    id: string;
+    name: string;
+}
+
+export interface Shift {
+    id: string;
+    memberId: string;
+    startTime: number; // timestamp
+    endTime: number; // timestamp
+    role?: string;
+    note?: string;
+}
+
 export type SidebarWidth = number;
 
 export interface Profile {
@@ -135,6 +149,8 @@ export interface Profile {
   timesheetData?: TimesheetData;
   timeOffPolicies?: TimeOffPolicy[];
   timeOffRequests?: TimeOffRequest[];
+  team?: TeamMember[];
+  shifts?: Shift[];
 }
 
 export interface AppUser {

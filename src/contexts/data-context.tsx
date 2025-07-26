@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback, Suspense, lazy } from 'react';
 import { usePathname } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
-import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, SimpleTodo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus, CheckedState, ExamCountdown, TimeOffPolicy, TimeOffRequest } from '@/lib/types';
+import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, SimpleTodo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus, CheckedState, ExamCountdown, TimeOffPolicy, TimeOffRequest, Shift, TeamMember } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
 import { format, getISOWeek, getYear } from 'date-fns';
@@ -79,6 +79,12 @@ interface DataContextType {
   deleteExamCountdown: (countdownId: string) => void;
   setExamCountdowns: (countdowns: ExamCountdown[]) => void;
   addTimeOffRequest: (request: Omit<TimeOffRequest, 'id'>) => void;
+  addShift: (shift: Omit<Shift, 'id'>) => void;
+  updateShift: (shift: Shift) => void;
+  deleteShift: (shiftId: string) => void;
+  addTeamMember: (name: string) => void;
+  updateTeamMember: (member: TeamMember) => void;
+  deleteTeamMember: (memberId: string) => void;
   exportData: () => void;
   importData: (file: File) => void;
   signOutUser: () => Promise<void>;
@@ -168,6 +174,8 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
             timesheetData: profile.timesheetData || {},
             timeOffPolicies: profile.timeOffPolicies || defaultPolicies,
             timeOffRequests: profile.timeOffRequests || [],
+            team: profile.team || [{ id: '1', name: 'You' }],
+            shifts: profile.shifts || [],
         };
     });
 };
@@ -962,6 +970,51 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateProfiles(newProfiles, activeProfileName, { timeOffRequests: updatedRequests });
   }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
+  const addShift = useCallback((shift: Omit<Shift, 'id'>) => {
+    if (!activeProfile) return;
+    const newShift: Shift = { ...shift, id: crypto.randomUUID() };
+    const updatedShifts = [...(activeProfile.shifts || []), newShift];
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, shifts: updatedShifts } : p);
+    updateProfiles(newProfiles, activeProfileName, { shifts: updatedShifts });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
+
+  const updateShift = useCallback((updatedShift: Shift) => {
+    if (!activeProfile) return;
+    const updatedShifts = (activeProfile.shifts || []).map(s => s.id === updatedShift.id ? updatedShift : s);
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, shifts: updatedShifts } : p);
+    updateProfiles(newProfiles, activeProfileName, { shifts: updatedShifts });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
+
+  const deleteShift = useCallback((shiftId: string) => {
+    if (!activeProfile) return;
+    const updatedShifts = (activeProfile.shifts || []).filter(s => s.id !== shiftId);
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, shifts: updatedShifts } : p);
+    updateProfiles(newProfiles, activeProfileName, { shifts: updatedShifts });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
+
+  const addTeamMember = useCallback((name: string) => {
+    if (!activeProfile) return;
+    const newMember: TeamMember = { id: crypto.randomUUID(), name };
+    const updatedTeam = [...(activeProfile.team || []), newMember];
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, team: updatedTeam } : p);
+    updateProfiles(newProfiles, activeProfileName, { team: updatedTeam });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
+
+  const updateTeamMember = useCallback((updatedMember: TeamMember) => {
+    if (!activeProfile) return;
+    const updatedTeam = (activeProfile.team || []).map(m => m.id === updatedMember.id ? updatedMember : m);
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, team: updatedTeam } : p);
+    updateProfiles(newProfiles, activeProfileName, { team: updatedTeam });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
+
+  const deleteTeamMember = useCallback((memberId: string) => {
+    if (!activeProfile) return;
+    const updatedTeam = (activeProfile.team || []).filter(m => m.id !== memberId);
+    const updatedShifts = (activeProfile.shifts || []).filter(s => s.memberId !== memberId);
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, team: updatedTeam, shifts: updatedShifts } : p);
+    updateProfiles(newProfiles, activeProfileName, { team: updatedTeam, shifts: updatedShifts });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
+
 
   const exportData = useCallback(() => {
     if (typeof window === 'undefined' || profiles.length === 0) {
@@ -1039,7 +1092,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addQuestionSession, addTimeEntry, updateTimeEntry, deleteTimeEntry, setTimeEntries,
     addProject, updateProject, deleteProject, updateTimesheetEntry, setTimesheetData,
     addExamCountdown, updateExamCountdown, deleteExamCountdown, setExamCountdowns,
-    addTimeOffRequest,
+    addTimeOffRequest, addShift, updateShift, deleteShift, addTeamMember, updateTeamMember, deleteTeamMember,
     exportData, importData, signOutUser, refreshUserDoc,
     theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth,
     showProgressDownloadPrompt, setShowProgressDownloadPrompt,
@@ -1053,7 +1106,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addQuestionSession, addTimeEntry, updateTimeEntry, deleteTimeEntry, setTimeEntries,
     addProject, updateProject, deleteProject, updateTimesheetEntry, setTimesheetData,
     addExamCountdown, updateExamCountdown, deleteExamCountdown, setExamCountdowns,
-    addTimeOffRequest,
+    addTimeOffRequest, addShift, updateShift, deleteShift, addTeamMember, updateTeamMember, deleteTeamMember,
     exportData, importData, signOutUser, refreshUserDoc,
     theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth, setActiveSubjectName,
     showProgressDownloadPrompt

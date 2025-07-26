@@ -55,9 +55,9 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useData } from '@/contexts/data-context';
-import type { TimeEntry, Project, TimeOffPolicy, TimeOffRequest } from '@/lib/types';
+import type { TimeEntry, Project, TimeOffPolicy, TimeOffRequest, Shift, TeamMember } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { startOfWeek, endOfWeek, eachDayOfInterval, format, addDays, subDays, startOfMonth, endOfMonth, getDaysInMonth, addMonths, subMonths, isSameDay, isToday as isTodayDateFns, isWithinInterval, subWeeks, startOfISOWeek, endOfISOWeek, endOfToday, startOfToday, addWeeks } from 'date-fns';
+import { startOfWeek, endOfWeek, eachDayOfInterval, format, addDays, subDays, startOfMonth, endOfMonth, getDaysInMonth, addMonths, subMonths, isSameDay, isToday as isTodayDateFns, isWithinInterval, subWeeks, startOfISOWeek, endOfISOWeek, endOfToday, startOfToday, addWeeks, setHours, setMinutes, parse } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ProjectDialog } from '@/components/project-dialog';
@@ -69,6 +69,7 @@ import { Dialog, DialogTrigger, DialogContent, DialogDescription, DialogFooter, 
 import { DateRange } from "react-day-picker";
 import { Label } from '@/components/ui/label';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Textarea } from '@/components/ui/textarea';
 
 interface TimeEntryGroup {
     day: string;
@@ -1000,44 +1001,258 @@ const TimeOffView = () => {
     )
 };
 
-const ScheduleView = () => (
-    <PlaceholderContent title="Schedule" icon={BarChart3}>
-        <div className="space-y-4">
-            <div className="flex justify-between items-center">
-                <h4 className="text-lg font-semibold">This Week</h4>
+const ScheduleView = () => {
+    const { activeProfile, addShift, updateShift, deleteShift, addTeamMember, updateTeamMember, deleteTeamMember } = useData();
+    const [currentDate, setCurrentDate] = useState(new Date());
+    const [isShiftDialogOpen, setIsShiftDialogOpen] = useState(false);
+    const [editingShift, setEditingShift] = useState<Shift | null>(null);
+    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+    const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+    const [isTeamDialogOpen, setIsTeamDialogOpen] = useState(false);
+
+    const team = useMemo(() => activeProfile?.team || [], [activeProfile]);
+    const shifts = useMemo(() => activeProfile?.shifts || [], [activeProfile]);
+    const weekDays = useMemo(() => {
+        const start = startOfWeek(currentDate);
+        return eachDayOfInterval({start, end: endOfWeek(start)});
+    }, [currentDate]);
+
+    const shiftsByDay: Record<string, Shift[]> = useMemo(() => {
+        const result: Record<string, Shift[]> = {};
+        shifts.forEach(shift => {
+            const dayKey = format(new Date(shift.startTime), 'yyyy-MM-dd');
+            if (!result[dayKey]) result[dayKey] = [];
+            result[dayKey].push(shift);
+        })
+        return result;
+    }, [shifts]);
+
+    const handleOpenShiftDialog = (shift: Shift | null, date?: Date, memberId?: string) => {
+        setEditingShift(shift);
+        setSelectedDate(date || null);
+        setSelectedMemberId(memberId || null);
+        setIsShiftDialogOpen(true);
+    };
+
+    return (
+        <div className="p-4 sm:p-6 bg-muted/30 flex-1 space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+                <h1 className="text-2xl font-semibold">Schedule</h1>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm">Publish</Button>
-                    <Button size="sm">Add Shift</Button>
+                    <Button variant="outline" onClick={() => setIsTeamDialogOpen(true)}>Manage Team</Button>
+                    <Button onClick={() => handleOpenShiftDialog(null)}>Add Shift</Button>
                 </div>
             </div>
-            <div className="grid grid-cols-[100px_repeat(7,1fr)] text-sm text-center border-t border-l">
-                 <div className="p-2 font-semibold border-b border-r bg-muted/50"></div>
-                 {eachDayOfInterval({start: startOfWeek(new Date()), end: endOfWeek(new Date())}).map(day => (
-                    <div key={day.toString()} className="p-2 font-semibold border-b border-r bg-muted/50">
-                        <p>{format(day, 'EEE')}</p>
-                        <p className="text-muted-foreground">{format(day, 'd')}</p>
+            <Card>
+                <CardHeader>
+                     <div className="flex flex-wrap items-center justify-between gap-2">
+                        <CardTitle>This Week</CardTitle>
+                        <div className='flex items-center rounded-md border bg-card'>
+                            <Button variant="ghost" onClick={() => setCurrentDate(subWeeks(currentDate, 1))} className="rounded-r-none h-9"><ChevronLeft className="mr-2 h-4 w-4"/> Prev</Button>
+                            <Button variant="ghost" onClick={() => setCurrentDate(new Date())} className="rounded-none border-x h-9">Today</Button>
+                            <Button variant="ghost" onClick={() => setCurrentDate(addWeeks(currentDate, 1))} className="rounded-l-none h-9">Next <ChevronRight className="ml-2 h-4 w-4"/></Button>
+                        </div>
                     </div>
-                ))}
-                
-                {['John D.', 'Jane S.', 'Mike P.'].map(name => (
-                    <React.Fragment key={name}>
-                        <div className="p-2 font-semibold border-b border-r flex items-center justify-center bg-muted/50">{name}</div>
-                        {Array.from({length: 7}).map((_, i) => (
-                             <div key={i} className="p-1 border-b border-r min-h-[60px]">
-                                {Math.random() > 0.6 && (
-                                    <div className="bg-primary/80 text-primary-foreground rounded p-1 text-xs text-left">
-                                        <p className="font-semibold">9am - 5pm</p>
-                                        <p className="opacity-80">Support</p>
-                                    </div>
-                                )}
-                             </div>
+                </CardHeader>
+                <CardContent className="overflow-x-auto">
+                    <div className="grid min-w-[900px]" style={{gridTemplateColumns: '150px repeat(7, 1fr)'}}>
+                        <div className="p-2 font-semibold border-b border-r bg-muted/50">Team</div>
+                         {weekDays.map(day => (
+                            <div key={day.toString()} className="p-2 font-semibold border-b border-r bg-muted/50 text-center">
+                                <p>{format(day, 'EEE')}</p>
+                                <p className="text-muted-foreground text-sm">{format(day, 'd')}</p>
+                            </div>
                         ))}
-                    </React.Fragment>
-                ))}
-            </div>
+                        {team.map(member => (
+                            <React.Fragment key={member.id}>
+                                <div className="p-2 font-semibold border-b border-r flex items-center justify-center bg-muted/50">{member.name}</div>
+                                {weekDays.map(day => {
+                                    const dayKey = format(day, 'yyyy-MM-dd');
+                                    const dayShifts = (shiftsByDay[dayKey] || []).filter(s => s.memberId === member.id);
+                                    return (
+                                        <div key={day.toString()} className="p-1 border-b border-r min-h-[80px] space-y-1 relative group">
+                                            {dayShifts.map(shift => (
+                                                <button key={shift.id} onClick={() => handleOpenShiftDialog(shift)} className="w-full text-left bg-primary/80 text-primary-foreground rounded p-1.5 text-xs">
+                                                    <p className="font-semibold">{format(new Date(shift.startTime), 'p')} - {format(new Date(shift.endTime), 'p')}</p>
+                                                    <p className="opacity-80 truncate">{shift.role}</p>
+                                                </button>
+                                            ))}
+                                            <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100" onClick={() => handleOpenShiftDialog(null, day, member.id)}>
+                                                <Plus className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    )
+                                })}
+                            </React.Fragment>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+
+            <ShiftDialog 
+                open={isShiftDialogOpen} 
+                onOpenChange={setIsShiftDialogOpen}
+                shift={editingShift}
+                date={selectedDate}
+                memberId={selectedMemberId}
+                team={team}
+                addShift={addShift}
+                updateShift={updateShift}
+                deleteShift={deleteShift}
+            />
+
+            <ManageTeamDialog
+                open={isTeamDialogOpen}
+                onOpenChange={setIsTeamDialogOpen}
+                team={team}
+                addMember={addTeamMember}
+                updateMember={updateTeamMember}
+                deleteMember={deleteTeamMember}
+            />
         </div>
-    </PlaceholderContent>
-);
+    )
+};
+
+const timeOptions = Array.from({ length: 48 }, (_, i) => {
+    const hours = Math.floor(i / 2);
+    const minutes = (i % 2) * 30;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+});
+
+const ShiftDialog = ({ open, onOpenChange, shift, date, memberId, team, addShift, updateShift, deleteShift }: { open: boolean; onOpenChange: (open: boolean) => void; shift: Shift | null; date: Date | null, memberId: string | null, team: TeamMember[], addShift: any, updateShift: any, deleteShift: any }) => {
+    const [localMemberId, setLocalMemberId] = useState('');
+    const [startTime, setStartTime] = useState('09:00');
+    const [endTime, setEndTime] = useState('17:00');
+    const [role, setRole] = useState('');
+    const [note, setNote] = useState('');
+
+    useEffect(() => {
+        if (open) {
+            if (shift) {
+                setLocalMemberId(shift.memberId);
+                setStartTime(format(new Date(shift.startTime), 'HH:mm'));
+                setEndTime(format(new Date(shift.endTime), 'HH:mm'));
+                setRole(shift.role || '');
+                setNote(shift.note || '');
+            } else {
+                setLocalMemberId(memberId || '');
+                setRole('Support');
+                setNote('');
+            }
+        }
+    }, [open, shift, memberId]);
+
+    const handleSave = () => {
+        if (!localMemberId) return;
+
+        const shiftDate = shift ? new Date(shift.startTime) : date;
+        if (!shiftDate) return;
+
+        const parsedStartTime = parse(startTime, 'HH:mm', shiftDate);
+        const parsedEndTime = parse(endTime, 'HH:mm', shiftDate);
+
+        if (shift) {
+            updateShift({ ...shift, memberId: localMemberId, startTime: parsedStartTime.getTime(), endTime: parsedEndTime.getTime(), role, note });
+        } else {
+            addShift({ memberId: localMemberId, startTime: parsedStartTime.getTime(), endTime: parsedEndTime.getTime(), role, note });
+        }
+        onOpenChange(false);
+    };
+
+    const handleDelete = () => {
+        if(shift) deleteShift(shift.id);
+        onOpenChange(false);
+    }
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{shift ? 'Edit Shift' : 'Add Shift'}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="grid gap-2">
+                        <Label>Team Member</Label>
+                        <Select value={localMemberId} onValueChange={setLocalMemberId}>
+                            <SelectTrigger><SelectValue placeholder="Select a member" /></SelectTrigger>
+                            <SelectContent>{team.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
+                        </Select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                            <Label>Start Time</Label>
+                            <Select value={startTime} onValueChange={setStartTime}>
+                                <SelectTrigger><SelectValue/></SelectTrigger>
+                                <SelectContent>{timeOptions.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>End Time</Label>
+                             <Select value={endTime} onValueChange={setEndTime}>
+                                <SelectTrigger><SelectValue/></SelectTrigger>
+                                <SelectContent>{timeOptions.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label>Role</Label>
+                        <Input value={role} onChange={e => setRole(e.target.value)} placeholder="e.g. Support" />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label>Note (optional)</Label>
+                        <Textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Add a note..."/>
+                    </div>
+                </div>
+                <DialogFooter className="justify-between">
+                    <div>{shift && <Button variant="destructive" onClick={handleDelete}>Delete</Button>}</div>
+                    <div className="flex gap-2">
+                        <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                        <Button onClick={handleSave}>Save</Button>
+                    </div>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+const ManageTeamDialog = ({ open, onOpenChange, team, addMember, updateMember, deleteMember }: { open: boolean; onOpenChange: (open: boolean) => void; team: TeamMember[]; addMember: (name: string) => void; updateMember: (member: TeamMember) => void; deleteMember: (id: string) => void; }) => {
+    const [newMemberName, setNewMemberName] = useState('');
+    
+    const handleAdd = () => {
+        if(newMemberName.trim()) {
+            addMember(newMemberName.trim());
+            setNewMemberName('');
+        }
+    }
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Manage Team</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="flex gap-2">
+                        <Input value={newMemberName} onChange={e => setNewMemberName(e.target.value)} placeholder="New member name..." onKeyDown={e => e.key === 'Enter' && handleAdd()}/>
+                        <Button onClick={handleAdd}>Add</Button>
+                    </div>
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {team.map(member => (
+                            <div key={member.id} className="flex items-center gap-2 p-2 border rounded-md">
+                                <Input value={member.name} onChange={(e) => updateMember({...member, name: e.target.value})} className="border-none"/>
+                                <Button variant="ghost" size="icon" onClick={() => deleteMember(member.id)}><Trash2 className="h-4 w-4 text-destructive"/></Button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                 <DialogFooter>
+                    <Button onClick={() => onOpenChange(false)}>Done</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
 
 export default function ClockifyPage() {
   const { activeProfile, addTimeEntry, deleteTimeEntry, updateTimeEntry, loading } = useData();
