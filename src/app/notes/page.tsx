@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useData } from "@/contexts/data-context";
 import type { Note } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -9,20 +9,20 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2, Edit2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, Save } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import remarkGfm from 'remark-gfm';
 import 'katex/dist/katex.min.css';
-import { Separator } from '@/components/ui/separator';
 import Navbar from '@/components/navbar';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
 function NoteItem({ note, onSelect, onDelete, isActive }: { note: Note, onSelect: () => void, onDelete: (e: React.MouseEvent) => void, isActive: boolean }) {
-    const summary = note.content.substring(0, 100) + (note.content.length > 100 ? '...' : '');
+    const summary = note.content.substring(0, 100).replace(/#+\s/g, '') + (note.content.length > 100 ? '...' : '');
     
     return (
         <button 
@@ -65,58 +65,41 @@ export default function NotesPage() {
     const activeNote = useMemo(() => allNotes.find(note => note.id === activeNoteId), [allNotes, activeNoteId]);
 
     const noteIsDirty = useMemo(() => {
+        if (!activeNoteId && (title.trim() || content.trim())) return true;
         if (activeNote) {
             return title.trim() !== activeNote.title.trim() || content.trim() !== activeNote.content.trim();
         }
-        // For a new note, it's dirty if there's any text
-        return title.trim() !== '' || content.trim() !== '';
-    }, [activeNote, title, content]);
+        return false;
+    }, [activeNote, activeNoteId, title, content]);
 
-
-    useEffect(() => {
-        if (activeNote) {
-            setTitle(activeNote.title);
-            setContent(activeNote.content);
-            setIsEditing(false); // Start in view mode when selecting a note
-        } else if (!loading) {
-            // If no active note is selected after loading, set up for a new one
-            setActiveNoteId(null);
-            setTitle('');
-            setContent('');
-            setIsEditing(true);
-        }
-    }, [activeNote, loading]);
-
-    useEffect(() => {
-        // When switching profiles, if the current note doesn't exist in the new profile, reset the view
-        if (activeProfile && activeNoteId && !allNotes.some(note => note.id === activeNoteId)) {
-             handleNewNote();
-        }
-    }, [activeProfile, activeNoteId, allNotes]);
-
-    const handleSave = () => {
+    const handleSave = useCallback(() => {
+        if (!noteIsDirty) return;
         if (!title.trim() && !content.trim()) return;
+
+        let noteToSaveId;
 
         if (activeNote) {
             updateNote({ ...activeNote, title, content });
+            noteToSaveId = activeNote.id;
         } else {
             const newNote = addNote(title, content);
             if (newNote) {
                 setActiveNoteId(newNote.id);
+                noteToSaveId = newNote.id;
             }
         }
-        setIsEditing(false); // Switch to view mode after saving
         toast({ title: "Note Saved" });
-    };
+    }, [activeNote, title, content, noteIsDirty, addNote, updateNote, toast]);
 
-    const selectNote = (noteId: string) => {
+    const selectNote = useCallback((noteId: string) => {
+        if (noteId === activeNoteId) return;
         if (noteIsDirty) {
             handleSave();
         }
         setActiveNoteId(noteId);
-    };
+    }, [noteIsDirty, handleSave, activeNoteId]);
 
-    const handleNewNote = () => {
+    const handleNewNote = useCallback(() => {
         if (noteIsDirty) {
             handleSave();
         }
@@ -124,16 +107,40 @@ export default function NotesPage() {
         setTitle('');
         setContent('');
         setIsEditing(true);
-    };
+    }, [noteIsDirty, handleSave]);
 
     const handleDelete = (e: React.MouseEvent, noteId: string) => {
         e.stopPropagation(); // Prevent selection of the note
         deleteNote(noteId);
         toast({ title: "Note Deleted", variant: "destructive" });
         if (activeNoteId === noteId) {
-            handleNewNote();
+            setActiveNoteId(null);
+            setTitle('');
+            setContent('');
+            setIsEditing(true);
         }
     };
+    
+    useEffect(() => {
+        if (activeNote) {
+            setTitle(activeNote.title);
+            setContent(activeNote.content);
+            setIsEditing(true); 
+        } else {
+            setTitle('');
+            setContent('');
+            setIsEditing(true);
+        }
+    }, [activeNote]);
+
+    useEffect(() => {
+        // When switching profiles, if the current note doesn't exist in the new profile, reset the view
+        if (activeProfile && activeNoteId && !allNotes.some(note => note.id === activeNoteId)) {
+             handleNewNote();
+        } else if (activeProfile && !activeNoteId && allNotes.length > 0) {
+            setActiveNoteId(allNotes[0].id);
+        }
+    }, [activeProfile, activeNoteId, allNotes, handleNewNote]);
     
     if (loading) {
         return <LoadingSpinner containerClassName="min-h-screen" />;
@@ -174,52 +181,44 @@ export default function NotesPage() {
                     </aside>
 
                     {/* Main Content Area */}
-                    <main className="flex flex-col overflow-hidden">
-                        <div className="p-4 border-b flex justify-between items-center">
-                            <div className="flex-1 min-w-0">
-                                {isEditing ? (
-                                    <Input
-                                        value={title}
-                                        onChange={(e) => setTitle(e.target.value)}
-                                        placeholder="Note Title"
-                                        className="text-2xl font-bold border-none shadow-none focus-visible:ring-0 px-0 h-auto"
-                                    />
-                                ) : (
-                                    <h1 className="text-2xl font-bold truncate">{title || 'Untitled Note'}</h1>
-                                )}
-                            </div>
-                            <div className="flex items-center gap-2">
-                                {isEditing ? (
-                                    <Button onClick={handleSave}>Save</Button>
-                                ) : (
-                                    <Button variant="outline" onClick={() => setIsEditing(true)}>
-                                        <Edit2 className="mr-2 h-4 w-4" /> Edit
-                                    </Button>
-                                )}
+                    <main className="flex flex-col overflow-hidden bg-muted/20">
+                         <div className="p-2 border-b flex justify-between items-center bg-background">
+                             <Input
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                                onBlur={handleSave}
+                                placeholder="Untitled Note"
+                                className="text-xl font-bold border-none shadow-none focus-visible:ring-0 px-2 h-auto flex-1"
+                            />
+                            <div className="flex items-center gap-2 pr-2">
+                                <Button variant={isEditing ? 'default' : 'outline'} size="sm" onClick={() => setIsEditing(!isEditing)}>
+                                    {isEditing ? <Edit2 className="mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
+                                    {isEditing ? 'Edit' : 'View'}
+                                </Button>
                             </div>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto">
-                            {isEditing ? (
-                                <Textarea
-                                    value={content}
-                                    onChange={(e) => setContent(e.target.value)}
-                                    placeholder="Start writing your note here... You can use Markdown and LaTeX for math, like this: $\\int_0^\\infty e^{-x^2} dx = \\frac{\\sqrt{\\pi}}{2}$"
-                                    className="w-full h-full p-6 text-base border-none rounded-none resize-none shadow-none focus-visible:ring-0"
-                                    autoFocus
-                                />
-                            ) : (
-                                <Card className="m-4 border-none shadow-none">
-                                    <CardContent className="prose dark:prose-invert max-w-none p-2 text-base">
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 overflow-hidden">
+                             <Textarea
+                                value={content}
+                                onChange={(e) => setContent(e.target.value)}
+                                onBlur={handleSave}
+                                placeholder="Start writing your note here... Supports Markdown, GFM, and LaTeX!"
+                                className="w-full h-full p-6 text-base border-none rounded-none resize-none shadow-none focus-visible:ring-0 bg-background font-mono"
+                                autoFocus
+                            />
+                            <ScrollArea className="bg-background border-l">
+                                <Card className="m-0 border-none shadow-none rounded-none">
+                                    <CardContent className="prose dark:prose-invert max-w-none p-6 text-base">
                                         <ReactMarkdown
-                                            remarkPlugins={[remarkMath]}
+                                            remarkPlugins={[remarkMath, remarkGfm]}
                                             rehypePlugins={[rehypeKatex]}
                                         >
-                                            {content || '*Note is empty. Click "Edit" to add content.*'}
+                                            {content || '*Note preview will appear here.*'}
                                         </ReactMarkdown>
                                     </CardContent>
                                 </Card>
-                            )}
+                            </ScrollArea>
                         </div>
                     </main>
                 </div>
