@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import {
   Sidebar,
@@ -42,6 +42,8 @@ import {
   Check,
   Pencil,
   X,
+  Hourglass,
+  Users,
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandSeparator } from '@/components/ui/popover';
@@ -50,12 +52,13 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useData } from '@/contexts/data-context';
 import type { TimeEntry, Project } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { startOfWeek, endOfWeek, eachDayOfInterval, format, addDays, subDays, startOfMonth, endOfMonth, getDaysInMonth, addMonths, subMonths, isSameDay, isToday as isTodayDateFns } from 'date-fns';
+import { startOfWeek, endOfWeek, eachDayOfInterval, format, addDays, subDays, startOfMonth, endOfMonth, getDaysInMonth, addMonths, subMonths, isSameDay, isToday as isTodayDateFns, isWithinInterval, subWeeks, startOfISOWeek, endOfISOWeek, endOfToday, startOfToday } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ProjectDialog } from '@/components/project-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LabelList } from 'recharts';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 
 interface TimeEntryGroup {
     day: string;
@@ -126,6 +129,233 @@ const PlaceholderContent = ({ title }: { title: string }) => (
         </CardContent>
     </Card>
 );
+
+const ReportsView = () => {
+    const { activeProfile } = useData();
+    const [dateRange, setDateRange] = useState('this-week');
+    const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
+    
+    const { timeEntries, projects } = useMemo(() => ({
+        timeEntries: activeProfile?.timeEntries || [],
+        projects: activeProfile?.projects || [],
+    }), [activeProfile]);
+    
+    const dateFilter = useMemo(() => {
+        const today = new Date();
+        switch (dateRange) {
+            case 'this-week':
+                return { start: startOfISOWeek(today), end: endOfToday() };
+            case 'last-week':
+                const lastWeekStart = startOfISOWeek(subWeeks(today, 1));
+                const lastWeekEnd = endOfISOWeek(subWeeks(today, 1));
+                return { start: lastWeekStart, end: lastWeekEnd };
+            case 'this-month':
+                return { start: startOfMonth(today), end: endOfToday() };
+            case 'last-month':
+                const lastMonthStart = startOfMonth(subMonths(today, 1));
+                const lastMonthEnd = endOfMonth(subMonths(today, 1));
+                return { start: lastMonthStart, end: lastMonthEnd };
+            default:
+                return { start: startOfISOWeek(today), end: endOfToday() };
+        }
+    }, [dateRange]);
+
+    const filteredEntries = useMemo(() => {
+        return timeEntries.filter(entry => {
+            const entryDate = new Date(entry.startTime);
+            const inDateRange = isWithinInterval(entryDate, dateFilter);
+            const inProject = selectedProjects.length === 0 || (entry.projectId && selectedProjects.includes(entry.projectId));
+            return inDateRange && inProject;
+        });
+    }, [timeEntries, dateFilter, selectedProjects]);
+    
+    const { totalTime, projectBreakdown } = useMemo(() => {
+        const breakdown: Record<string, number> = {};
+        
+        filteredEntries.forEach(entry => {
+            const projectId = entry.projectId || 'no-project';
+            if (!breakdown[projectId]) {
+                breakdown[projectId] = 0;
+            }
+            breakdown[projectId] += entry.duration;
+        });
+        
+        const total = Object.values(breakdown).reduce((sum, time) => sum + time, 0);
+
+        const projectBreakdown = Object.entries(breakdown)
+            .map(([projectId, time]) => {
+                const project = projects.find(p => p.id === projectId);
+                return {
+                    name: project?.name || 'No Project',
+                    color: project?.color || '#cccccc',
+                    time,
+                    timeFormatted: formatDuration(time),
+                }
+            })
+            .sort((a,b) => b.time - a.time);
+
+        return { totalTime: total, projectBreakdown };
+    }, [filteredEntries, projects]);
+
+    const chartConfig = projectBreakdown.reduce((acc, p) => ({ ...acc, [p.name]: { label: p.name, color: p.color } }), {});
+
+    return (
+        <div className="p-4 sm:p-6 bg-muted/30 flex-1 space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center gap-4">
+                    <Select value={dateRange} onValueChange={setDateRange}>
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="this-week">This Week</SelectItem>
+                            <SelectItem value="last-week">Last Week</SelectItem>
+                            <SelectItem value="this-month">This Month</SelectItem>
+                            <SelectItem value="last-month">Last Month</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline" className="w-[200px] justify-start">
+                                <Briefcase className="mr-2 h-4 w-4" />
+                                {selectedProjects.length === 0 ? 'All Projects' : `${selectedProjects.length} selected`}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[200px] p-0" align="start">
+                            <Command>
+                                <CommandInput placeholder="Filter projects..." />
+                                <CommandEmpty>No projects found.</CommandEmpty>
+                                <CommandGroup>
+                                    {projects.map(project => (
+                                        <CommandItem
+                                            key={project.id}
+                                            value={project.name}
+                                            onSelect={() => {
+                                                setSelectedProjects(prev =>
+                                                    prev.includes(project.id)
+                                                        ? prev.filter(id => id !== project.id)
+                                                        : [...prev, project.id]
+                                                );
+                                            }}
+                                        >
+                                            <Check className={cn("mr-2 h-4 w-4", selectedProjects.includes(project.id) ? "opacity-100" : "opacity-0")} />
+                                            <span className="h-2 w-2 rounded-full mr-2" style={{backgroundColor: project.color}}></span>
+                                            {project.name}
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                                {selectedProjects.length > 0 && (
+                                    <>
+                                        <CommandSeparator />
+                                        <CommandGroup>
+                                            <CommandItem onSelect={() => setSelectedProjects([])} className="justify-center text-center">
+                                                Clear filters
+                                            </CommandItem>
+                                        </CommandGroup>
+                                    </>
+                                )}
+                            </Command>
+                        </PopoverContent>
+                    </Popover>
+                </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Hourglass className="h-5 w-5 text-muted-foreground" /> Total Time</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-4xl font-bold">{formatDuration(totalTime)}</p>
+                    </CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><ListTodo className="h-5 w-5 text-muted-foreground" /> Time Entries</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-4xl font-bold">{filteredEntries.length}</p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Project Breakdown</CardTitle>
+                    <CardDescription>Total time spent per project in the selected period.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {projectBreakdown.length > 0 ? (
+                        <ChartContainer config={chartConfig} className="mx-auto aspect-video max-h-[300px]">
+                            <BarChart data={projectBreakdown} layout="vertical" margin={{ left: 10, right: 30 }}>
+                                <CartesianGrid horizontal={false} />
+                                <XAxis type="number" hide />
+                                <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tickMargin={10} width={120} className="text-xs truncate" />
+                                <RechartsTooltip cursor={{ fill: 'hsl(var(--muted))' }} content={<ChartTooltipContent />} />
+                                <Bar dataKey="time" radius={[0, 4, 4, 0]}>
+                                    {projectBreakdown.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                    ))}
+                                    <LabelList dataKey="timeFormatted" position="right" offset={8} className="fill-foreground" fontSize={12} />
+                                </Bar>
+                            </BarChart>
+                        </ChartContainer>
+                    ) : (
+                        <div className="text-center text-muted-foreground py-10">
+                            No data for this period.
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Detailed Report</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Task</TableHead>
+                                <TableHead>Project</TableHead>
+                                <TableHead className="text-right">Duration</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {filteredEntries.length > 0 ? (
+                                filteredEntries.map(entry => (
+                                    <TableRow key={entry.id}>
+                                        <TableCell>{format(new Date(entry.startTime), 'PPP')}</TableCell>
+                                        <TableCell>{entry.task}</TableCell>
+                                        <TableCell>
+                                            {entry.projectId ? (
+                                                <span className="flex items-center gap-2">
+                                                    <span className="h-2 w-2 rounded-full" style={{backgroundColor: projects.find(p => p.id === entry.projectId)?.color}}></span>
+                                                    {projects.find(p => p.id === entry.projectId)?.name}
+                                                </span>
+                                            ) : (
+                                                <span className="text-muted-foreground">No Project</span>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="text-right font-medium">{formatDuration(entry.duration)}</TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="h-24 text-center">
+                                        No time entries found for the selected filters.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+        </div>
+    );
+};
+
 
 const CalendarView = () => {
     const { activeProfile } = useData();
@@ -852,6 +1082,8 @@ export default function ClockifyPage() {
         return <CalendarView />;
       case 'Projects':
         return <ProjectsView />;
+      case 'Reports':
+        return <ReportsView />;
       default:
         return <PlaceholderContent title={activeMenu} />;
     }
