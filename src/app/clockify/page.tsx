@@ -44,6 +44,9 @@ import {
   X,
   Hourglass,
   Users,
+  Sun,
+  UserCheck,
+  Plane,
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandSeparator } from '@/components/ui/popover';
@@ -57,8 +60,9 @@ import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ProjectDialog } from '@/components/project-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LabelList } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LabelList, Cell } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 interface TimeEntryGroup {
     day: string;
@@ -110,24 +114,32 @@ const formatSecondsToTime = (seconds: number): string => {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 };
 
-const PlaceholderContent = ({ title }: { title: string }) => (
-    <Card className="m-4 sm:m-6">
-        <CardHeader>
-            <CardTitle>{title}</CardTitle>
-        </CardHeader>
-        <CardContent>
-             <Alert variant="destructive" className="mb-6">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Feature Not Implemented</AlertTitle>
-                <AlertDescription>
-                    This section is a placeholder. Check back for future updates!
-                </AlertDescription>
-            </Alert>
-            <div className="flex flex-col items-center justify-center h-64 text-center border-2 border-dashed rounded-lg bg-muted/50">
-                <p className="text-lg font-medium text-muted-foreground">Coming Soon</p>
-            </div>
-        </CardContent>
-    </Card>
+const PlaceholderContent = ({ title, icon: Icon, children }: { title: string, icon?: React.ElementType, children?: React.ReactNode }) => (
+    <div className="p-4 sm:p-6 bg-muted/30 flex-1">
+        <Card className="m-4 sm:m-6">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    {Icon && <Icon className="h-6 w-6 text-muted-foreground" />}
+                    {title}
+                </CardTitle>
+                 <CardDescription>
+                    This feature is currently under development.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                 <Alert variant="destructive" className="mb-6">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Feature Not Implemented</AlertTitle>
+                    <AlertDescription>
+                        This section is a visual placeholder. Check back for future updates!
+                    </AlertDescription>
+                </Alert>
+                <div className="p-4 border-2 border-dashed rounded-lg bg-muted/50">
+                   {children}
+                </div>
+            </CardContent>
+        </Card>
+    </div>
 );
 
 const ReportsView = () => {
@@ -287,18 +299,20 @@ const ReportsView = () => {
                 <CardContent>
                     {projectBreakdown.length > 0 ? (
                         <ChartContainer config={chartConfig} className="mx-auto aspect-video max-h-[300px]">
-                            <BarChart data={projectBreakdown} layout="vertical" margin={{ left: 10, right: 30 }}>
-                                <CartesianGrid horizontal={false} />
-                                <XAxis type="number" hide />
-                                <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tickMargin={10} width={120} className="text-xs truncate" />
-                                <RechartsTooltip cursor={{ fill: 'hsl(var(--muted))' }} content={<ChartTooltipContent />} />
-                                <Bar dataKey="time" radius={[0, 4, 4, 0]}>
-                                    {projectBreakdown.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.color} />
-                                    ))}
-                                    <LabelList dataKey="timeFormatted" position="right" offset={8} className="fill-foreground" fontSize={12} />
-                                </Bar>
-                            </BarChart>
+                            <ResponsiveContainer>
+                                <BarChart data={projectBreakdown} layout="vertical" margin={{ left: 10, right: 30 }}>
+                                    <CartesianGrid horizontal={false} />
+                                    <XAxis type="number" hide />
+                                    <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tickMargin={10} width={120} className="text-xs truncate" />
+                                    <RechartsTooltip cursor={{ fill: 'hsl(var(--muted))' }} content={<ChartTooltipContent />} />
+                                    <Bar dataKey="time" radius={[0, 4, 4, 0]}>
+                                        {projectBreakdown.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.color} />
+                                        ))}
+                                        <LabelList dataKey="timeFormatted" position="right" offset={8} className="fill-foreground" fontSize={12} />
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
                         </ChartContainer>
                     ) : (
                         <div className="text-center text-muted-foreground py-10">
@@ -480,8 +494,8 @@ const CalendarView = () => {
 
 const ProjectDetailsView = ({ project, onBack }: { project: Project, onBack: () => void }) => {
     return (
-        <div className="p-4 sm:p-6 bg-muted/30 flex-1">
-            <div className="flex items-center gap-4 mb-4">
+        <PlaceholderContent title="Project Details View">
+             <div className="flex items-center gap-4 mb-4">
                 <Button variant="outline" size="icon" onClick={onBack}>
                     <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -493,26 +507,10 @@ const ProjectDetailsView = ({ project, onBack }: { project: Project, onBack: () 
                     {project.name}
                 </h1>
             </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                 <Card>
-                    <CardHeader>
-                        <CardTitle>Time Entries</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <PlaceholderContent title="Time Tracker Records"/>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Timesheet Records</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <PlaceholderContent title="Timesheet Records"/>
-                    </CardContent>
-                </Card>
+            <div className="text-center text-muted-foreground py-10">
+                Project-specific reports and details will be shown here.
             </div>
-        </div>
+        </PlaceholderContent>
     );
 };
 
@@ -801,6 +799,98 @@ const TimesheetView = () => {
   )
 }
 
+const TimeOffView = () => (
+    <PlaceholderContent title="Time Off" icon={Coffee}>
+        <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="bg-background/50">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium">Vacation</CardTitle>
+                        <Plane className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">10 <span className="text-sm font-normal text-muted-foreground">days</span></div>
+                        <p className="text-xs text-muted-foreground">+2 days accrued this year</p>
+                    </CardContent>
+                </Card>
+                <Card className="bg-background/50">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium">Sick Leave</CardTitle>
+                         <UserCheck className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">5 <span className="text-sm font-normal text-muted-foreground">days</span></div>
+                        <p className="text-xs text-muted-foreground">Policy: 7 days/year</p>
+                    </CardContent>
+                </Card>
+                <Button className="h-full text-lg">
+                    Request Time Off
+                </Button>
+            </div>
+            <div>
+                 <h4 className="text-lg font-semibold mb-2">Team Absences</h4>
+                 <div className="grid grid-cols-7 gap-1 text-center text-sm">
+                    {eachDayOfInterval({start: startOfWeek(new Date()), end: endOfWeek(new Date())}).map(day => (
+                        <div key={day.toString()} className="p-2 border rounded-md">
+                            <p className="font-semibold">{format(day, 'EEE')}</p>
+                            <p className="text-muted-foreground">{format(day, 'd')}</p>
+                            {format(day, 'd') === '18' && (
+                                <div className="mt-2 text-left">
+                                    <div className="flex items-center gap-2 p-1 rounded bg-blue-500/10 text-blue-700">
+                                        <Avatar className="h-5 w-5">
+                                            <AvatarFallback>JD</AvatarFallback>
+                                        </Avatar>
+                                        <span className="font-medium text-xs">John Doe</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                 </div>
+            </div>
+        </div>
+    </PlaceholderContent>
+);
+
+const ScheduleView = () => (
+    <PlaceholderContent title="Schedule" icon={BarChart3}>
+        <div className="space-y-4">
+            <div className="flex justify-between items-center">
+                <h4 className="text-lg font-semibold">This Week</h4>
+                <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm">Publish</Button>
+                    <Button size="sm">Add Shift</Button>
+                </div>
+            </div>
+            <div className="grid grid-cols-[100px_repeat(7,1fr)] text-sm text-center border-t border-l">
+                 <div className="p-2 font-semibold border-b border-r bg-muted/50"></div>
+                 {eachDayOfInterval({start: startOfWeek(new Date()), end: endOfWeek(new Date())}).map(day => (
+                    <div key={day.toString()} className="p-2 font-semibold border-b border-r bg-muted/50">
+                        <p>{format(day, 'EEE')}</p>
+                        <p className="text-muted-foreground">{format(day, 'd')}</p>
+                    </div>
+                ))}
+                
+                {['John D.', 'Jane S.', 'Mike P.'].map(name => (
+                    <React.Fragment key={name}>
+                        <div className="p-2 font-semibold border-b border-r flex items-center justify-center bg-muted/50">{name}</div>
+                        {Array.from({length: 7}).map((_, i) => (
+                             <div key={i} className="p-1 border-b border-r min-h-[60px]">
+                                {Math.random() > 0.6 && (
+                                    <div className="bg-primary/80 text-primary-foreground rounded p-1 text-xs text-left">
+                                        <p className="font-semibold">9am - 5pm</p>
+                                        <p className="opacity-80">Support</p>
+                                    </div>
+                                )}
+                             </div>
+                        ))}
+                    </React.Fragment>
+                ))}
+            </div>
+        </div>
+    </PlaceholderContent>
+);
+
 export default function ClockifyPage() {
   const { activeProfile, addTimeEntry, deleteTimeEntry, updateTimeEntry, loading } = useData();
   const [activeMenu, setActiveMenu] = useState('Time Tracker');
@@ -1078,14 +1168,16 @@ export default function ClockifyPage() {
         );
       case 'Timesheet':
         return <TimesheetView />;
-      case 'Calendar':
-        return <CalendarView />;
       case 'Projects':
         return <ProjectsView />;
+      case 'Calendar':
+        return <CalendarView />;
       case 'Reports':
         return <ReportsView />;
-      default:
-        return <PlaceholderContent title={activeMenu} />;
+      case 'Time Off':
+        return <TimeOffView />;
+      case 'Schedule':
+        return <ScheduleView />;
     }
   };
 
