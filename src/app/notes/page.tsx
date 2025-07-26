@@ -196,7 +196,7 @@ export default function NotesPage() {
                                 <Card className="m-0 border-none shadow-none rounded-none">
                                     <CardContent className="prose dark:prose-invert max-w-none p-6 text-base">
                                         <ReactMarkdown
-                                            remarkPlugins={[remarkMath, remarkGfm]}
+                                            remarkPlugins={[remarkGfm, remarkMath]}
                                             rehypePlugins={[rehypeKatex]}
                                         >
                                             {content || '*Note preview will appear here.*'}
