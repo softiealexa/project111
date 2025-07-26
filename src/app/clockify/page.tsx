@@ -57,7 +57,7 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useData } from '@/contexts/data-context';
 import type { TimeEntry, Project, TimeOffPolicy, TimeOffRequest } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { startOfWeek, endOfWeek, eachDayOfInterval, format, addDays, subDays, startOfMonth, endOfMonth, getDaysInMonth, addMonths, subMonths, isSameDay, isToday as isTodayDateFns, isWithinInterval, subWeeks, startOfISOWeek, endOfISOWeek, endOfToday, startOfToday } from 'date-fns';
+import { startOfWeek, endOfWeek, eachDayOfInterval, format, addDays, subDays, startOfMonth, endOfMonth, getDaysInMonth, addMonths, subMonths, isSameDay, isToday as isTodayDateFns, isWithinInterval, subWeeks, startOfISOWeek, endOfISOWeek, endOfToday, startOfToday, addWeeks } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ProjectDialog } from '@/components/project-dialog';
@@ -65,9 +65,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LabelList, Cell } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Dialog, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogTrigger, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DateRange } from "react-day-picker";
 import { Label } from '@/components/ui/label';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 
 interface TimeEntryGroup {
     day: string;
@@ -846,7 +847,7 @@ const RequestTimeOffDialog = ({ policies, onOpenChange, open }: { policies: Time
                     </div>
                     <div className="grid gap-2">
                         <Label>Dates</Label>
-                        <com.components.ui.Calendar
+                        <CalendarComponent
                             mode="range"
                             selected={dateRange}
                             onSelect={setDateRange}
