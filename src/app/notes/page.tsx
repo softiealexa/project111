@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useData } from "@/contexts/data-context";
 import type { Note } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import 'katex/dist/katex.min.css';
 import Navbar from '@/components/navbar';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { EditorToolbar } from '@/components/editor-toolbar';
 
 function NoteItem({ note, onSelect, onDelete, isActive }: { note: Note, onSelect: () => void, onDelete: (e: React.MouseEvent) => void, isActive: boolean }) {
     const summary = note.content.substring(0, 100).replace(/#+\s/g, '') + (note.content.length > 100 ? '...' : '');
@@ -60,6 +61,7 @@ export default function NotesPage() {
     const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const activeNote = useMemo(() => allNotes.find(note => note.id === activeNoteId), [allNotes, activeNoteId]);
 
@@ -73,22 +75,18 @@ export default function NotesPage() {
 
     const handleSave = useCallback(() => {
         if (!noteIsDirty) return;
-        if (!title.trim() && !content.trim()) return;
-
-        let noteToSaveId;
+        if (!title.trim() && !content.trim() && !activeNoteId) return;
 
         if (activeNote) {
             updateNote({ ...activeNote, title, content });
-            noteToSaveId = activeNote.id;
         } else {
             const newNote = addNote(title, content);
             if (newNote) {
                 setActiveNoteId(newNote.id);
-                noteToSaveId = newNote.id;
             }
         }
         toast({ title: "Note Saved" });
-    }, [activeNote, title, content, noteIsDirty, addNote, updateNote, toast]);
+    }, [activeNote, activeNoteId, title, content, noteIsDirty, addNote, updateNote, toast]);
 
     const selectNote = useCallback((noteId: string) => {
         if (noteId === activeNoteId) return;
@@ -129,7 +127,6 @@ export default function NotesPage() {
     }, [activeNote]);
 
     useEffect(() => {
-        // When switching profiles, if the current note doesn't exist in the new profile, reset the view
         if (activeProfile && activeNoteId && !allNotes.some(note => note.id === activeNoteId)) {
              handleNewNote();
         } else if (activeProfile && !activeNoteId && allNotes.length > 0) {
@@ -146,14 +143,11 @@ export default function NotesPage() {
             <div className="flex flex-col h-screen">
                 <Navbar />
                 <div className="flex-1 grid grid-cols-1 md:grid-cols-[300px_1fr] lg:grid-cols-[350px_1fr] overflow-hidden">
-                    {/* Notes List Sidebar */}
                     <aside className="border-r flex flex-col">
-                        <div className="p-4 border-b">
+                        <div className="p-4 border-b flex justify-between items-center">
                             <h2 className="text-xl font-bold">All Notes</h2>
-                        </div>
-                        <div className="p-2">
-                            <Button variant="outline" className="w-full" onClick={handleNewNote}>
-                                <Plus className="mr-2 h-4 w-4" /> New Note
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleNewNote}>
+                                <Plus className="h-5 w-5" />
                             </Button>
                         </div>
                         <ScrollArea className="flex-1">
@@ -175,7 +169,6 @@ export default function NotesPage() {
                         </ScrollArea>
                     </aside>
 
-                    {/* Main Content Area */}
                     <main className="flex flex-col overflow-hidden bg-muted/20">
                          <div className="p-2 border-b flex justify-between items-center bg-background">
                              <Input
@@ -186,9 +179,12 @@ export default function NotesPage() {
                                 className="text-xl font-bold border-none shadow-none focus-visible:ring-0 px-2 h-auto flex-1"
                             />
                         </div>
+                        
+                        <EditorToolbar textareaRef={textareaRef} setContent={setContent} />
 
                         <div className="flex-1 grid grid-cols-1 md:grid-cols-2 overflow-hidden">
                              <Textarea
+                                ref={textareaRef}
                                 value={content}
                                 onChange={(e) => setContent(e.target.value)}
                                 onBlur={handleSave}
