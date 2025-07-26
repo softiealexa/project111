@@ -724,23 +724,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (!activeProfile) return;
     const newNote: Note = {
         id: crypto.randomUUID(),
-        title,
-        content,
+        title: title.trim(),
+        content: content.trim(),
         createdAt: Date.now(),
     };
     const updatedNotes = [newNote, ...(activeProfile.notes || [])];
     const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, notes: updatedNotes } : p);
     updateProfiles(newProfiles, activeProfileName, { notes: updatedNotes });
-    toast({
-        title: 'Note Saved',
-        description: `Your note "${title || 'Untitled'}" has been saved.`,
-    });
     return newNote;
-  }, [activeProfile, activeProfileName, profiles, updateProfiles, toast]);
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
   const updateNote = useCallback((updatedNote: Note) => {
     if (!activeProfile) return;
-    const updatedNotes = (activeProfile.notes || []).map(n => n.id === updatedNote.id ? updatedNote : n);
+    const updatedNotes = (activeProfile.notes || []).map(n => n.id === updatedNote.id ? { ...updatedNote, title: updatedNote.title.trim(), content: updatedNote.content.trim() } : n);
     const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, notes: updatedNotes } : p);
     updateProfiles(newProfiles, activeProfileName, { notes: updatedNotes });
   }, [activeProfile, activeProfileName, profiles, updateProfiles]);
@@ -1116,7 +1112,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   ]);
   
   const shouldShowCreateProfile = useMemo(() => {
-    const protectedPages = ['/dashboard', '/settings', '/clockify', '/admin'];
+    const protectedPages = ['/dashboard', '/settings', '/clockify', '/admin', '/notes'];
     
     if (loading) return false;
     
