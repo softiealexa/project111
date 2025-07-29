@@ -115,7 +115,7 @@ export default function DashboardClient() {
 
     let items: string[] = [];
     let currentItem: string | null = null;
-    let setItem: (name: string) => void;
+    let setItem: ((name: string) => void) | undefined;
 
     if (mainTab === 'subjects') {
       items = activeProfile.subjects.map(s => s.name);
@@ -127,7 +127,9 @@ export default function DashboardClient() {
       setItem = setActiveTool;
     }
 
-    if (items.length === 0 || !currentItem) return;
+    if (!setItem || items.length === 0 || !currentItem) {
+      return;
+    }
 
     const currentIndex = items.indexOf(currentItem);
     if (currentIndex === -1) return;
@@ -138,13 +140,13 @@ export default function DashboardClient() {
     } else {
       nextIndex = (currentIndex - 1 + items.length) % items.length;
     }
-
+    
     setItem(items[nextIndex]);
   }, [activeProfile, mainTab, activeSubjectName, activeTool, setActiveSubjectName, setActiveTool]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-        if (event.ctrlKey) { // Changed from metaKey/ctrlKey to just ctrlKey to avoid browser history conflict
+        if (event.ctrlKey) {
             switch (event.key) {
                 case 'ArrowRight':
                     event.preventDefault();
