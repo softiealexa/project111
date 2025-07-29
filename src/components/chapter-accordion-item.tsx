@@ -210,11 +210,14 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
                         <div key={task} className="flex items-center space-x-2 rounded-md border p-3 hover:bg-accent/50 transition-colors">
                           <Checkbox
                             id={`complete-${task}`}
-                            checked={{ status: 'unchecked' }}
-                            onCheckedChange={() => {
-                                setTasksToComplete(prev =>
-                                    prev.includes(task) ? prev.filter(t => t !== task) : [...prev, task]
-                                );
+                            checked={false} // Initially unchecked in dialog
+                            onCheckedChange={(checked) => {
+                                const isChecked = typeof checked === 'boolean' ? checked : checked.status === 'checked';
+                                if (isChecked) {
+                                  setTasksToComplete(prev => [...prev, task]);
+                                } else {
+                                  setTasksToComplete(prev => prev.filter(t => t !== task));
+                                }
                             }}
                           />
                           <Label
