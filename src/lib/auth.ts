@@ -12,6 +12,32 @@ interface AuthResult {
     error?: string | null;
 }
 
+/**
+ * Recursively removes properties with `undefined` values from an object.
+ * Firestore does not support `undefined` values.
+ */
+function removeUndefined(obj: any): any {
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map(item => removeUndefined(item));
+  }
+
+  const newObj: { [key: string]: any } = {};
+  for (const key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      const value = obj[key];
+      if (value !== undefined) {
+        newObj[key] = removeUndefined(value);
+      }
+    }
+  }
+  return newObj;
+}
+
+
 export const signInWithUsername = async (username: string, password: string): Promise<AuthResult> => {
     if (!isFirebaseConfigured || !auth) {
         return { error: FIREBASE_NOT_CONFIGURED_ERROR };
@@ -177,14 +203,8 @@ export const saveUserData = async (uid: string, data: UserDataToSave) => {
     }
     const userDocRef = doc(db, 'users', uid);
     
-    // We create a mutable copy to avoid issues with read-only properties
-    const dataToSave = { ...data };
-
-    // If the data includes profile-specific fields (like 'subjects', 'notes', etc.),
-    // we need to merge them into the correct profile within the 'profiles' array in Firestore.
-    // This is a simplified approach. For complex nested updates, a more robust
-    // transaction or specific update logic would be better.
-    // For now, we'll rely on the `updateProfiles` in DataContext to send the whole `profiles` array.
+    // Firestore does not support `undefined` values. We must remove them.
+    const cleanedData = removeUndefined(data);
     
-    await setDoc(userDocRef, dataToSave, { merge: true });
+    await setDoc(userDocRef, cleanedData, { merge: true });
 };
