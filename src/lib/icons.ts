@@ -26,7 +26,6 @@ import {
   Activity,
   Briefcase,
   Users,
-  CalendarClock,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -55,7 +54,6 @@ export const iconMap: Record<string, LucideIcon> = {
   Activity,
   Briefcase,
   Users,
-  CalendarClock,
 };
 
 export const iconNames = Object.keys(iconMap);

@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { useData } from '@/contexts/data-context';
 import { Button } from '@/components/ui/button';
-import { Book, LogOut, UserPlus, LogIn, SlidersHorizontal, Settings, Clock, FileText, CalendarClock } from 'lucide-react';
+import { Book, LogOut, UserPlus, LogIn, SlidersHorizontal, Settings, Clock, FileText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import {
@@ -55,19 +55,6 @@ export default function Navbar() {
               {user ? (
                 <>
                   <Sheet open={isCustomizationOpen} onOpenChange={handleCustomizationStateChange}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                         <Button asChild variant="ghost" size="icon">
-                          <Link href="/timetable">
-                            <CalendarClock className="h-5 w-5" />
-                            <span className="sr-only">Timetable</span>
-                          </Link>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Timetable</p>
-                      </TooltipContent>
-                    </Tooltip>
                     
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -117,11 +104,6 @@ export default function Navbar() {
                           </div>
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onSelect={() => router.push('/timetable')}>
-                          <CalendarClock className="mr-2 h-4 w-4" />
-                          <span>Timetable</span>
-                        </DropdownMenuItem>
-                         
                          <DropdownMenuItem onSelect={() => router.push('/clockify')}>
                           <Clock className="mr-2 h-4 w-4" />
                           <span>Clockify</span>

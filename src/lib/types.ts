@@ -131,22 +131,6 @@ export interface Shift {
     note?: string;
 }
 
-export type TimetableTaskStatus = 'pending' | 'in-progress' | 'paused' | 'completed';
-
-export interface TimetableTask {
-  id: string;
-  title: string;
-  plannedStart: number; // timestamp
-  actualStart: number | null;
-  plannedLengthMinutes: number;
-  actualLengthMinutes: number;
-  isPaused: boolean;
-  pauseStartTime: number | null;
-  accumulatedPauseDuration: number; // in ms
-  status: TimetableTaskStatus;
-}
-
-
 export type SidebarWidth = number;
 
 export interface Profile {
@@ -167,10 +151,6 @@ export interface Profile {
   timeOffRequests?: TimeOffRequest[];
   team?: TeamMember[];
   shifts?: Shift[];
-  timetableTasks?: TimetableTask[];
-  timetableSettings?: {
-    slotInterval: number;
-  };
 }
 
 export interface AppUser {

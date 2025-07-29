@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback, Suspense, lazy } from 'react';
 import { usePathname } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
-import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, SimpleTodo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus, CheckedState, ExamCountdown, TimeOffPolicy, TimeOffRequest, Shift, TeamMember, TimetableTask, TimetableTaskStatus } from '@/lib/types';
+import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, SimpleTodo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus, CheckedState, ExamCountdown, TimeOffPolicy, TimeOffRequest, Shift, TeamMember } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
 import { format, getISOWeek, getYear } from 'date-fns';
@@ -85,10 +85,6 @@ interface DataContextType {
   addTeamMember: (name: string) => void;
   updateTeamMember: (member: TeamMember) => void;
   deleteTeamMember: (memberId: string) => void;
-  addTimetableTask: (task: Omit<TimetableTask, 'id'>) => void;
-  updateTimetableTask: (task: TimetableTask) => void;
-  deleteTimetableTask: (taskId: string) => void;
-  updateTimetableSettings: (settings: { slotInterval: number }) => void;
   exportData: () => void;
   importData: (file: File) => void;
   signOutUser: () => Promise<void>;
@@ -1018,54 +1014,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, team: updatedTeam, shifts: updatedShifts } : p);
     updateProfiles(newProfiles, activeProfileName, { team: updatedTeam, shifts: updatedShifts });
   }, [activeProfile, activeProfileName, profiles, updateProfiles]);
-  
-  const addTimetableTask = useCallback((task: Omit<TimetableTask, 'id'>) => {
-      if (!activeProfile) return;
-      const newProfiles = profiles.map(p => {
-          if (p.name === activeProfileName) {
-              const newTasks = [...(p.timetableTasks || []), { id: crypto.randomUUID(), ...task }];
-              return { ...p, timetableTasks: newTasks };
-          }
-          return p;
-      });
-      updateProfiles(newProfiles, activeProfileName, { timetableTasks: newProfiles.find(p => p.name === activeProfileName)?.timetableTasks });
-  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
-
-  const updateTimetableTask = useCallback((updatedTask: TimetableTask) => {
-      if (!activeProfile) return;
-      const newProfiles = profiles.map(p => {
-          if (p.name === activeProfileName) {
-              const newTasks = (p.timetableTasks || []).map(t => t.id === updatedTask.id ? updatedTask : t);
-              return { ...p, timetableTasks: newTasks };
-          }
-          return p;
-      });
-      updateProfiles(newProfiles, activeProfileName, { timetableTasks: newProfiles.find(p => p.name === activeProfileName)?.timetableTasks });
-  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
-
-  const deleteTimetableTask = useCallback((taskId: string) => {
-      if (!activeProfile) return;
-      const newProfiles = profiles.map(p => {
-          if (p.name === activeProfileName) {
-              const newTasks = (p.timetableTasks || []).filter(t => t.id !== taskId);
-              return { ...p, timetableTasks: newTasks };
-          }
-          return p;
-      });
-      updateProfiles(newProfiles, activeProfileName, { timetableTasks: newProfiles.find(p => p.name === activeProfileName)?.timetableTasks });
-  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
-  
-  const updateTimetableSettings = useCallback((settings: { slotInterval: number }) => {
-      if (!activeProfile) return;
-      const newProfiles = profiles.map(p => {
-          if (p.name === activeProfileName) {
-              return { ...p, timetableSettings: settings };
-          }
-          return p;
-      });
-      updateProfiles(newProfiles, activeProfileName, { timetableSettings: settings });
-  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
-
 
   const exportData = useCallback(() => {
     if (typeof window === 'undefined' || profiles.length === 0) {
@@ -1144,7 +1092,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addProject, updateProject, deleteProject, updateTimesheetEntry, setTimesheetData,
     addExamCountdown, updateExamCountdown, deleteExamCountdown, setExamCountdowns,
     addTimeOffRequest, addShift, updateShift, deleteShift, addTeamMember, updateTeamMember, deleteTeamMember,
-    addTimetableTask, updateTimetableTask, deleteTimetableTask, updateTimetableSettings,
     exportData, importData, signOutUser, refreshUserDoc,
     theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth,
     showProgressDownloadPrompt, setShowProgressDownloadPrompt,
@@ -1159,7 +1106,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addProject, updateProject, deleteProject, updateTimesheetEntry, setTimesheetData,
     addExamCountdown, updateExamCountdown, deleteExamCountdown, setExamCountdowns,
     addTimeOffRequest, addShift, updateShift, deleteShift, addTeamMember, updateTeamMember, deleteTeamMember,
-    addTimetableTask, updateTimetableTask, deleteTimetableTask, updateTimetableSettings,
     exportData, importData, signOutUser, refreshUserDoc,
     theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth, setActiveSubjectName,
     showProgressDownloadPrompt
