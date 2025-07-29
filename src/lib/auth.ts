@@ -163,23 +163,11 @@ export const getUserData = async (uid: string): Promise<UserData | null> => {
     return null;
 }
 
+// A more flexible type for saving partial profile data to Firestore.
 type UserDataToSave = Partial<{
   profiles: Profile[];
   activeProfileName: string | null;
-  subjects: Subject[];
-  plannerNotes: Record<string, string>;
-  notes: Note[];
-  importantLinks: ImportantLink[];
-  todos: SmartTodo[];
-  simpleTodos: SimpleTodo[];
-  progressHistory: ProgressPoint[];
-  questionSessions: QuestionSession[];
-  examCountdowns: ExamCountdown[];
-  timeEntries: TimeEntry[];
-  projects: Project[];
-  timesheetData: TimesheetData;
-  timeOffPolicies: TimeOffPolicy[];
-  timeOffRequests: TimeOffRequest[];
+  [key: string]: any; // Allow any other profile properties to be included
 }>;
 
 
@@ -188,5 +176,15 @@ export const saveUserData = async (uid: string, data: UserDataToSave) => {
         throw new Error(FIREBASE_NOT_CONFIGURED_ERROR);
     }
     const userDocRef = doc(db, 'users', uid);
-    await setDoc(userDocRef, data, { merge: true });
+    
+    // We create a mutable copy to avoid issues with read-only properties
+    const dataToSave = { ...data };
+
+    // If the data includes profile-specific fields (like 'subjects', 'notes', etc.),
+    // we need to merge them into the correct profile within the 'profiles' array in Firestore.
+    // This is a simplified approach. For complex nested updates, a more robust
+    // transaction or specific update logic would be better.
+    // For now, we'll rely on the `updateProfiles` in DataContext to send the whole `profiles` array.
+    
+    await setDoc(userDocRef, dataToSave, { merge: true });
 };

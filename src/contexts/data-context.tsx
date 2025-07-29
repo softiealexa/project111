@@ -176,8 +176,6 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
             timeOffRequests: profile.timeOffRequests || [],
             team: profile.team || [{ id: '1', name: 'You' }],
             shifts: profile.shifts || [],
-            timetableTasks: profile.timetableTasks || [],
-            timetableSettings: profile.timetableSettings || { slotInterval: 15 },
         };
     });
 };
@@ -317,7 +315,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return { ...profile, progressHistory: history };
   }, [calculateOverallProgress]);
 
-  const updateProfiles = useCallback((newProfiles: Profile[], newActiveProfileName: string | null, dataToSync: DataToSave) => {
+  const updateProfiles = useCallback((newProfiles: Profile[], newActiveProfileName: string | null, dataToSync?: DataToSave) => {
     const profileToUpdate = newProfiles.find(p => p.name === newActiveProfileName);
     let profilesToSave = newProfiles;
 
@@ -327,7 +325,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
     
     setProfiles(profilesToSave);
-    saveData({ ...dataToSync, profiles: profilesToSave, activeProfileName: newActiveProfileName });
+
+    // If specific data is provided to sync, use it. Otherwise, sync the entire profiles array.
+    const finalDataToSync = dataToSync 
+        ? { ...dataToSync, profiles: profilesToSave }
+        : { profiles: profilesToSave };
+
+    saveData({ ...finalDataToSync, activeProfileName: newActiveProfileName });
   }, [saveData, updateProfileWithProgress]);
 
 
@@ -340,11 +344,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (!hasTodayEntry) {
          const updatedProfile = updateProfileWithProgress(activeProfile);
          const newProfiles = profiles.map(p => p.name === activeProfileName ? updatedProfile : p);
-         setProfiles(newProfiles);
-         saveData({ progressHistory: updatedProfile.progressHistory });
+         updateProfiles(newProfiles, activeProfileName, { progressHistory: updatedProfile.progressHistory });
       }
     }
-  }, [activeProfile, loading, profiles, activeProfileName, updateProfileWithProgress, saveData]);
+  }, [activeProfile, loading, profiles, activeProfileName, updateProfileWithProgress, updateProfiles]);
 
 
   useEffect(() => {
