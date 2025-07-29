@@ -251,15 +251,14 @@ export function CustomizationSheet() {
 
     useEffect(() => {
         if (activeProfile) {
-            if (activeProfile.subjects.some(s => s.name === activeSubjectName)) {
-                setSelectedSubjectName(activeSubjectName);
-            } else if (activeProfile.subjects.length > 0) {
-                setSelectedSubjectName(activeProfile.subjects[0].name);
-            } else {
+            const subjectExists = activeProfile.subjects.some(s => s.name === selectedSubjectName);
+            if (activeProfile.subjects.length > 0 && !subjectExists) {
+                 setSelectedSubjectName(activeProfile.subjects[0].name);
+            } else if (activeProfile.subjects.length === 0) {
                 setSelectedSubjectName(null);
             }
         }
-    }, [activeProfile, activeSubjectName]);
+    }, [activeProfile, selectedSubjectName]);
 
 
     const selectedSubject = activeProfile?.subjects.find(s => s.name === selectedSubjectName);
@@ -460,7 +459,12 @@ export function CustomizationSheet() {
                                                 id={subject.name} 
                                                 subject={subject} 
                                                 onRemove={() => removeSubject(subject.name)} 
-                                                onRename={(newName) => renameSubject(subject.name, newName)}
+                                                onRename={(newName) => {
+                                                    if (selectedSubjectName === subject.name) {
+                                                        setSelectedSubjectName(newName);
+                                                    }
+                                                    renameSubject(subject.name, newName);
+                                                }}
                                                 existingSubjectNames={activeProfile.subjects.map(s => s.name)}
                                             />
                                         )) : (

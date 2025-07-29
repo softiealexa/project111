@@ -34,6 +34,7 @@ import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Calendar } from './ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Badge } from './ui/badge';
+import { Checkbox } from './ui/checkbox';
 
 const priorityColors: Record<Priority, string> = {
   High: 'bg-red-500/10 text-red-500 border-red-500/20',
@@ -47,7 +48,7 @@ const deadlineColors = {
     default: '',
 };
 
-function SortableTodoItem({ todo, onToggle, onDelete }: { todo: SimpleTodo; onToggle: (id: string, newStatus: TaskStatus) => void; onDelete: (id: string) => void; }) {
+function SortableTodoItem({ todo, onToggle, onDelete }: { todo: SimpleTodo; onToggle: (id: string) => void; onDelete: (id: string) => void; }) {
   const {
     attributes,
     listeners,
@@ -72,26 +73,17 @@ function SortableTodoItem({ todo, onToggle, onDelete }: { todo: SimpleTodo; onTo
     return 'default';
   }, [todo.deadline, todo.status]);
   
-  const isChecked = todo.status !== 'unchecked';
-
   return (
     <div ref={setNodeRef} style={style} {...attributes} className={cn("group flex items-center gap-3 p-2 rounded-md transition-colors hover:bg-muted/50", isDragging && "shadow-lg bg-card")}>
       <span {...listeners} className="cursor-grab touch-none text-muted-foreground hover:text-foreground p-1">
         <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5.5 4.625C5.5 4.34886 5.27614 4.125 5 4.125C4.72386 4.125 4.5 4.34886 4.5 4.625V10.375C4.5 10.6511 4.72386 10.875 5 10.875C5.27614 10.875 5.5 10.6511 5.5 10.375V4.625ZM10.5 4.625C10.5 4.34886 10.2761 4.125 10 4.125C9.72386 4.125 9.5 4.34886 9.5 4.625V10.375C9.5 10.6511 9.72386 10.875 10 10.875C10.2761 10.875 10.5 10.6511 10.5 10.375V4.625Z" fill="currentColor"></path></svg>
       </span>
-      <CheckboxPrimitive.Root
+      <Checkbox
         id={`task-${todo.id}`}
-        checked={isChecked}
-        onCheckedChange={(checked) => {
-            onToggle(todo.id, checked ? 'checked' : 'unchecked');
-        }}
-        className="peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+        checked={todo}
+        onCheckedChange={() => onToggle(todo.id)}
         aria-label={`Mark task as ${todo.status !== 'unchecked' ? 'incomplete' : 'complete'}`}
-      >
-        <CheckboxPrimitive.Indicator className={cn("flex items-center justify-center text-current")}>
-            <Check className="h-4 w-4" />
-        </CheckboxPrimitive.Indicator>
-      </CheckboxPrimitive.Root>
+      />
       <Label htmlFor={`task-${todo.id}`} className={cn("flex-grow cursor-pointer", todo.status !== 'unchecked' && "line-through text-muted-foreground")}>
         {todo.text}
       </Label>
@@ -143,16 +135,17 @@ export default function SimpleTodoList() {
     setPriority('Medium');
   };
 
-  const handleToggleTask = (taskId: string, newStatus: TaskStatus) => {
+  const handleToggleTask = (taskId: string) => {
     const task = allTasks.find(t => t.id === taskId);
     if (task) {
-      const updatedTask: SimpleTodo = { ...task, status: newStatus };
-      if (newStatus === 'checked') {
-          updatedTask.completedAt = Date.now();
-      } else {
-          delete updatedTask.completedAt;
-      }
-      updateSimpleTodo(updatedTask);
+        const newStatus: TaskStatus = task.status === 'unchecked' ? 'checked' : 'unchecked';
+        const updatedTask: SimpleTodo = { ...task, status: newStatus };
+        if (newStatus === 'checked') {
+            updatedTask.completedAt = Date.now();
+        } else {
+            delete updatedTask.completedAt;
+        }
+        updateSimpleTodo(updatedTask);
     }
   };
 

@@ -162,6 +162,12 @@ export default function DashboardClient() {
                     <LectureTracker subject={subject} />
                   </TabsContent>
                 ))}
+                 {(!activeSubjectName || !activeProfile.subjects.some(s => s.name === activeSubjectName)) && (
+                    <div className="text-center py-12 flex flex-col items-center gap-4 mt-6">
+                      <h2 className="text-2xl font-headline">Select a Subject</h2>
+                      <p className="text-muted-foreground">Choose a subject from the tabs above to view its details.</p>
+                    </div>
+                  )}
               </Tabs>
             </TabsContent>
 
