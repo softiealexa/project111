@@ -21,6 +21,7 @@ import Navbar from '@/components/navbar';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { EditorToolbar } from '@/components/editor-toolbar';
+import { TextFormatter } from '@/lib/editor-utils';
 
 function NoteItem({ note, onSelect, onDelete, isActive }: { note: Note, onSelect: () => void, onDelete: (e: React.MouseEvent) => void, isActive: boolean }) {
     const summary = note.content.substring(0, 100).replace(/#+\s/g, '') + (note.content.length > 100 ? '...' : '');
@@ -118,6 +119,7 @@ export default function NotesPage() {
 
     const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
         if (event.metaKey || event.ctrlKey) {
+            const formatter = new TextFormatter(textareaRef, setContent);
             if (event.shiftKey && event.key.toLowerCase() === 'a') {
                 event.preventDefault();
                 handleNewNote();
@@ -129,15 +131,15 @@ export default function NotesPage() {
                     break;
                 case 'b':
                     event.preventDefault();
-                    textareaRef.current && new EditorToolbar({ textareaRef, setContent }).applyFormatting('**');
+                    formatter.applyFormatting('**');
                     break;
                 case 'i':
                     event.preventDefault();
-                    textareaRef.current && new EditorToolbar({ textareaRef, setContent }).applyFormatting('*');
+                    formatter.applyFormatting('*');
                     break;
                 case 'k':
                     event.preventDefault();
-                    textareaRef.current && new EditorToolbar({ textareaRef, setContent }).applyFormatting('[', '](url)', 'link text');
+                    formatter.applyFormatting('[', '](url)', 'link text');
                     break;
             }
         }
