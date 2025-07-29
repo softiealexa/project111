@@ -157,8 +157,7 @@ export default function SmartTodoList() {
                   </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                  <style>{`
-                        .has-task:not([aria-selected]):after {
+                  <style>{`.has-task:not([aria-selected]):after {
                             content: '';
                             position: absolute;
                             bottom: 6px;
@@ -168,8 +167,7 @@ export default function SmartTodoList() {
                             height: 5px;
                             border-radius: 50%;
                             background-color: hsl(var(--primary));
-                        }
-                    `}</style>
+                        }`}</style>
                   <Calendar
                       mode="single"
                       selected={selectedDay}

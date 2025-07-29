@@ -78,7 +78,7 @@ function SortableTodoItem({ todo, onToggle, onDelete }: { todo: SimpleTodo; onTo
       </span>
       <Checkbox
         id={`task-${todo.id}`}
-        checked={todo}
+        checked={todo.status !== 'unchecked'}
         onCheckedChange={() => onToggle(todo.id)}
         aria-label={`Mark task as ${todo.status !== 'unchecked' ? 'incomplete' : 'complete'}`}
       />
