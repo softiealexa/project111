@@ -18,18 +18,16 @@ interface KeyboardShortcutsProps {
 
 const shortcuts = {
   "Global": [
-    { keys: ['Cmd', 'B'], description: "Toggle Customization Sidebar" },
+    { keys: ['Cmd', '.'], description: "Toggle Customization Sidebar" },
     { keys: ['Cmd', ','], description: "Open Settings Page" },
-    { keys: ['Cmd', 'Shift', 'N'], description: "Go to Notes Page" },
-    { keys: ['Cmd', 'Shift', 'C'], description: "Go to Clockify Page" },
     { keys: ['Esc'], description: "Close any open dialog or pop-up" },
   ],
   "Dashboard": [
     { keys: ['Cmd', '1/2/3'], description: "Switch between Subjects/Progress/Tools tabs" },
-    { keys: ['Cmd', '←/→'], description: "Cycle through Subject or Tool tabs" },
+    { keys: ['Ctrl', '←/→'], description: "Cycle through Subject or Tool tabs" },
   ],
   "Notes Page": [
-    { keys: ['Cmd', 'N'], description: "Create a New Note" },
+    { keys: ['Cmd', 'Shift', 'A'], description: "Create a New Note" },
     { keys: ['Cmd', 'S'], description: "Manually Save the Current Note" },
     { keys: ['Cmd', 'B'], description: "Format selected text as Bold" },
     { keys: ['Cmd', 'I'], description: "Format selected text as Italic" },
@@ -81,3 +79,4 @@ export function KeyboardShortcuts({ open, onOpenChange }: KeyboardShortcutsProps
     </Dialog>
   );
 }
+

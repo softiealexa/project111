@@ -118,14 +118,14 @@ export default function NotesPage() {
 
     const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
         if (event.metaKey || event.ctrlKey) {
-            switch (event.key) {
+            if (event.shiftKey && event.key.toLowerCase() === 'a') {
+                event.preventDefault();
+                handleNewNote();
+            }
+            switch (event.key.toLowerCase()) {
                 case 's':
                     event.preventDefault();
                     handleSave();
-                    break;
-                case 'n':
-                    event.preventDefault();
-                    handleNewNote();
                     break;
                 case 'b':
                     event.preventDefault();

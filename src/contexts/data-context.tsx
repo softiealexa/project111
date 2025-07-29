@@ -245,18 +245,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
                     event.preventDefault();
                     router.push('/settings');
                     break;
-                case 'n':
-                    if (event.shiftKey) {
-                       event.preventDefault();
-                       router.push('/notes');
-                    }
-                    break;
-                case 'c':
-                    if (event.shiftKey) {
-                        event.preventDefault();
-                        router.push('/clockify');
-                    }
-                    break;
             }
         }
     };

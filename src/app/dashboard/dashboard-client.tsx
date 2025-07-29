@@ -144,8 +144,20 @@ export default function DashboardClient() {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-        if (event.metaKey || event.ctrlKey) {
+        if (event.ctrlKey) { // Changed from metaKey/ctrlKey to just ctrlKey to avoid browser history conflict
             switch (event.key) {
+                case 'ArrowRight':
+                    event.preventDefault();
+                    handleCycleTabs('next');
+                    break;
+                case 'ArrowLeft':
+                    event.preventDefault();
+                    handleCycleTabs('prev');
+                    break;
+            }
+        }
+        if (event.metaKey || event.ctrlKey) {
+             switch (event.key) {
                 case '1':
                     setMainTab(mainTabs[0]);
                     break;
@@ -154,14 +166,6 @@ export default function DashboardClient() {
                     break;
                 case '3':
                     setMainTab(mainTabs[2]);
-                    break;
-                case 'ArrowRight':
-                    event.preventDefault();
-                    handleCycleTabs('next');
-                    break;
-                case 'ArrowLeft':
-                    event.preventDefault();
-                    handleCycleTabs('prev');
                     break;
             }
         }
