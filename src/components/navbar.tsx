@@ -68,19 +68,7 @@ export default function Navbar() {
                         <p>Timetable</p>
                       </TooltipContent>
                     </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                         <Button asChild variant="ghost" size="icon">
-                          <Link href="/notes">
-                            <FileText className="h-5 w-5" />
-                            <span className="sr-only">Notes</span>
-                          </Link>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Notes</p>
-                      </TooltipContent>
-                    </Tooltip>
+                    
                     <Tooltip>
                       <TooltipTrigger asChild>
                          <Button asChild variant="ghost" size="icon">
@@ -133,10 +121,7 @@ export default function Navbar() {
                           <CalendarClock className="mr-2 h-4 w-4" />
                           <span>Timetable</span>
                         </DropdownMenuItem>
-                         <DropdownMenuItem onSelect={() => router.push('/notes')}>
-                          <FileText className="mr-2 h-4 w-4" />
-                          <span>Notes</span>
-                        </DropdownMenuItem>
+                         
                          <DropdownMenuItem onSelect={() => router.push('/clockify')}>
                           <Clock className="mr-2 h-4 w-4" />
                           <span>Clockify</span>
