@@ -11,7 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ShieldAlert, Users, LoaderCircle, MessageSquare, ChevronDown, Archive, ChevronLeft, ChevronRight, Pencil, DownloadCloud } from 'lucide-react';
 import { collection, query, orderBy, Timestamp, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { AppUser, Feedback, FeedbackStatus } from '@/lib/types';
+import type { AppUser, Feedback, FeedbackStatus, CheckedState } from '@/lib/types';
 import Navbar from '@/components/navbar';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import {
@@ -383,8 +383,8 @@ export default function AdminPage() {
                                         <TableRow>
                                             <TableHead className="w-[50px]">
                                                 <Checkbox
-                                                    checked={{status: allOnPageSelected ? 'checked' : 'unchecked'}}
-                                                    onCheckedChange={(status) => handleSelectAllOnPage(status.status === 'checked')}
+                                                    checked={allOnPageSelected}
+                                                    onCheckedChange={(checked) => handleSelectAllOnPage(!!checked)}
                                                     aria-label="Select all on page"
                                                 />
                                             </TableHead>
@@ -400,8 +400,8 @@ export default function AdminPage() {
                                             <TableRow key={appUser.uid} data-state={selectedUsers.includes(appUser.uid) && "selected"}>
                                                 <TableCell>
                                                     <Checkbox
-                                                        checked={{ status: selectedUsers.includes(appUser.uid) ? 'checked' : 'unchecked'}}
-                                                        onCheckedChange={(status) => handleSelectUser(appUser.uid, status.status === 'checked')}
+                                                        checked={selectedUsers.includes(appUser.uid)}
+                                                        onCheckedChange={(checked) => handleSelectUser(appUser.uid, !!checked)}
                                                         aria-label={`Select user ${appUser.username}`}
                                                     />
                                                 </TableCell>
@@ -518,3 +518,4 @@ export default function AdminPage() {
         </TooltipProvider>
     );
 }
+

@@ -38,11 +38,10 @@ const Checkbox = React.forwardRef<
   };
 
   let isChecked: boolean;
-  let currentStatus: 'checked' | 'checked-red' | 'unchecked';
+  let currentStatus: 'checked' | 'checked-red' | 'unchecked' | undefined;
 
   if (typeof checked === 'boolean') {
       isChecked = checked;
-      currentStatus = checked ? 'checked' : 'unchecked';
   } else {
       currentStatus = (checked as any).status;
       isChecked = currentStatus === 'checked' || currentStatus === 'checked-red';
@@ -52,13 +51,17 @@ const Checkbox = React.forwardRef<
     <CheckboxPrimitive.Root
       ref={ref}
       checked={isChecked}
-      onCheckedChange={handleStateChange}
+      onCheckedChange={typeof checked === 'boolean' ? (val) => onCheckedChange(!!val) : handleStateChange}
       className={cn(
         "peer h-4 w-4 shrink-0 rounded-full border ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
         "data-[state=checked]:text-primary-foreground",
         currentStatus === 'checked' && "bg-primary border-primary",
         currentStatus === 'checked-red' && "bg-destructive border-destructive",
         currentStatus === 'unchecked' && "border-primary",
+        // Handle simple boolean case
+        typeof checked === 'boolean' && 'rounded-sm',
+        typeof checked === 'boolean' && isChecked && 'bg-primary border-primary',
+        typeof checked === 'boolean' && !isChecked && 'border-primary',
         className
       )}
       {...props}
