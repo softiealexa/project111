@@ -14,7 +14,7 @@ interface AuthResult {
 
 /**
  * Recursively removes properties with `undefined` values from an object.
- * Firestore does not support `undefined` values.
+ * Firestore does not support `undefined` values. It correctly handles `null`.
  */
 function removeUndefined(obj: any): any {
   if (obj === null || typeof obj !== 'object') {

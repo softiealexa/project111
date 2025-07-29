@@ -275,7 +275,8 @@ export default function AdminPage() {
         setCurrentPage(1); // Reset to first page
     };
 
-    const handleSelectUser = (userId: string, isSelected: boolean) => {
+    const handleSelectUser = (userId: string, checkedStatus: boolean | CheckedState) => {
+        const isSelected = typeof checkedStatus === 'boolean' ? checkedStatus : checkedStatus.status !== 'unchecked';
         if (isSelected) {
             setSelectedUsers(prev => [...prev, userId]);
         } else {
@@ -283,7 +284,8 @@ export default function AdminPage() {
         }
     };
 
-    const handleSelectAllOnPage = (isSelected: boolean) => {
+    const handleSelectAllOnPage = (checkedStatus: boolean | CheckedState) => {
+        const isSelected = typeof checkedStatus === 'boolean' ? checkedStatus : checkedStatus.status !== 'unchecked';
         const pageUserIds = paginatedUsers.map(u => u.uid);
         if (isSelected) {
             setSelectedUsers(prev => [...new Set([...prev, ...pageUserIds])]);
@@ -384,7 +386,7 @@ export default function AdminPage() {
                                             <TableHead className="w-[50px]">
                                                 <Checkbox
                                                     checked={allOnPageSelected}
-                                                    onCheckedChange={(checked) => handleSelectAllOnPage(!!checked)}
+                                                    onCheckedChange={handleSelectAllOnPage}
                                                     aria-label="Select all on page"
                                                 />
                                             </TableHead>
@@ -401,7 +403,7 @@ export default function AdminPage() {
                                                 <TableCell>
                                                     <Checkbox
                                                         checked={selectedUsers.includes(appUser.uid)}
-                                                        onCheckedChange={(checked) => handleSelectUser(appUser.uid, !!checked)}
+                                                        onCheckedChange={(checked) => handleSelectUser(appUser.uid, checked)}
                                                         aria-label={`Select user ${appUser.username}`}
                                                     />
                                                 </TableCell>

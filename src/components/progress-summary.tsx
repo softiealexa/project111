@@ -503,13 +503,14 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
     };
   }, [profile, selectedChapters]);
 
-  const handleChapterSelect = useCallback((subjectName: string, chapterName: string, checked: boolean) => {
+  const handleChapterSelect = useCallback((subjectName: string, chapterName: string, checked: boolean | CheckedState) => {
+    const isSelected = typeof checked === 'boolean' ? checked : checked.status !== 'unchecked';
     const allChapterNames = profile.subjects.find(s => s.name === subjectName)?.chapters.map(c => c.name) || [];
     
     setSelectedChapters(prev => {
         const currentSelected = prev[subjectName] ?? allChapterNames;
         
-        const newSelected = checked
+        const newSelected = isSelected
             ? [...currentSelected, chapterName]
             : currentSelected.filter(c => c !== chapterName);
         
@@ -523,10 +524,11 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
     });
   }, [profile.subjects]);
 
-  const handleSelectAll = useCallback((subjectName: string, checked: boolean) => {
+  const handleSelectAll = useCallback((subjectName: string, checked: boolean | CheckedState) => {
+    const isSelected = typeof checked === 'boolean' ? checked : checked.status !== 'unchecked';
     setSelectedChapters(prev => {
         const newState = { ...prev };
-        if (checked) {
+        if (isSelected) {
             delete newState[subjectName];
         } else {
             newState[subjectName] = [];
@@ -695,11 +697,8 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
                                                         <div className="flex items-center space-x-3 p-1 rounded-md transition-colors hover:bg-muted/50">
                                                             <Checkbox
                                                                 id={`${subject.name}-select-all`}
-                                                                checked={{ status: (allChaptersSelected || selectedChapters[subject.name]?.length === subject.chapters.length) ? 'checked' : 'unchecked' }}
-                                                                onCheckedChange={(checked) => {
-                                                                    const isChecked = typeof checked === 'boolean' ? checked : checked.status === 'checked';
-                                                                    handleSelectAll(subject.name, isChecked);
-                                                                }}
+                                                                checked={allChaptersSelected}
+                                                                onCheckedChange={(checked) => handleSelectAll(subject.name, checked)}
                                                             />
                                                             <Label htmlFor={`${subject.name}-select-all`} className="font-semibold text-sm cursor-pointer flex-1">
                                                                 Select All
@@ -710,11 +709,8 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
                                                             <div key={chapter.name} className="flex items-center space-x-3 p-1 rounded-md transition-colors hover:bg-muted/50">
                                                                 <Checkbox 
                                                                     id={`${subject.name}-${chapter.name}`}
-                                                                    checked={{ status: (allChaptersSelected || (selectedChapters[subject.name]?.includes(chapter.name) ?? false)) ? 'checked' : 'unchecked' }}
-                                                                    onCheckedChange={(checked) => {
-                                                                        const isChecked = typeof checked === 'boolean' ? checked : checked.status === 'checked';
-                                                                        handleChapterSelect(subject.name, chapter.name, isChecked);
-                                                                    }}
+                                                                    checked={allChaptersSelected || (selectedChapters[subject.name]?.includes(chapter.name) ?? false)}
+                                                                    onCheckedChange={(checked) => handleChapterSelect(subject.name, chapter.name, checked)}
                                                                 />
                                                                 <Label htmlFor={`${subject.name}-${chapter.name}`} className="font-normal text-sm cursor-pointer flex-1">
                                                                     {chapter.name}

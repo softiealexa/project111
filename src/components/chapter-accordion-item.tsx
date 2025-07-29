@@ -212,7 +212,7 @@ export default function ChapterAccordionItem({ chapter, subject, index, id }: Ch
                             id={`complete-${task}`}
                             checked={false} // Initially unchecked in dialog
                             onCheckedChange={(checked) => {
-                                const isChecked = typeof checked === 'boolean' ? checked : checked.status === 'checked';
+                                const isChecked = typeof checked === 'boolean' ? checked : checked.status !== 'unchecked';
                                 if (isChecked) {
                                   setTasksToComplete(prev => [...prev, task]);
                                 } else {

@@ -3,8 +3,6 @@
 
 import { useState, useMemo } from 'react';
 import { Plus, Trash2, Calendar as CalendarIcon } from 'lucide-react';
-import * as CheckboxPrimitive from "@radix-ui/react-checkbox";
-import { Check } from "lucide-react";
 import {
   DndContext,
   closestCenter,
