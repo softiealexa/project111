@@ -275,15 +275,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [profiles, activeProfileName]);
 
   const calculateOverallProgress = useCallback((profile: Profile): number => {
-    if (!profile || profile.subjects.length === 0) return 0;
-    
+    if (!profile || !profile.subjects || profile.subjects.length === 0) return 0;
+
     const subjectProgressions = profile.subjects.map(subject => {
         const tasksPerLecture = subject.tasks?.length || 0;
-        if (tasksPerLecture === 0) return 0;
+        if (tasksPerLecture === 0) return 0; // Avoid division by zero if a subject has no tasks
 
         let totalTasks = 0;
         let completedTasks = 0;
-        subject.chapters.forEach(chapter => {
+        (subject.chapters || []).forEach(chapter => {
             totalTasks += chapter.lectureCount * tasksPerLecture;
             completedTasks += Object.values(chapter.checkedState || {}).filter(item => item.status === 'checked' || item.status === 'checked-red').length;
         });
@@ -294,7 +294,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const totalProgressSum = subjectProgressions.reduce((acc, curr) => acc + curr, 0);
 
     return profile.subjects.length > 0 ? Math.round(totalProgressSum / profile.subjects.length) : 0;
-  }, []);
+}, []);
 
   const updateProfileWithProgress = useCallback((profile: Profile): Profile => {
     const currentProgress = calculateOverallProgress(profile);
@@ -328,10 +328,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     // If specific data is provided to sync, use it. Otherwise, sync the entire profiles array.
     const finalDataToSync = dataToSync 
-        ? { ...dataToSync, profiles: profilesToSave }
-        : { profiles: profilesToSave };
+        ? { ...dataToSync, profiles: profilesToSave, activeProfileName: newActiveProfileName }
+        : { profiles: profilesToSave, activeProfileName: newActiveProfileName };
 
-    saveData({ ...finalDataToSync, activeProfileName: newActiveProfileName });
+    saveData(finalDataToSync);
   }, [saveData, updateProfileWithProgress]);
 
 
@@ -615,7 +615,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
                             newCheckedState[newKey] = c.checkedState![key];
                         });
                     }
-                    return { ...c, name: newName, checkedState: newCheckedState };
+                    const newLectureNames = { ...(c.lectureNames || {}) };
+                    const newNotes = { ...(c.notes || {}) };
+
+                    Object.keys(c.lectureNames || {}).forEach(key => {
+                        if (key.includes(oldName)) {
+                            const newKey = key.replace(oldName, newName);
+                            newLectureNames[newKey] = c.lectureNames![key];
+                            delete newLectureNames[key];
+                        }
+                    });
+
+                    Object.keys(c.notes || {}).forEach(key => {
+                         if (key.includes(oldName)) {
+                            const newKey = key.replace(oldName, newName);
+                            newNotes[newKey] = c.notes![key];
+                            delete newNotes[key];
+                        }
+                    });
+
+                    return { ...c, name: newName, checkedState: newCheckedState, lectureNames: newLectureNames, notes: newNotes };
                 }
                 return c;
             });
