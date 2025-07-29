@@ -115,6 +115,33 @@ export default function NotesPage() {
             setContent('');
         }
     };
+
+    const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
+        if (event.metaKey || event.ctrlKey) {
+            switch (event.key) {
+                case 's':
+                    event.preventDefault();
+                    handleSave();
+                    break;
+                case 'n':
+                    event.preventDefault();
+                    handleNewNote();
+                    break;
+                case 'b':
+                    event.preventDefault();
+                    textareaRef.current && new EditorToolbar({ textareaRef, setContent }).applyFormatting('**');
+                    break;
+                case 'i':
+                    event.preventDefault();
+                    textareaRef.current && new EditorToolbar({ textareaRef, setContent }).applyFormatting('*');
+                    break;
+                case 'k':
+                    event.preventDefault();
+                    textareaRef.current && new EditorToolbar({ textareaRef, setContent }).applyFormatting('[', '](url)', 'link text');
+                    break;
+            }
+        }
+    }, [handleSave, handleNewNote]);
     
     useEffect(() => {
         if (activeNote) {
@@ -140,7 +167,7 @@ export default function NotesPage() {
 
     return (
         <TooltipProvider>
-            <div className="flex flex-col h-screen">
+            <div className="flex flex-col h-screen" onKeyDown={handleKeyDown}>
                 <Navbar />
                 <div className="flex-1 grid grid-cols-1 md:grid-cols-[300px_1fr] lg:grid-cols-[350px_1fr] overflow-hidden">
                     <aside className="border-r flex flex-col">

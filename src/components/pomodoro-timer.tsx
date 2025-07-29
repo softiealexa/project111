@@ -122,6 +122,20 @@ export default function PomodoroTimer() {
     }
   };
 
+  const handleSpacebar = useCallback((event: KeyboardEvent) => {
+    if (event.code === 'Space') {
+      event.preventDefault();
+      toggleTimer();
+    }
+  }, [isActive]);
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleSpacebar);
+    return () => {
+      window.removeEventListener('keydown', handleSpacebar);
+    };
+  }, [handleSpacebar]);
+
 
   const totalDuration = sessionTimes[sessionType] * 60;
   const progress = totalDuration > 0 ? (totalDuration - time) / totalDuration : 0;

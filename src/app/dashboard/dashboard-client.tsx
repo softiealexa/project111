@@ -68,6 +68,8 @@ const tools = [
   { value: 'countdown', label: 'Exam Countdown', icon: Target },
 ];
 
+const mainTabs = ['subjects', 'progress', 'tools'];
+
 export default function DashboardClient() {
   const { activeProfile, activeSubjectName, setActiveSubjectName } = useData();
   const [currentYear, setCurrentYear] = useState<number | null>(null);
@@ -107,6 +109,67 @@ export default function DashboardClient() {
         setActiveSubjectName(null);
     }
   }, [activeProfile, activeSubjectName, setActiveSubjectName]);
+
+  const handleCycleTabs = useCallback((direction: 'next' | 'prev') => {
+    if (!activeProfile) return;
+
+    let items: string[] = [];
+    let currentItem: string | null = null;
+    let setItem: (name: string) => void;
+
+    if (mainTab === 'subjects') {
+      items = activeProfile.subjects.map(s => s.name);
+      currentItem = activeSubjectName;
+      setItem = setActiveSubjectName;
+    } else if (mainTab === 'tools') {
+      items = tools.map(t => t.value);
+      currentItem = activeTool;
+      setItem = setActiveTool;
+    }
+
+    if (items.length === 0 || !currentItem) return;
+
+    const currentIndex = items.indexOf(currentItem);
+    if (currentIndex === -1) return;
+
+    let nextIndex;
+    if (direction === 'next') {
+      nextIndex = (currentIndex + 1) % items.length;
+    } else {
+      nextIndex = (currentIndex - 1 + items.length) % items.length;
+    }
+
+    setItem(items[nextIndex]);
+  }, [activeProfile, mainTab, activeSubjectName, activeTool, setActiveSubjectName, setActiveTool]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+        if (event.metaKey || event.ctrlKey) {
+            switch (event.key) {
+                case '1':
+                    setMainTab(mainTabs[0]);
+                    break;
+                case '2':
+                    setMainTab(mainTabs[1]);
+                    break;
+                case '3':
+                    setMainTab(mainTabs[2]);
+                    break;
+                case 'ArrowRight':
+                    event.preventDefault();
+                    handleCycleTabs('next');
+                    break;
+                case 'ArrowLeft':
+                    event.preventDefault();
+                    handleCycleTabs('prev');
+                    break;
+            }
+        }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleCycleTabs]);
 
 
   if (!activeProfile) {

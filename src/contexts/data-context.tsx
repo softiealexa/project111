@@ -2,7 +2,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback, Suspense, lazy } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
 import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, SimpleTodo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus, CheckedState, ExamCountdown, TimeOffPolicy, TimeOffRequest, Shift, TeamMember } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
@@ -189,6 +189,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [activeSubjectName, setActiveSubjectName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const router = useRouter();
   const pathname = usePathname();
 
   const [theme, setThemeState] = useState<string>('default');
@@ -235,6 +236,34 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     setIsThemeHydrated(true);
   }, [setTheme, setMode, setSidebarWidth]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+        if (event.metaKey || event.ctrlKey) {
+            switch (event.key) {
+                case ',':
+                    event.preventDefault();
+                    router.push('/settings');
+                    break;
+                case 'n':
+                    if (event.shiftKey) {
+                       event.preventDefault();
+                       router.push('/notes');
+                    }
+                    break;
+                case 'c':
+                    if (event.shiftKey) {
+                        event.preventDefault();
+                        router.push('/clockify');
+                    }
+                    break;
+            }
+        }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [router]);
 
   useEffect(() => {
     if (loading) return;

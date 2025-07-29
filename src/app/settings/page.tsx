@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { LoaderCircle, User, Palette, Shield, Download, Upload, MessageSquarePlus, Moon, Sun, Check, LogOut, ArrowLeft, Database } from 'lucide-react';
+import { LoaderCircle, User, Palette, Shield, Download, Upload, MessageSquarePlus, Moon, Sun, Check, LogOut, ArrowLeft, Database, Keyboard } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -22,6 +22,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { LoadingSpinner } from '@/components/loading-spinner';
 
 const ContactDialog = dynamic(() => import('@/components/contact-dialog').then(mod => mod.ContactDialog));
+const KeyboardShortcuts = dynamic(() => import('@/components/keyboard-shortcuts').then(mod => mod.KeyboardShortcuts));
 
 // Profile Tab Component
 const ProfileTab = ({ onContactClick }: { onContactClick: () => void }) => {
@@ -207,7 +208,7 @@ const AppearanceTab = () => {
 
 
 // Account Tab
-const AccountTab = ({ onContactOpenChange }: { onContactOpenChange: (open: boolean) => void }) => {
+const AccountTab = ({ onContactOpenChange, onShortcutsOpenChange }: { onContactOpenChange: (open: boolean) => void, onShortcutsOpenChange: (open: boolean) => void }) => {
     const { signOutUser } = useData();
     const router = useRouter();
 
@@ -223,6 +224,15 @@ const AccountTab = ({ onContactOpenChange }: { onContactOpenChange: (open: boole
                 <CardDescription>Manage your account settings and sessions.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+                 <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div>
+                        <h4 className="font-medium">Keyboard Shortcuts</h4>
+                        <p className="text-sm text-muted-foreground">View and learn the available shortcuts.</p>
+                    </div>
+                    <Button onClick={() => onShortcutsOpenChange(true)}>
+                        <Keyboard className="mr-2" /> Show Shortcuts
+                    </Button>
+                </div>
                 <div className="flex items-center justify-between rounded-lg border p-4">
                     <div>
                         <h4 className="font-medium">Contact Developer</h4>
@@ -307,6 +317,7 @@ export default function SettingsPage() {
   const { user, loading } = useData();
   const router = useRouter();
   const [isContactOpen, setIsContactOpen] = useState(false);
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
 
   if (loading) {
     return (
@@ -354,7 +365,10 @@ export default function SettingsPage() {
             <AppearanceTab />
           </TabsContent>
           <TabsContent value="account">
-            <AccountTab onContactOpenChange={setIsContactOpen} />
+            <AccountTab 
+                onContactOpenChange={setIsContactOpen} 
+                onShortcutsOpenChange={setIsShortcutsOpen} 
+            />
           </TabsContent>
           <TabsContent value="data">
             <DataTab />
@@ -364,6 +378,9 @@ export default function SettingsPage() {
       <Suspense>
         {isContactOpen && (
           <ContactDialog open={isContactOpen} onOpenChange={setIsContactOpen} />
+        )}
+        {isShortcutsOpen && (
+          <KeyboardShortcuts open={isShortcutsOpen} onOpenChange={setIsShortcutsOpen} />
         )}
       </Suspense>
     </TooltipProvider>
