@@ -355,8 +355,8 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
     }, [profile, selectedDay]);
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="flex justify-center">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="flex justify-center md:col-span-1">
                  <Calendar
                     mode="single"
                     selected={selectedDay}
@@ -364,7 +364,7 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
                     className="rounded-md border"
                 />
             </div>
-            <Card>
+            <Card className="md:col-span-2">
                 <CardHeader>
                     <CardTitle>Log for {format(selectedDay, 'PPP')}</CardTitle>
                     <CardDescription>A chronological list of all tasks completed on this day.</CardDescription>
