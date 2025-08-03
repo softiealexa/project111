@@ -40,11 +40,12 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
-import { addDays, format, startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
+import { addDays, format, startOfWeek, endOfWeek, isWithinInterval, isSameDay, startOfDay } from "date-fns";
 import { getIconComponent } from "@/lib/icons";
 import { Progress } from "./ui/progress";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
+import { Calendar } from "./ui/calendar";
 
 const getProgress = (chapters: Chapter[], tasksPerLecture: number) => {
     if (tasksPerLecture === 0) return 0;
@@ -323,6 +324,85 @@ function WeeklyProgressDashboard({ profile }: { profile: Profile }) {
     );
 }
 
+function DailyLogDashboard({ profile }: { profile: Profile }) {
+    const [selectedDay, setSelectedDay] = useState<Date>(startOfDay(new Date()));
+
+    const dailyLog = useMemo(() => {
+        const completedTasks: any[] = [];
+        profile.subjects.forEach(subject => {
+            const Icon = getIconComponent(subject.icon);
+            subject.chapters.forEach(chapter => {
+                const checkedState = chapter.checkedState || {};
+                Object.entries(checkedState).forEach(([key, value]) => {
+                    if (value.completedAt && isSameDay(new Date(value.completedAt), selectedDay)) {
+                        const parts = key.split('-');
+                        const taskName = parts[parts.length - 1];
+                        const lectureNum = parts[parts.length - 2];
+                        completedTasks.push({
+                            id: key,
+                            subjectName: subject.name,
+                            chapterName: chapter.name,
+                            lectureNum,
+                            taskName,
+                            completedAt: value.completedAt,
+                            Icon: Icon,
+                        });
+                    }
+                });
+            });
+        });
+        return completedTasks.sort((a, b) => b.completedAt - a.completedAt);
+    }, [profile, selectedDay]);
+
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-1 flex justify-center">
+                 <Calendar
+                    mode="single"
+                    selected={selectedDay}
+                    onSelect={(day) => day && setSelectedDay(startOfDay(day))}
+                    className="rounded-md border"
+                />
+            </div>
+            <Card className="lg:col-span-2">
+                <CardHeader>
+                    <CardTitle>Log for {format(selectedDay, 'PPP')}</CardTitle>
+                    <CardDescription>A chronological list of all tasks completed on this day.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {dailyLog.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center rounded-md border-2 border-dashed py-12 text-center">
+                            <ListChecks className="h-10 w-10 text-muted-foreground mb-4"/>
+                            <h3 className="text-lg font-medium text-muted-foreground">No Activity Found</h3>
+                            <p className="text-sm text-muted-foreground">You didn't complete any tasks on this day.</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-4 max-h-[400px] overflow-y-auto pr-3">
+                            {dailyLog.map(log => (
+                                <div key={log.id} className="flex items-center gap-4 p-3 rounded-md bg-muted/40">
+                                    <log.Icon className="h-5 w-5 text-primary"/>
+                                    <div className="flex-1">
+                                        <p className="font-medium text-sm text-foreground">
+                                            {log.taskName} - {log.subjectName}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                            {log.chapterName}, {log.lectureNum}
+                                        </p>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground font-mono">
+                                        {format(new Date(log.completedAt), 'p')}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
+
+
 export default function ProgressSummary({ profile }: { profile: Profile }) {
   const [chartType, setChartType] = useState("bar");
   const [selectedChapters, setSelectedChapters] = useState<Record<string, string[]>>({});
@@ -543,9 +623,10 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
 
   return (
      <Tabs defaultValue="overall" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-6">
+        <TabsList className="grid w-full grid-cols-3 mb-6">
           <TabsTrigger value="overall">Overall</TabsTrigger>
           <TabsTrigger value="weekly">Weekly</TabsTrigger>
+          <TabsTrigger value="daily">Daily Log</TabsTrigger>
         </TabsList>
         <TabsContent value="overall" className="space-y-6">
             <StatsDashboard title="Lifetime Stats" stats={overallStats} data={[]} />
@@ -846,6 +927,9 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
         </TabsContent>
         <TabsContent value="weekly">
             <WeeklyProgressDashboard profile={profile} />
+        </TabsContent>
+        <TabsContent value="daily">
+            <DailyLogDashboard profile={profile} />
         </TabsContent>
     </Tabs>
   );
