@@ -355,8 +355,8 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
     }, [profile, selectedDay]);
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-1 flex justify-center">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="flex justify-center">
                  <Calendar
                     mode="single"
                     selected={selectedDay}
@@ -364,7 +364,7 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
                     className="rounded-md border"
                 />
             </div>
-            <Card className="lg:col-span-2">
+            <Card>
                 <CardHeader>
                     <CardTitle>Log for {format(selectedDay, 'PPP')}</CardTitle>
                     <CardDescription>A chronological list of all tasks completed on this day.</CardDescription>
@@ -379,8 +379,10 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
                     ) : (
                         <div className="space-y-4 max-h-[400px] overflow-y-auto pr-3">
                             {dailyLog.map(log => (
-                                <div key={log.id} className="flex items-center gap-4 p-3 rounded-md bg-muted/40">
-                                    <log.Icon className="h-5 w-5 text-primary"/>
+                                <div key={log.id} className="flex items-center gap-4 p-3 rounded-md bg-muted/40 border">
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                                        <log.Icon className="h-5 w-5 text-primary"/>
+                                    </div>
                                     <div className="flex-1">
                                         <p className="font-medium text-sm text-foreground">
                                             {log.taskName} - {log.subjectName}
