@@ -1,5 +1,4 @@
 
-
 "use client"
 
 import type { Profile, Subject, Chapter, CheckedState } from "@/lib/types";
@@ -209,13 +208,9 @@ function WeeklyProgressDashboard({ profile }: { profile: Profile }) {
             };
         });
 
-        const lecturesWorkedOn = new Set();
-        const taskStats: Record<string, { completed: number; total: number }> = {};
-        const chaptersWorkedOn = new Set();
-
-        const allTasks = new Set<string>();
-        profile.subjects.forEach(s => s.tasks.forEach(t => allTasks.add(t)));
-        allTasks.forEach(t => { taskStats[t] = { completed: 0, total: 0 }});
+        const lecturesWorkedOn = new Set<string>();
+        const chaptersWorkedOn = new Set<string>();
+        const taskCompletionCount: Record<string, number> = {};
 
         data.forEach(item => {
             chaptersWorkedOn.add(item.chapter.name);
@@ -225,21 +220,29 @@ function WeeklyProgressDashboard({ profile }: { profile: Profile }) {
                 const taskName = parts[parts.length - 1];
                 const lectureNum = parts[parts.length - 2];
                 
-                if (taskStats[taskName]) {
-                    taskStats[taskName].completed++;
+                if (!taskCompletionCount[taskName]) {
+                    taskCompletionCount[taskName] = 0;
                 }
+                taskCompletionCount[taskName]++;
                 
                 lecturesWorkedOn.add(`${item.subjectName}-${item.chapter.name}-${lectureNum}`);
             });
         });
 
+        const taskBreakdown = Object.entries(taskCompletionCount).map(([name, completed]) => {
+            let total = 0;
+            data.forEach(item => {
+                if (item.tasks.includes(name)) {
+                    total += item.chapter.lectureCount;
+                }
+            });
+            return { name, completed, total };
+        }).sort((a,b) => a.name.localeCompare(b.name));
+
         const stats = {
             totalChapters: chaptersWorkedOn.size,
             totalLectures: lecturesWorkedOn.size,
-            taskBreakdown: Object.entries(taskStats)
-                .map(([name, { completed }]) => ({ name, completed, total: 0 }))
-                .filter(item => item.completed > 0)
-                .sort((a,b) => a.name.localeCompare(b.name)),
+            taskBreakdown,
         };
         
         return {
@@ -353,15 +356,57 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
         });
         return completedTasks.sort((a, b) => b.completedAt - a.completedAt);
     }, [profile, selectedDay]);
+    
+    const hasActivity = useMemo(() => {
+        const dateKey = format(selectedDay, 'yyyy-MM-dd');
+        return profile.subjects.some(subject => 
+            subject.chapters.some(chapter => 
+                Object.values(chapter.checkedState || {}).some(state => 
+                    state.completedAt && format(new Date(state.completedAt), 'yyyy-MM-dd') === dateKey
+                )
+            )
+        );
+    }, [profile, selectedDay]);
+
+    const modifiers = useMemo(() => ({
+        hasTask: (date: Date) => {
+             const dateKey = format(date, 'yyyy-MM-dd');
+             return profile.subjects.some(subject => 
+                subject.chapters.some(chapter => 
+                    Object.values(chapter.checkedState || {}).some(state => 
+                        state.completedAt && format(new Date(state.completedAt), 'yyyy-MM-dd') === dateKey
+                    )
+                )
+            );
+        }
+    }), [profile]);
+
+    const modifiersClassNames = {
+        hasTask: 'has-task',
+    };
+
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+             <style>{`.has-task:not([aria-selected]):after {
+                        content: '';
+                        position: absolute;
+                        bottom: 6px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        width: 5px;
+                        height: 5px;
+                        border-radius: 50%;
+                        background-color: hsl(var(--primary));
+                    }`}</style>
             <div className="flex justify-center md:col-span-1">
                  <Calendar
                     mode="single"
                     selected={selectedDay}
                     onSelect={(day) => day && setSelectedDay(startOfDay(day))}
                     className="rounded-md border"
+                    modifiers={modifiers}
+                    modifiersClassNames={modifiersClassNames}
                 />
             </div>
             <Card className="md:col-span-2">
@@ -936,3 +981,5 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
     </Tabs>
   );
 }
+
+    
