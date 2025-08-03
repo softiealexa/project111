@@ -45,6 +45,8 @@ import { Progress } from "./ui/progress";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { Calendar } from "./ui/calendar";
+import { Popover, PopoverTrigger, PopoverContent } from './ui/popover';
+import { ScrollArea } from "./ui/scroll-area";
 
 const getProgress = (chapters: Chapter[], tasksPerLecture: number) => {
     if (tasksPerLecture === 0) return 0;
@@ -210,34 +212,41 @@ function WeeklyProgressDashboard({ profile }: { profile: Profile }) {
 
         const lecturesWorkedOn = new Set<string>();
         const chaptersWorkedOn = new Set<string>();
-        const taskCompletionCount: Record<string, number> = {};
+        const taskCompletionCount: Record<string, { completed: number; total: number }> = {};
+        const allTasksForWeek = new Set<string>();
 
         data.forEach(item => {
             chaptersWorkedOn.add(item.chapter.name);
+            item.tasks.forEach(t => allTasksForWeek.add(t));
+        });
+
+        allTasksForWeek.forEach(task => {
+            taskCompletionCount[task] = { completed: 0, total: 0 };
+        });
+
+        data.forEach(item => {
+            item.tasks.forEach(task => {
+                if(taskCompletionCount[task]) {
+                   taskCompletionCount[task].total += item.chapter.lectureCount;
+                }
+            });
 
             Object.keys(item.weeklyCompletedTasks).forEach(key => {
                 const parts = key.split('-');
                 const taskName = parts[parts.length - 1];
                 const lectureNum = parts[parts.length - 2];
                 
-                if (!taskCompletionCount[taskName]) {
-                    taskCompletionCount[taskName] = 0;
+                if (taskCompletionCount[taskName]) {
+                    taskCompletionCount[taskName].completed++;
                 }
-                taskCompletionCount[taskName]++;
                 
                 lecturesWorkedOn.add(`${item.subjectName}-${item.chapter.name}-${lectureNum}`);
             });
         });
 
-        const taskBreakdown = Object.entries(taskCompletionCount).map(([name, completed]) => {
-            let total = 0;
-            data.forEach(item => {
-                if (item.tasks.includes(name)) {
-                    total += item.chapter.lectureCount;
-                }
-            });
-            return { name, completed, total };
-        }).sort((a,b) => a.name.localeCompare(b.name));
+        const taskBreakdown = Object.entries(taskCompletionCount).map(([name, {completed, total}]) => ({
+             name, completed, total
+        })).sort((a,b) => a.name.localeCompare(b.name));
 
         const stats = {
             totalChapters: chaptersWorkedOn.size,
@@ -329,15 +338,19 @@ function WeeklyProgressDashboard({ profile }: { profile: Profile }) {
 
 function DailyLogDashboard({ profile }: { profile: Profile }) {
     const [selectedDay, setSelectedDay] = useState<Date>(startOfDay(new Date()));
+    const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
+    const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
 
-    const dailyLog = useMemo(() => {
+    const { allUniqueTasks, dailyLog } = useMemo(() => {
+        const tasks = new Set<string>();
         const completedTasks: any[] = [];
         profile.subjects.forEach(subject => {
+            subject.tasks.forEach(t => tasks.add(t));
             const Icon = getIconComponent(subject.icon);
             subject.chapters.forEach(chapter => {
                 const checkedState = chapter.checkedState || {};
                 Object.entries(checkedState).forEach(([key, value]) => {
-                    if (value.completedAt && isSameDay(new Date(value.completedAt), selectedDay)) {
+                    if (value.completedAt) {
                         const parts = key.split('-');
                         const taskName = parts[parts.length - 1];
                         const lectureNum = parts[parts.length - 2];
@@ -354,20 +367,20 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
                 });
             });
         });
-        return completedTasks.sort((a, b) => b.completedAt - a.completedAt);
-    }, [profile, selectedDay]);
-    
-    const hasActivity = useMemo(() => {
-        const dateKey = format(selectedDay, 'yyyy-MM-dd');
-        return profile.subjects.some(subject => 
-            subject.chapters.some(chapter => 
-                Object.values(chapter.checkedState || {}).some(state => 
-                    state.completedAt && format(new Date(state.completedAt), 'yyyy-MM-dd') === dateKey
-                )
-            )
-        );
-    }, [profile, selectedDay]);
+        
+        const filteredTasks = completedTasks.filter(log => {
+            if (!isSameDay(new Date(log.completedAt), selectedDay)) return false;
+            if (selectedSubjects.length > 0 && !selectedSubjects.includes(log.subjectName)) return false;
+            if (selectedTasks.length > 0 && !selectedTasks.includes(log.taskName)) return false;
+            return true;
+        });
 
+        return {
+            allUniqueTasks: Array.from(tasks).sort(),
+            dailyLog: filteredTasks.sort((a, b) => b.completedAt - a.completedAt)
+        };
+    }, [profile, selectedDay, selectedSubjects, selectedTasks]);
+    
     const modifiers = useMemo(() => ({
         hasTask: (date: Date) => {
              const dateKey = format(date, 'yyyy-MM-dd');
@@ -384,7 +397,21 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
     const modifiersClassNames = {
         hasTask: 'has-task',
     };
+    
+    const handleSubjectFilterChange = (subjectName: string, checked: boolean | CheckedState) => {
+        const isSelected = typeof checked === 'boolean' ? checked : checked.status !== 'unchecked';
+        setSelectedSubjects(prev => isSelected ? [...prev, subjectName] : prev.filter(s => s !== subjectName));
+    };
 
+    const handleTaskFilterChange = (taskName: string, checked: boolean | CheckedState) => {
+        const isSelected = typeof checked === 'boolean' ? checked : checked.status !== 'unchecked';
+        setSelectedTasks(prev => isSelected ? [...prev, taskName] : prev.filter(t => t !== taskName));
+    };
+
+    const clearFilters = () => {
+        setSelectedSubjects([]);
+        setSelectedTasks([]);
+    };
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -411,17 +438,62 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
             </div>
             <Card className="md:col-span-2">
                 <CardHeader>
-                    <CardTitle>Log for {format(selectedDay, 'PPP')}</CardTitle>
-                    <CardDescription>A chronological list of all tasks completed on this day.</CardDescription>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                            <CardTitle>Log for {format(selectedDay, 'PPP')}</CardTitle>
+                            <CardDescription>A chronological list of all tasks completed on this day.</CardDescription>
+                        </div>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline"><Filter className="mr-2 h-4 w-4" /> Filter</Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-64 p-0">
+                                <div className="p-4 space-y-4">
+                                     <div className="space-y-2">
+                                        <h4 className="font-medium text-sm">Subjects</h4>
+                                        <ScrollArea className="h-24">
+                                            <div className="space-y-1">
+                                                {profile.subjects.map(subject => (
+                                                    <div key={subject.name} className="flex items-center space-x-2">
+                                                        <Checkbox
+                                                            id={`filter-subject-${subject.name}`}
+                                                            checked={selectedSubjects.includes(subject.name)}
+                                                            onCheckedChange={(checked) => handleSubjectFilterChange(subject.name, checked)}
+                                                        />
+                                                        <Label htmlFor={`filter-subject-${subject.name}`} className="text-sm font-normal">{subject.name}</Label>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </ScrollArea>
+                                     </div>
+                                     <Separator />
+                                     <div className="space-y-2">
+                                        <h4 className="font-medium text-sm">Tasks</h4>
+                                         <ScrollArea className="h-24">
+                                            <div className="space-y-1">
+                                                {allUniqueTasks.map(task => (
+                                                    <div key={task} className="flex items-center space-x-2">
+                                                        <Checkbox
+                                                            id={`filter-task-${task}`}
+                                                            checked={selectedTasks.includes(task)}
+                                                            onCheckedChange={(checked) => handleTaskFilterChange(task, checked)}
+                                                        />
+                                                        <Label htmlFor={`filter-task-${task}`} className="text-sm font-normal">{task}</Label>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </ScrollArea>
+                                     </div>
+                                </div>
+                                <div className="p-2 border-t bg-muted/50">
+                                    <Button variant="ghost" size="sm" onClick={clearFilters} className="w-full">Clear all filters</Button>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                    </div>
                 </CardHeader>
                 <CardContent>
-                    {dailyLog.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center rounded-md border-2 border-dashed py-12 text-center">
-                            <ListChecks className="h-10 w-10 text-muted-foreground mb-4"/>
-                            <h3 className="text-lg font-medium text-muted-foreground">No Activity Found</h3>
-                            <p className="text-sm text-muted-foreground">You didn't complete any tasks on this day.</p>
-                        </div>
-                    ) : (
+                    {dailyLog.length > 0 ? (
                         <div className="space-y-4 max-h-[400px] overflow-y-auto pr-3">
                             {dailyLog.map(log => (
                                 <div key={log.id} className="flex items-center gap-4 p-3 rounded-md bg-muted/40 border">
@@ -441,6 +513,12 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
                                     </p>
                                 </div>
                             ))}
+                        </div>
+                    ) : (
+                         <div className="flex flex-col items-center justify-center rounded-md border-2 border-dashed py-12 text-center">
+                            <ListChecks className="h-10 w-10 text-muted-foreground mb-4"/>
+                            <h3 className="text-lg font-medium text-muted-foreground">No Matching Activity</h3>
+                            <p className="text-sm text-muted-foreground">Try adjusting your filters or selecting another day.</p>
                         </div>
                     )}
                 </CardContent>
@@ -981,5 +1059,3 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
     </Tabs>
   );
 }
-
-    
