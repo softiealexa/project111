@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -10,14 +11,23 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Book } from 'lucide-react';
 import { register } from '@/lib/auth';
+import { useData } from '@/contexts/data-context';
+import { LoadingSpinner } from '@/components/loading-spinner';
 
 export default function RegisterPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { user, loading: authLoading } = useData();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, authLoading, router]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +44,7 @@ export default function RegisterPage() {
     const { error } = await register(username, password);
 
     if (error) {
-       console.error(error);
+       console.log('Registration failed:', error);
        const errorMessage = typeof error === 'string' ? error : 'An unexpected error occurred during registration.';
        toast({
         title: 'Registration Failed',
@@ -46,11 +56,17 @@ export default function RegisterPage() {
             title: 'Success',
             description: 'Account created successfully. Logging you in...',
         });
-        router.push('/dashboard');
+        // The redirect will be handled by the useEffect hook watching the user state change
     }
 
     setIsLoading(false);
   };
+
+  if (authLoading || user) {
+    return (
+      <LoadingSpinner containerClassName="min-h-screen" text="Loading..." />
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -58,7 +74,7 @@ export default function RegisterPage() {
         <CardHeader className="text-center">
              <Link href="/" className="mx-auto mb-4 flex w-fit items-center gap-2 text-foreground transition-colors hover:text-primary">
                 <Book className="h-8 w-8 text-primary" />
-                 <span className="font-headline text-3xl font-bold">TrackAcademic</span>
+                 <span className="font-headline text-3xl font-bold">StudyTracker</span>
             </Link>
           <CardTitle className="text-2xl">Create an account</CardTitle>
           <CardDescription>Enter your details below to create your account.</CardDescription>

@@ -1,7 +1,9 @@
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged as onFirebaseAuthStateChanged, signOut as firebaseSignOut, updateProfile, User as FirebaseUser } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+
+
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged as onFirebaseAuthStateChanged, signOut as firebaseSignOut, updateProfile, User as FirebaseUser, sendPasswordResetEmail } from 'firebase/auth';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { db, auth, isFirebaseConfigured } from './firebase';
-import type { Profile } from './types';
+import type { Profile, AppUser, Subject, Note, ImportantLink, SmartTodo, SimpleTodo, ProgressPoint, QuestionSession, ExamCountdown, TimeEntry, Project, TimesheetData, TimeOffPolicy, TimeOffRequest } from './types';
 
 const FIREBASE_NOT_CONFIGURED_ERROR = "Firebase is not configured. Please add your credentials to a .env.local file for local development, and to your Vercel project's Environment Variables for deployment.";
 
@@ -9,6 +11,32 @@ interface AuthResult {
     user?: FirebaseUser | null;
     error?: string | null;
 }
+
+/**
+ * Recursively removes properties with `undefined` values from an object.
+ * Firestore does not support `undefined` values. It correctly handles `null`.
+ */
+function removeUndefined(obj: any): any {
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map(item => removeUndefined(item));
+  }
+
+  const newObj: { [key: string]: any } = {};
+  for (const key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      const value = obj[key];
+      if (value !== undefined) {
+        newObj[key] = removeUndefined(value);
+      }
+    }
+  }
+  return newObj;
+}
+
 
 export const signInWithUsername = async (username: string, password: string): Promise<AuthResult> => {
     if (!isFirebaseConfigured || !auth) {
@@ -50,6 +78,7 @@ export const register = async (username: string, password: string): Promise<Auth
             displayName: username,
             profiles: [],
             activeProfileName: null,
+            role: 'user', // Default role
         });
 
         return { user };
@@ -69,6 +98,43 @@ export const register = async (username: string, password: string): Promise<Auth
         if (error.code === 'auth/weak-password') {
             return { error: 'Password should be at least 6 characters.' };
         }
+        return { error: error.message || "An unexpected error occurred." };
+    }
+};
+
+export const linkGoogleEmail = async (email: string): Promise<{ error?: string }> => {
+    if (!isFirebaseConfigured || !auth || !db) {
+        return { error: FIREBASE_NOT_CONFIGURED_ERROR };
+    }
+    const user = auth.currentUser;
+    if (!user) {
+        return { error: "You must be logged in to link an email." };
+    }
+    if (!email.toLowerCase().endsWith('@gmail.com')) {
+        return { error: "Please enter a valid Gmail address." };
+    }
+    try {
+        const userDocRef = doc(db, 'users', user.uid);
+        await updateDoc(userDocRef, { googleEmail: email });
+        return {};
+    } catch (error: any) {
+        return { error: error.message || "An unexpected error occurred." };
+    }
+};
+
+
+export const sendPasswordReset = async (): Promise<{ error?: string }> => {
+    if (!isFirebaseConfigured || !auth) {
+        return { error: FIREBASE_NOT_CONFIGURED_ERROR };
+    }
+    const user = auth.currentUser;
+    if (!user || !user.email) {
+        return { error: "No user or email found to send reset link." };
+    }
+    try {
+        await sendPasswordResetEmail(auth, user.email);
+        return {};
+    } catch (error: any) {
         return { error: error.message || "An unexpected error occurred." };
     }
 };
@@ -95,6 +161,7 @@ export const onAuthChanged = (callback: (user: FirebaseUser | null) => void) => 
 interface UserData {
     profiles: Profile[];
     activeProfileName: string | null;
+    userDocument: AppUser;
 }
 
 export const getUserData = async (uid: string): Promise<UserData | null> => {
@@ -102,33 +169,42 @@ export const getUserData = async (uid: string): Promise<UserData | null> => {
         throw new Error(FIREBASE_NOT_CONFIGURED_ERROR);
     }
     const userDocRef = doc(db, 'users', uid);
-    const userDoc = await getDoc(userDocRef);
+    const userDocSnap = await getDoc(userDocRef);
 
-    if (userDoc.exists()) {
-        const data = userDoc.data();
+    if (userDocSnap.exists()) {
+        const data = userDocSnap.data();
+        const userDocument: AppUser = {
+            uid: data.uid,
+            username: data.displayName,
+            email: data.email,
+            googleEmail: data.googleEmail,
+            role: data.role
+        };
         return {
             profiles: data.profiles || [],
             activeProfileName: data.activeProfileName || null,
+            userDocument: userDocument
         }
     }
     return null;
 }
 
-const stripIcons = (profiles: Profile[]) => {
-    if (!profiles) return [];
-    return profiles.map(p => ({
-        ...p,
-        subjects: p.subjects.map(({ icon, ...rest }) => rest)
-    }));
-};
+// A more flexible type for saving partial profile data to Firestore.
+type UserDataToSave = Partial<{
+  profiles: Profile[];
+  activeProfileName: string | null;
+  [key: string]: any; // Allow any other profile properties to be included
+}>;
 
-export const saveUserData = async (uid: string, profiles: Profile[], activeProfileName: string | null) => {
+
+export const saveUserData = async (uid: string, data: UserDataToSave) => {
     if (!isFirebaseConfigured || !db) {
         throw new Error(FIREBASE_NOT_CONFIGURED_ERROR);
     }
     const userDocRef = doc(db, 'users', uid);
-    await setDoc(userDocRef, { 
-        profiles: stripIcons(profiles),
-        activeProfileName: activeProfileName 
-    }, { merge: true });
-}
+    
+    // Firestore does not support `undefined` values. We must remove them.
+    const cleanedData = removeUndefined(data);
+    
+    await setDoc(userDocRef, cleanedData, { merge: true });
+};
