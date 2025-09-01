@@ -179,7 +179,7 @@ export default function SmartTodoList() {
                   </PopoverContent>
               </Popover>
               <Button onClick={handleAddTask}>
-                  {editingTask ? 'Save' : <Plus className="h-4 w-4 md:mr-2" />}
+                  {editingTask ? null : <Plus className="h-4 w-4 md:mr-2" />}
                   <span className="hidden md:inline">{editingTask ? 'Save Task' : 'Add Task'}</span>
               </Button>
           </div>
