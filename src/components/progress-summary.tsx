@@ -579,7 +579,7 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
                 <CardContent>
                     <ChartContainer
                         config={{ lectures: { label: "Lectures", color: "hsl(var(--primary))" } }}
-                        className="mx-auto aspect-video max-h-[250px]"
+                        className="mx-auto aspect-video"
                     >
                         <LineChart data={lectureActivityData} margin={{ top: 5, right: 10, left: -20, bottom: 30 }}>
                             <CartesianGrid vertical={false} />
@@ -641,8 +641,6 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
     questionHistoryLineData,
     questionTimeChartConfig,
     sessions,
-    chapterTimelineData,
-    chapterTimelineConfig,
   } = useMemo(() => {
     if (!profile || profile.subjects.length === 0) {
       return {
@@ -656,8 +654,6 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
         questionHistoryLineData: [],
         questionTimeChartConfig: {},
         sessions: [],
-        chapterTimelineData: [],
-        chapterTimelineConfig: {},
       };
     }
 
@@ -714,41 +710,6 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
       date: format(new Date(`${point.date}T00:00:00`), 'MMM d'),
       progress: point.progress
     })).slice(-30);
-
-    const chapterCompletionEvents: { date: number, subject: string, chapter: string }[] = [];
-    profile.subjects.forEach(subject => {
-        subject.chapters.forEach(chapter => {
-            const totalTasks = (subject.tasks?.length || 0) * chapter.lectureCount;
-            if (totalTasks === 0) return;
-
-            const completedTasks = Object.values(chapter.checkedState || {}).filter(c => c.status === 'checked' || c.status === 'checked-red');
-            if (completedTasks.length === totalTasks) {
-                const lastCompletionTime = Math.max(...completedTasks.map(c => c.completedAt || 0));
-                if (lastCompletionTime > 0) {
-                    chapterCompletionEvents.push({ date: lastCompletionTime, subject: subject.name, chapter: chapter.name });
-                }
-            }
-        });
-    });
-    
-    chapterCompletionEvents.sort((a,b) => a.date - b.date);
-    
-    const localChapterTimelineConfig: ChartConfig = profile.subjects.reduce((acc, subject) => {
-        acc[subject.name] = { label: subject.name, color: subjectColors[subject.name] };
-        return acc;
-    }, {} as ChartConfig);
-
-    const cumulativeCounts: Record<string, number> = {};
-    profile.subjects.forEach(s => cumulativeCounts[s.name] = 0);
-    
-    const localChapterTimelineData = chapterCompletionEvents.map(event => {
-        cumulativeCounts[event.subject]++;
-        return {
-            date: format(new Date(event.date), 'MMM d'),
-            chapterName: event.chapter,
-            ...cumulativeCounts
-        };
-    });
   
     const localSessions = profile.questionSessions || [];
     const localQuestionStats = {
@@ -843,8 +804,6 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
         questionHistoryLineData: localQuestionHistoryLineData, 
         questionTimeChartConfig: localQuestionTimeChartConfig, 
         sessions: localSessions,
-        chapterTimelineData: localChapterTimelineData,
-        chapterTimelineConfig: localChapterTimelineConfig,
     };
   }, [profile, selectedChapters]);
 
@@ -1101,56 +1060,6 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Chapter Completion Timeline</CardTitle>
-                    <CardDescription>Cumulative chapters completed over time for each subject.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {chapterTimelineData.length > 0 ? (
-                        <ChartContainer config={chapterTimelineConfig} className="mx-auto aspect-video max-h-[400px]">
-                            <LineChart data={chapterTimelineData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
-                                <YAxis allowDecimals={false} />
-                                <RechartsTooltip 
-                                    content={<ChartTooltipContent 
-                                        indicator="dot" 
-                                        formatter={(_, name, item) => (
-                                            <div className="flex flex-col gap-0.5">
-                                                <span className="font-bold text-foreground text-sm">{item.payload.date}</span>
-                                                <span className="text-muted-foreground">{`Completed: ${item.payload.chapterName}`}</span>
-                                            </div>
-                                        )}
-                                        hideLabel
-                                    />} 
-                                />
-                                <ChartLegend />
-                                {Object.keys(chapterTimelineConfig).map(subjectName => (
-                                    <Line
-                                        key={subjectName}
-                                        type="monotone"
-                                        dataKey={subjectName}
-                                        stroke={chapterTimelineConfig[subjectName].color}
-                                        strokeWidth={2}
-                                        dot={false}
-                                        activeDot={{ r: 6 }}
-                                    />
-                                ))}
-                            </LineChart>
-                        </ChartContainer>
-                    ) : (
-                        <Alert variant="default">
-                            <TrendingUp className="h-4 w-4" />
-                            <AlertTitle>No Completed Chapters Yet</AlertTitle>
-                            <AlertDescription>
-                                Once you complete all tasks for a chapter, it will appear on this timeline.
-                            </AlertDescription>
-                        </Alert>
-                    )}
-                </CardContent>
             </Card>
 
             <Card>
