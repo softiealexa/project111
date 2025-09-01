@@ -39,7 +39,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
-import { addDays, format, startOfWeek, endOfWeek, isWithinInterval, isSameDay, startOfDay, subDays } from "date-fns";
+import { addDays, format, startOfWeek, endOfWeek, isWithinInterval, isSameDay, startOfDay, subDays, startOfMonth, getDaysInMonth, eachDayOfInterval } from "date-fns";
 import { getIconComponent } from "@/lib/icons";
 import { Progress } from "./ui/progress";
 import { Button } from "./ui/button";
@@ -338,6 +338,7 @@ function WeeklyProgressDashboard({ profile }: { profile: Profile }) {
 
 function DailyLogDashboard({ profile }: { profile: Profile }) {
     const [selectedDay, setSelectedDay] = useState<Date>(startOfDay(new Date()));
+    const [currentMonth, setCurrentMonth] = useState<Date>(startOfDay(new Date()));
     const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
     const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
 
@@ -389,14 +390,14 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
             return true;
         });
         
-        const today = startOfDay(new Date());
-        const thirtyDaysAgo = subDays(today, 29);
-        const dateArray = Array.from({ length: 30 }, (_, i) => subDays(today, i)).reverse();
-
+        const monthStart = startOfMonth(currentMonth);
+        const daysInMonth = getDaysInMonth(currentMonth);
+        const dateArray = eachDayOfInterval({start: monthStart, end: addDays(monthStart, daysInMonth-1)});
+        
         const finalActivityData = dateArray.map(date => {
             const dateKey = format(date, 'yyyy-MM-dd');
             return {
-                date: format(date, 'MMM d'),
+                date: format(date, 'd'),
                 lectures: activity[dateKey]?.size || 0
             };
         });
@@ -406,7 +407,7 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
             dailyLog: filteredTasks.sort((a, b) => b.completedAt - a.completedAt),
             lectureActivityData: finalActivityData,
         };
-    }, [profile, selectedDay, selectedSubjects, selectedTasks]);
+    }, [profile, selectedDay, selectedSubjects, selectedTasks, currentMonth]);
     
     const modifiers = useMemo(() => ({
         hasTask: (date: Date) => {
@@ -459,6 +460,8 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
                         mode="single"
                         selected={selectedDay}
                         onSelect={(day) => day && setSelectedDay(startOfDay(day))}
+                        month={currentMonth}
+                        onMonthChange={setCurrentMonth}
                         className="rounded-md border"
                         modifiers={modifiers}
                         modifiersClassNames={modifiersClassNames}
@@ -556,7 +559,7 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Activity className="h-5 w-5" />
-                        Lecture Activity (Last 30 Days)
+                        Lecture Activity ({format(currentMonth, 'MMMM yyyy')})
                     </CardTitle>
                     <CardDescription>
                         A line graph showing the number of lectures completed per day.
@@ -576,7 +579,7 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
                                 tickMargin={8}
                                 tickFormatter={(value, index) => index % 3 === 0 ? value : ''}
                             />
-                            <YAxis allowDecimals={false} />
+                            <YAxis allowDecals={false} />
                             <ChartTooltip
                                 cursor={false}
                                 content={<ChartTooltipContent indicator="dot" />}
