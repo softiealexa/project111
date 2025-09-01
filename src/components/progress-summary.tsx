@@ -39,7 +39,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
-import { addDays, format, startOfWeek, endOfWeek, isWithinInterval, isSameDay, startOfDay, subDays, startOfMonth, getDaysInMonth, eachDayOfInterval } from "date-fns";
+import { addDays, format, startOfWeek, endOfWeek, isWithinInterval, isSameDay, startOfDay, subDays, startOfMonth, getDaysInMonth, eachDayOfInterval, addMonths, subMonths } from "date-fns";
 import { getIconComponent } from "@/lib/icons";
 import { Progress } from "./ui/progress";
 import { Button } from "./ui/button";
@@ -557,20 +557,29 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
             </div>
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Activity className="h-5 w-5" />
-                        Lecture Activity ({format(currentMonth, 'MMMM yyyy')})
-                    </CardTitle>
-                    <CardDescription>
-                        A line graph showing the number of lectures completed per day.
-                    </CardDescription>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                         <div className="space-y-1">
+                            <CardTitle className="flex items-center gap-2">
+                                <Activity className="h-5 w-5" />
+                                Lecture Activity
+                            </CardTitle>
+                            <CardDescription>
+                                Lectures completed per day in {format(currentMonth, 'MMMM yyyy')}.
+                            </CardDescription>
+                        </div>
+                        <div className='flex items-center rounded-md border bg-card text-sm'>
+                            <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="rounded-r-none h-8"><ChevronLeft className="mr-1 h-4 w-4"/> Prev</Button>
+                            <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(new Date())} className="rounded-none border-x h-8">This Month</Button>
+                            <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="rounded-l-none h-8">Next <ChevronRight className="ml-1 h-4 w-4"/></Button>
+                        </div>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <ChartContainer
                         config={{ lectures: { label: "Lectures", color: "hsl(var(--primary))" } }}
                         className="mx-auto aspect-video max-h-[250px]"
                     >
-                        <LineChart data={lectureActivityData}>
+                        <LineChart data={lectureActivityData} margin={{ top: 5, right: 10, left: -20, bottom: 20 }}>
                             <CartesianGrid vertical={false} />
                             <XAxis
                                 dataKey="date"
@@ -578,8 +587,12 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
                                 axisLine={false}
                                 tickMargin={8}
                                 tickFormatter={(value, index) => index % 3 === 0 ? value : ''}
-                            />
-                            <YAxis allowDecals={false} />
+                            >
+                               <RechartsLabel value="Month" position="bottom" offset={10} className="text-sm text-muted-foreground" />
+                            </XAxis>
+                            <YAxis allowDecimals={false}>
+                                <RechartsLabel value="Lectures" angle={-90} position="insideLeft" offset={10} style={{ textAnchor: 'middle' }} className="text-sm text-muted-foreground" />
+                            </YAxis>
                             <ChartTooltip
                                 cursor={false}
                                 content={<ChartTooltipContent indicator="dot" />}
