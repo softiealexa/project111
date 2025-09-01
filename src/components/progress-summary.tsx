@@ -543,7 +543,9 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
     questionStats,
     questionHistoryLineData,
     questionTimeChartConfig,
-    sessions
+    sessions,
+    chapterTimelineData,
+    chapterTimelineConfig,
   } = useMemo(() => {
     if (!profile || profile.subjects.length === 0) {
       return {
@@ -556,11 +558,17 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
         questionStats: { totalSessions: 0, totalQuestions: 0, totalTime: 0, overallAverage: 0 },
         questionHistoryLineData: [],
         questionTimeChartConfig: {},
-        sessions: []
+        sessions: [],
+        chapterTimelineData: [],
+        chapterTimelineConfig: {},
       };
     }
 
     const colors = ["hsl(180, 80%, 55%)", "hsl(221, 83%, 65%)", "hsl(262, 85%, 68%)", "hsl(24, 96%, 63%)", "hsl(142, 76%, 46%)"];
+    const subjectColors = profile.subjects.reduce((acc, subject, index) => {
+        acc[subject.name] = colors[index % colors.length];
+        return acc;
+    }, {} as Record<string, string>);
     
     let totalChaptersCompleted = 0;
     let totalProgressSum = 0;
@@ -582,17 +590,15 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
       totalChaptersCompleted += subjectChaptersCompleted;
       totalProgressSum += getProgress(subject.chapters, tasksPerLecture);
   
-      const color = colors[index % colors.length];
-  
       localChartConfig[subject.name] = {
         label: subject.name,
-        color: color,
+        color: subjectColors[subject.name],
       };
   
       return {
         subject: subject.name,
         progress: progress,
-        fill: color,
+        fill: subjectColors[subject.name],
       };
     });
   
@@ -611,6 +617,40 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
       date: format(new Date(`${point.date}T00:00:00`), 'MMM d'),
       progress: point.progress
     })).slice(-30);
+
+    const chapterCompletionEvents: { date: number, subject: string }[] = [];
+    profile.subjects.forEach(subject => {
+        subject.chapters.forEach(chapter => {
+            const totalTasks = (subject.tasks?.length || 0) * chapter.lectureCount;
+            if (totalTasks === 0) return;
+
+            const completedTasks = Object.values(chapter.checkedState || {}).filter(c => c.status === 'checked' || c.status === 'checked-red');
+            if (completedTasks.length === totalTasks) {
+                const lastCompletionTime = Math.max(...completedTasks.map(c => c.completedAt || 0));
+                if (lastCompletionTime > 0) {
+                    chapterCompletionEvents.push({ date: lastCompletionTime, subject: subject.name });
+                }
+            }
+        });
+    });
+    
+    chapterCompletionEvents.sort((a,b) => a.date - b.date);
+    
+    const localChapterTimelineConfig: ChartConfig = profile.subjects.reduce((acc, subject) => {
+        acc[subject.name] = { label: subject.name, color: subjectColors[subject.name] };
+        return acc;
+    }, {} as ChartConfig);
+
+    const cumulativeCounts: Record<string, number> = {};
+    profile.subjects.forEach(s => cumulativeCounts[s.name] = 0);
+    
+    const localChapterTimelineData = chapterCompletionEvents.map(event => {
+        cumulativeCounts[event.subject]++;
+        return {
+            date: format(new Date(event.date), 'MMM d'),
+            ...cumulativeCounts
+        };
+    });
   
     const localSessions = profile.questionSessions || [];
     const localQuestionStats = {
@@ -704,7 +744,9 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
         questionStats: localQuestionStats, 
         questionHistoryLineData: localQuestionHistoryLineData, 
         questionTimeChartConfig: localQuestionTimeChartConfig, 
-        sessions: localSessions 
+        sessions: localSessions,
+        chapterTimelineData: localChapterTimelineData,
+        chapterTimelineConfig: localChapterTimelineConfig,
     };
   }, [profile, selectedChapters]);
 
@@ -961,6 +1003,44 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Chapter Completion Timeline</CardTitle>
+                    <CardDescription>Cumulative chapters completed over time for each subject.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {chapterTimelineData.length > 0 ? (
+                        <ChartContainer config={chapterTimelineConfig} className="mx-auto aspect-video max-h-[400px]">
+                            <LineChart data={chapterTimelineData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
+                                <YAxis allowDecimals={false} />
+                                <RechartsTooltip content={<ChartTooltipContent indicator="dot" />} />
+                                <ChartLegend />
+                                {Object.keys(chapterTimelineConfig).map(subjectName => (
+                                    <Line
+                                        key={subjectName}
+                                        type="stepAfter"
+                                        dataKey={subjectName}
+                                        stroke={chapterTimelineConfig[subjectName].color}
+                                        strokeWidth={2}
+                                        dot={false}
+                                    />
+                                ))}
+                            </LineChart>
+                        </ChartContainer>
+                    ) : (
+                        <Alert variant="default">
+                            <TrendingUp className="h-4 w-4" />
+                            <AlertTitle>No Completed Chapters Yet</AlertTitle>
+                            <AlertDescription>
+                                Once you complete all tasks for a chapter, it will appear on this timeline.
+                            </AlertDescription>
+                        </Alert>
+                    )}
+                </CardContent>
             </Card>
 
             <Card>
