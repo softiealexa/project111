@@ -4,7 +4,7 @@
 import type { Profile, Subject, Chapter, CheckedState } from "@/lib/types";
 import { useMemo, useState, useCallback } from "react";
 import { Bar, BarChart, Pie, PieChart, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Legend, Tooltip as RechartsTooltip, LabelList, ReferenceLine, LineChart, Line, Label as RechartsLabel } from "recharts";
-import { CheckCircle, BookOpen, TrendingUp, Target, Filter, History, Clock, BarChart as BarChartIcon, CalendarDays, ChevronLeft, ChevronRight, ListChecks } from "lucide-react";
+import { CheckCircle, BookOpen, TrendingUp, Target, Filter, History, Clock, BarChart as BarChartIcon, CalendarDays, ChevronLeft, ChevronRight, ListChecks, Activity } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -39,7 +39,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
-import { addDays, format, startOfWeek, endOfWeek, isWithinInterval, isSameDay, startOfDay } from "date-fns";
+import { addDays, format, startOfWeek, endOfWeek, isWithinInterval, isSameDay, startOfDay, subDays } from "date-fns";
 import { getIconComponent } from "@/lib/icons";
 import { Progress } from "./ui/progress";
 import { Button } from "./ui/button";
@@ -341,12 +341,17 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
     const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
     const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
 
-    const { allUniqueTasks, dailyLog } = useMemo(() => {
+    const { allUniqueTasks, dailyLog, lectureActivityData } = useMemo(() => {
         const tasks = new Set<string>();
         const completedTasks: any[] = [];
+        
+        const activity: Record<string, Set<string>> = {}; // date -> Set<lectureId>
+        const lectureTaskName = 'Lecture';
+
         profile.subjects.forEach(subject => {
             subject.tasks.forEach(t => tasks.add(t));
             const Icon = getIconComponent(subject.icon);
+
             subject.chapters.forEach(chapter => {
                 const checkedState = chapter.checkedState || {};
                 Object.entries(checkedState).forEach(([key, value]) => {
@@ -363,6 +368,15 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
                             completedAt: value.completedAt,
                             Icon: Icon,
                         });
+                        
+                        // Populate lecture activity data
+                        if (taskName === lectureTaskName) {
+                            const dateKey = format(new Date(value.completedAt), 'yyyy-MM-dd');
+                            if (!activity[dateKey]) {
+                                activity[dateKey] = new Set();
+                            }
+                            activity[dateKey].add(`${subject.name}-${chapter.name}-${lectureNum}`);
+                        }
                     }
                 });
             });
@@ -374,10 +388,23 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
             if (selectedTasks.length > 0 && !selectedTasks.includes(log.taskName)) return false;
             return true;
         });
+        
+        const today = startOfDay(new Date());
+        const thirtyDaysAgo = subDays(today, 29);
+        const dateArray = Array.from({ length: 30 }, (_, i) => subDays(today, i)).reverse();
+
+        const finalActivityData = dateArray.map(date => {
+            const dateKey = format(date, 'yyyy-MM-dd');
+            return {
+                date: format(date, 'MMM d'),
+                lectures: activity[dateKey]?.size || 0
+            };
+        });
 
         return {
             allUniqueTasks: Array.from(tasks).sort(),
-            dailyLog: filteredTasks.sort((a, b) => b.completedAt - a.completedAt)
+            dailyLog: filteredTasks.sort((a, b) => b.completedAt - a.completedAt),
+            lectureActivityData: finalActivityData,
         };
     }, [profile, selectedDay, selectedSubjects, selectedTasks]);
     
@@ -414,113 +441,156 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
     };
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-             <style>{`.has-task:not([aria-selected]):after {
-                        content: '';
-                        position: absolute;
-                        bottom: 6px;
-                        left: 50%;
-                        transform: translateX(-50%);
-                        width: 5px;
-                        height: 5px;
-                        border-radius: 50%;
-                        background-color: hsl(var(--primary));
-                    }`}</style>
-            <div className="flex justify-center md:col-span-1">
-                 <Calendar
-                    mode="single"
-                    selected={selectedDay}
-                    onSelect={(day) => day && setSelectedDay(startOfDay(day))}
-                    className="rounded-md border"
-                    modifiers={modifiers}
-                    modifiersClassNames={modifiersClassNames}
-                />
-            </div>
-            <Card className="md:col-span-2">
-                <CardHeader>
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                            <CardTitle>Log for {format(selectedDay, 'PPP')}</CardTitle>
-                            <CardDescription>A chronological list of all tasks completed on this day.</CardDescription>
+        <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <style>{`.has-task:not([aria-selected]):after {
+                            content: '';
+                            position: absolute;
+                            bottom: 6px;
+                            left: 50%;
+                            transform: translateX(-50%);
+                            width: 5px;
+                            height: 5px;
+                            border-radius: 50%;
+                            background-color: hsl(var(--primary));
+                        }`}</style>
+                <div className="flex justify-center md:col-span-1">
+                    <Calendar
+                        mode="single"
+                        selected={selectedDay}
+                        onSelect={(day) => day && setSelectedDay(startOfDay(day))}
+                        className="rounded-md border"
+                        modifiers={modifiers}
+                        modifiersClassNames={modifiersClassNames}
+                    />
+                </div>
+                <Card className="md:col-span-2">
+                    <CardHeader>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                                <CardTitle>Log for {format(selectedDay, 'PPP')}</CardTitle>
+                                <CardDescription>A chronological list of all tasks completed on this day.</CardDescription>
+                            </div>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline"><Filter className="mr-2 h-4 w-4" /> Filter</Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-64 p-0">
+                                    <div className="p-4 space-y-4">
+                                        <div className="space-y-2">
+                                            <h4 className="font-medium text-sm">Subjects</h4>
+                                            <ScrollArea className="h-24">
+                                                <div className="space-y-1">
+                                                    {profile.subjects.map(subject => (
+                                                        <div key={subject.name} className="flex items-center space-x-2">
+                                                            <Checkbox
+                                                                id={`filter-subject-${subject.name}`}
+                                                                checked={selectedSubjects.includes(subject.name)}
+                                                                onCheckedChange={(checked) => handleSubjectFilterChange(subject.name, checked)}
+                                                            />
+                                                            <Label htmlFor={`filter-subject-${subject.name}`} className="text-sm font-normal">{subject.name}</Label>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </ScrollArea>
+                                        </div>
+                                        <Separator />
+                                        <div className="space-y-2">
+                                            <h4 className="font-medium text-sm">Tasks</h4>
+                                            <ScrollArea className="h-24">
+                                                <div className="space-y-1">
+                                                    {allUniqueTasks.map(task => (
+                                                        <div key={task} className="flex items-center space-x-2">
+                                                            <Checkbox
+                                                                id={`filter-task-${task}`}
+                                                                checked={selectedTasks.includes(task)}
+                                                                onCheckedChange={(checked) => handleTaskFilterChange(task, checked)}
+                                                            />
+                                                            <Label htmlFor={`filter-task-${task}`} className="text-sm font-normal">{task}</Label>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </ScrollArea>
+                                        </div>
+                                    </div>
+                                    <div className="p-2 border-t bg-muted/50">
+                                        <Button variant="ghost" size="sm" onClick={clearFilters} className="w-full">Clear all filters</Button>
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
                         </div>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline"><Filter className="mr-2 h-4 w-4" /> Filter</Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-64 p-0">
-                                <div className="p-4 space-y-4">
-                                     <div className="space-y-2">
-                                        <h4 className="font-medium text-sm">Subjects</h4>
-                                        <ScrollArea className="h-24">
-                                            <div className="space-y-1">
-                                                {profile.subjects.map(subject => (
-                                                    <div key={subject.name} className="flex items-center space-x-2">
-                                                        <Checkbox
-                                                            id={`filter-subject-${subject.name}`}
-                                                            checked={selectedSubjects.includes(subject.name)}
-                                                            onCheckedChange={(checked) => handleSubjectFilterChange(subject.name, checked)}
-                                                        />
-                                                        <Label htmlFor={`filter-subject-${subject.name}`} className="text-sm font-normal">{subject.name}</Label>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </ScrollArea>
-                                     </div>
-                                     <Separator />
-                                     <div className="space-y-2">
-                                        <h4 className="font-medium text-sm">Tasks</h4>
-                                         <ScrollArea className="h-24">
-                                            <div className="space-y-1">
-                                                {allUniqueTasks.map(task => (
-                                                    <div key={task} className="flex items-center space-x-2">
-                                                        <Checkbox
-                                                            id={`filter-task-${task}`}
-                                                            checked={selectedTasks.includes(task)}
-                                                            onCheckedChange={(checked) => handleTaskFilterChange(task, checked)}
-                                                        />
-                                                        <Label htmlFor={`filter-task-${task}`} className="text-sm font-normal">{task}</Label>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </ScrollArea>
-                                     </div>
-                                </div>
-                                <div className="p-2 border-t bg-muted/50">
-                                    <Button variant="ghost" size="sm" onClick={clearFilters} className="w-full">Clear all filters</Button>
-                                </div>
-                            </PopoverContent>
-                        </Popover>
-                    </div>
+                    </CardHeader>
+                    <CardContent>
+                        {dailyLog.length > 0 ? (
+                            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-3">
+                                {dailyLog.map(log => (
+                                    <div key={log.id} className="flex items-center gap-4 p-3 rounded-md bg-muted/40 border">
+                                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                                            <log.Icon className="h-5 w-5 text-primary"/>
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="font-medium text-sm text-foreground">
+                                                {log.taskName} - {log.subjectName}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {log.chapterName}, {log.lectureNum}
+                                            </p>
+                                        </div>
+                                        <p className="text-sm text-muted-foreground font-mono">
+                                            {format(new Date(log.completedAt), 'p')}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center rounded-md border-2 border-dashed py-12 text-center">
+                                <ListChecks className="h-10 w-10 text-muted-foreground mb-4"/>
+                                <h3 className="text-lg font-medium text-muted-foreground">No Matching Activity</h3>
+                                <p className="text-sm text-muted-foreground">Try adjusting your filters or selecting another day.</p>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Activity className="h-5 w-5" />
+                        Lecture Activity (Last 30 Days)
+                    </CardTitle>
+                    <CardDescription>
+                        A line graph showing the number of lectures completed per day.
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {dailyLog.length > 0 ? (
-                        <div className="space-y-4 max-h-[400px] overflow-y-auto pr-3">
-                            {dailyLog.map(log => (
-                                <div key={log.id} className="flex items-center gap-4 p-3 rounded-md bg-muted/40 border">
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                                        <log.Icon className="h-5 w-5 text-primary"/>
-                                    </div>
-                                    <div className="flex-1">
-                                        <p className="font-medium text-sm text-foreground">
-                                            {log.taskName} - {log.subjectName}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">
-                                            {log.chapterName}, {log.lectureNum}
-                                        </p>
-                                    </div>
-                                    <p className="text-sm text-muted-foreground font-mono">
-                                        {format(new Date(log.completedAt), 'p')}
-                                    </p>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                         <div className="flex flex-col items-center justify-center rounded-md border-2 border-dashed py-12 text-center">
-                            <ListChecks className="h-10 w-10 text-muted-foreground mb-4"/>
-                            <h3 className="text-lg font-medium text-muted-foreground">No Matching Activity</h3>
-                            <p className="text-sm text-muted-foreground">Try adjusting your filters or selecting another day.</p>
-                        </div>
-                    )}
+                    <ChartContainer
+                        config={{ lectures: { label: "Lectures", color: "hsl(var(--primary))" } }}
+                        className="mx-auto aspect-video max-h-[250px]"
+                    >
+                        <LineChart data={lectureActivityData}>
+                            <CartesianGrid vertical={false} />
+                            <XAxis
+                                dataKey="date"
+                                tickLine={false}
+                                axisLine={false}
+                                tickMargin={8}
+                                tickFormatter={(value, index) => index % 3 === 0 ? value : ''}
+                            />
+                            <YAxis allowDecimals={false} />
+                            <ChartTooltip
+                                cursor={false}
+                                content={<ChartTooltipContent indicator="dot" />}
+                            />
+                            <Line
+                                dataKey="lectures"
+                                type="monotone"
+                                stroke="hsl(var(--primary))"
+                                strokeWidth={2}
+                                dot={{ fill: "hsl(var(--primary))" }}
+                                activeDot={{ r: 6 }}
+                            />
+                        </LineChart>
+                    </ChartContainer>
                 </CardContent>
             </Card>
         </div>
