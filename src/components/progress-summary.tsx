@@ -579,9 +579,9 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
                 <CardContent>
                     <ChartContainer
                         config={{ lectures: { label: "Lectures", color: "hsl(var(--primary))" } }}
-                        className="mx-auto aspect-video max-h-[250px]"
+                        className="mx-auto aspect-video"
                     >
-                        <LineChart data={lectureActivityData} margin={{ top: 5, right: 10, left: -20, bottom: 20 }}>
+                        <LineChart data={lectureActivityData} margin={{ top: 5, right: 10, left: -20, bottom: 30 }}>
                             <CartesianGrid vertical={false} />
                             <XAxis
                                 dataKey="date"
@@ -1236,4 +1236,3 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
     </Tabs>
   );
 }
-
