@@ -579,7 +579,7 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
                 <CardContent>
                     <ChartContainer
                         config={{ lectures: { label: "Lectures", color: "hsl(var(--primary))" } }}
-                        className="mx-auto aspect-video"
+                        className="mx-auto aspect-video max-h-[250px]"
                     >
                         <LineChart data={lectureActivityData} margin={{ top: 5, right: 10, left: -20, bottom: 30 }}>
                             <CartesianGrid vertical={false} />
@@ -715,7 +715,7 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
       progress: point.progress
     })).slice(-30);
 
-    const chapterCompletionEvents: { date: number, subject: string }[] = [];
+    const chapterCompletionEvents: { date: number, subject: string, chapter: string }[] = [];
     profile.subjects.forEach(subject => {
         subject.chapters.forEach(chapter => {
             const totalTasks = (subject.tasks?.length || 0) * chapter.lectureCount;
@@ -725,7 +725,7 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
             if (completedTasks.length === totalTasks) {
                 const lastCompletionTime = Math.max(...completedTasks.map(c => c.completedAt || 0));
                 if (lastCompletionTime > 0) {
-                    chapterCompletionEvents.push({ date: lastCompletionTime, subject: subject.name });
+                    chapterCompletionEvents.push({ date: lastCompletionTime, subject: subject.name, chapter: chapter.name });
                 }
             }
         });
@@ -745,6 +745,7 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
         cumulativeCounts[event.subject]++;
         return {
             date: format(new Date(event.date), 'MMM d'),
+            chapterName: event.chapter,
             ...cumulativeCounts
         };
     });
@@ -1114,16 +1115,28 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                                 <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
                                 <YAxis allowDecimals={false} />
-                                <RechartsTooltip content={<ChartTooltipContent indicator="dot" />} />
+                                <RechartsTooltip 
+                                    content={<ChartTooltipContent 
+                                        indicator="dot" 
+                                        formatter={(_, name, item) => (
+                                            <div className="flex flex-col gap-0.5">
+                                                <span className="font-bold text-foreground text-sm">{item.payload.date}</span>
+                                                <span className="text-muted-foreground">{`Completed: ${item.payload.chapterName}`}</span>
+                                            </div>
+                                        )}
+                                        hideLabel
+                                    />} 
+                                />
                                 <ChartLegend />
                                 {Object.keys(chapterTimelineConfig).map(subjectName => (
                                     <Line
                                         key={subjectName}
-                                        type="stepAfter"
+                                        type="monotone"
                                         dataKey={subjectName}
                                         stroke={chapterTimelineConfig[subjectName].color}
                                         strokeWidth={2}
                                         dot={false}
+                                        activeDot={{ r: 6 }}
                                     />
                                 ))}
                             </LineChart>
