@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import type { Profile, Subject, Chapter, CheckedState } from "@/lib/types";
@@ -397,6 +398,7 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
         const finalActivityData = dateArray.map(date => {
             const dateKey = format(date, 'yyyy-MM-dd');
             return {
+                fullDate: format(date, 'MMM d'),
                 date: format(date, 'd'),
                 lectures: activity[dateKey]?.size || 0
             };
@@ -588,14 +590,23 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
                                 tickMargin={8}
                                 tickFormatter={(value, index) => index % 3 === 0 ? value : ''}
                             >
-                               <RechartsLabel value="Month" position="bottom" offset={10} className="text-sm text-muted-foreground" />
+                               <RechartsLabel value={format(currentMonth, 'MMMM')} position="bottom" offset={10} className="text-sm text-muted-foreground" />
                             </XAxis>
                             <YAxis allowDecimals={false}>
                                 <RechartsLabel value="Lectures" angle={-90} position="insideLeft" offset={10} style={{ textAnchor: 'middle' }} className="text-sm text-muted-foreground" />
                             </YAxis>
                             <ChartTooltip
                                 cursor={false}
-                                content={<ChartTooltipContent indicator="dot" />}
+                                content={<ChartTooltipContent 
+                                    indicator="dot"
+                                    formatter={(value, name, item) => (
+                                        <div className="flex flex-col gap-0.5">
+                                            <span className="font-bold text-foreground text-sm">{item.payload.fullDate}</span>
+                                            <span className="text-muted-foreground">{`Lectures: ${value}`}</span>
+                                        </div>
+                                    )}
+                                    hideLabel
+                                />}
                             />
                             <Line
                                 dataKey="lectures"
@@ -1225,3 +1236,4 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
     </Tabs>
   );
 }
+
