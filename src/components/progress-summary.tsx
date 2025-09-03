@@ -343,7 +343,7 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
     const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
     const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
 
-    const { allUniqueTasks, dailyLog, lectureActivityData, monthlyAvg, weeklyAvg } = useMemo(() => {
+    const { allUniqueTasks, dailyLog, lectureActivityData, lecturesThisMonth, lecturesThisWeek } = useMemo(() => {
         const tasks = new Set<string>();
         const completedTasks: any[] = [];
         const activity: Record<string, Set<string>> = {};
@@ -402,23 +402,20 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
             };
         });
         
-        // Calculate averages
         const lecturesThisMonth = finalActivityData.reduce((sum, day) => sum + day.lectures, 0);
-        const monthlyAvg = (lecturesThisMonth / daysInMonth).toFixed(1);
         
         const weekStart = startOfWeek(selectedDay, { weekStartsOn: 1 });
         const weekEnd = endOfWeek(selectedDay, { weekStartsOn: 1 });
         const lecturesThisWeek = completedTasks
             .filter(t => t.taskName === lectureTaskName && isWithinInterval(new Date(t.completedAt), { start: weekStart, end: weekEnd }))
             .length;
-        const weeklyAvg = (lecturesThisWeek / 7).toFixed(1);
 
         return {
             allUniqueTasks: Array.from(tasks).sort(),
             dailyLog: filteredTasks.sort((a, b) => b.completedAt - a.completedAt),
             lectureActivityData: finalActivityData,
-            monthlyAvg,
-            weeklyAvg,
+            lecturesThisMonth,
+            lecturesThisWeek,
         };
     }, [profile, selectedDay, selectedSubjects, selectedTasks, currentMonth]);
     
@@ -583,13 +580,13 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
                         <div className="flex items-center gap-4">
                             <div className="flex items-center gap-2 rounded-md border bg-card p-2">
                                <div className="text-center px-2">
-                                   <p className="text-xs text-muted-foreground">Month Avg</p>
-                                   <p className="text-lg font-bold">{monthlyAvg}</p>
+                                   <p className="text-xs text-muted-foreground">Month Total</p>
+                                   <p className="text-lg font-bold">{lecturesThisMonth}</p>
                                </div>
                                <Separator orientation="vertical" className="h-8"/>
                                <div className="text-center px-2">
-                                   <p className="text-xs text-muted-foreground">Week Avg</p>
-                                   <p className="text-lg font-bold">{weeklyAvg}</p>
+                                   <p className="text-xs text-muted-foreground">Week Total</p>
+                                   <p className="text-lg font-bold">{lecturesThisWeek}</p>
                                </div>
                             </div>
                              <div className='flex items-center rounded-md border bg-card text-sm'>
