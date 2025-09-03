@@ -40,7 +40,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
-import { addDays, format, startOfWeek, endOfWeek, isWithinInterval, isSameDay, startOfDay, subDays, startOfMonth, getDaysInMonth, eachDayOfInterval, addMonths, subMonths } from "date-fns";
+import { addDays, format, startOfWeek, endOfWeek, isWithinInterval, isSameDay, startOfDay, subDays, startOfMonth, getDaysInMonth, eachDayOfInterval, addMonths, subMonths, getISOWeek, endOfMonth } from "date-fns";
 import { getIconComponent } from "@/lib/icons";
 import { Progress } from "./ui/progress";
 import { Button } from "./ui/button";
@@ -343,11 +343,10 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
     const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
     const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
 
-    const { allUniqueTasks, dailyLog, lectureActivityData } = useMemo(() => {
+    const { allUniqueTasks, dailyLog, lectureActivityData, monthlyAvg, weeklyAvg } = useMemo(() => {
         const tasks = new Set<string>();
         const completedTasks: any[] = [];
-        
-        const activity: Record<string, Set<string>> = {}; // date -> Set<lectureId>
+        const activity: Record<string, Set<string>> = {};
         const lectureTaskName = 'Lecture';
 
         profile.subjects.forEach(subject => {
@@ -371,7 +370,6 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
                             Icon: Icon,
                         });
                         
-                        // Populate lecture activity data
                         if (taskName === lectureTaskName) {
                             const dateKey = format(new Date(value.completedAt), 'yyyy-MM-dd');
                             if (!activity[dateKey]) {
@@ -403,11 +401,24 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
                 lectures: activity[dateKey]?.size || 0
             };
         });
+        
+        // Calculate averages
+        const lecturesThisMonth = finalActivityData.reduce((sum, day) => sum + day.lectures, 0);
+        const monthlyAvg = (lecturesThisMonth / daysInMonth).toFixed(1);
+        
+        const weekStart = startOfWeek(selectedDay);
+        const weekEnd = endOfWeek(selectedDay);
+        const lecturesThisWeek = completedTasks
+            .filter(t => t.taskName === lectureTaskName && isWithinInterval(new Date(t.completedAt), { start: weekStart, end: weekEnd }))
+            .length;
+        const weeklyAvg = (lecturesThisWeek / 7).toFixed(1);
 
         return {
             allUniqueTasks: Array.from(tasks).sort(),
             dailyLog: filteredTasks.sort((a, b) => b.completedAt - a.completedAt),
             lectureActivityData: finalActivityData,
+            monthlyAvg,
+            weeklyAvg,
         };
     }, [profile, selectedDay, selectedSubjects, selectedTasks, currentMonth]);
     
@@ -445,7 +456,7 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
 
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-6">
                 <style>{`.has-task:not([aria-selected]):after {
                             content: '';
                             position: absolute;
@@ -469,7 +480,7 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
                         modifiersClassNames={modifiersClassNames}
                     />
                 </div>
-                <Card className="md:col-span-2">
+                <Card className="md:col-span-1">
                     <CardHeader>
                         <div className="flex flex-wrap items-center justify-between gap-2">
                             <div>
@@ -548,7 +559,7 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
                                 ))}
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center justify-center rounded-md border-2 border-dashed py-12 text-center">
+                            <div className="flex flex-col items-center justify-center rounded-md border-2 border-dashed py-12 text-center h-full">
                                 <ListChecks className="h-10 w-10 text-muted-foreground mb-4"/>
                                 <h3 className="text-lg font-medium text-muted-foreground">No Matching Activity</h3>
                                 <p className="text-sm text-muted-foreground">Try adjusting your filters or selecting another day.</p>
@@ -559,7 +570,7 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
             </div>
             <Card>
                 <CardHeader>
-                    <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
                          <div className="space-y-1">
                             <CardTitle className="flex items-center gap-2">
                                 <Activity className="h-5 w-5" />
@@ -569,17 +580,30 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
                                 Lectures completed per day in {format(currentMonth, 'MMMM yyyy')}.
                             </CardDescription>
                         </div>
-                        <div className='flex items-center rounded-md border bg-card text-sm'>
-                            <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="rounded-r-none h-8"><ChevronLeft className="mr-1 h-4 w-4"/> Prev</Button>
-                            <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(new Date())} className="rounded-none border-x h-8">This Month</Button>
-                            <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="rounded-l-none h-8">Next <ChevronRight className="ml-1 h-4 w-4"/></Button>
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2 rounded-md border bg-card p-2">
+                               <div className="text-center px-2">
+                                   <p className="text-xs text-muted-foreground">Month Avg</p>
+                                   <p className="text-lg font-bold">{monthlyAvg}</p>
+                               </div>
+                               <Separator orientation="vertical" className="h-8"/>
+                               <div className="text-center px-2">
+                                   <p className="text-xs text-muted-foreground">Week Avg</p>
+                                   <p className="text-lg font-bold">{weeklyAvg}</p>
+                               </div>
+                            </div>
+                             <div className='flex items-center rounded-md border bg-card text-sm'>
+                                <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="rounded-r-none h-8"><ChevronLeft className="mr-1 h-4 w-4"/> Prev</Button>
+                                <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(new Date())} className="rounded-none border-x h-8">This Month</Button>
+                                <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="rounded-l-none h-8">Next <ChevronRight className="ml-1 h-4 w-4"/></Button>
+                            </div>
                         </div>
                     </div>
                 </CardHeader>
                 <CardContent>
                     <ChartContainer
                         config={{ lectures: { label: "Lectures", color: "hsl(var(--primary))" } }}
-                        className="mx-auto aspect-video"
+                        className="mx-auto aspect-video min-h-[300px]"
                     >
                         <LineChart data={lectureActivityData} margin={{ top: 5, right: 10, left: -20, bottom: 30 }}>
                             <CartesianGrid vertical={false} />
