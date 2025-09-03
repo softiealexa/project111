@@ -870,12 +870,18 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
   }
 
   return (
-     <Tabs defaultValue="overall" className="w-full">
+     <Tabs defaultValue="daily" className="w-full">
         <TabsList className="grid w-full grid-cols-3 mb-6">
-          <TabsTrigger value="overall">Overall</TabsTrigger>
-          <TabsTrigger value="weekly">Weekly</TabsTrigger>
           <TabsTrigger value="daily">Daily Log</TabsTrigger>
+          <TabsTrigger value="weekly">Weekly</TabsTrigger>
+          <TabsTrigger value="overall">Overall</TabsTrigger>
         </TabsList>
+        <TabsContent value="daily">
+            <DailyLogDashboard profile={profile} />
+        </TabsContent>
+        <TabsContent value="weekly">
+            <WeeklyProgressDashboard profile={profile} />
+        </TabsContent>
         <TabsContent value="overall" className="space-y-6">
             <StatsDashboard title="Lifetime Stats" stats={overallStats} data={[]} />
 
@@ -1172,12 +1178,6 @@ export default function ProgressSummary({ profile }: { profile: Profile }) {
                     )}
                 </CardContent>
             </Card>
-        </TabsContent>
-        <TabsContent value="weekly">
-            <WeeklyProgressDashboard profile={profile} />
-        </TabsContent>
-        <TabsContent value="daily">
-            <DailyLogDashboard profile={profile} />
         </TabsContent>
     </Tabs>
   );
