@@ -406,8 +406,8 @@ function DailyLogDashboard({ profile }: { profile: Profile }) {
         const lecturesThisMonth = finalActivityData.reduce((sum, day) => sum + day.lectures, 0);
         const monthlyAvg = (lecturesThisMonth / daysInMonth).toFixed(1);
         
-        const weekStart = startOfWeek(selectedDay);
-        const weekEnd = endOfWeek(selectedDay);
+        const weekStart = startOfWeek(selectedDay, { weekStartsOn: 1 });
+        const weekEnd = endOfWeek(selectedDay, { weekStartsOn: 1 });
         const lecturesThisWeek = completedTasks
             .filter(t => t.taskName === lectureTaskName && isWithinInterval(new Date(t.completedAt), { start: weekStart, end: weekEnd }))
             .length;
