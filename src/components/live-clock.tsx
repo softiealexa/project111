@@ -83,7 +83,7 @@ export default function LiveClock() {
         className="hidden sm:flex flex-col items-center justify-center text-center bg-muted rounded-md px-4 py-1.5 h-auto min-h-[52px] w-[130px] text-foreground cursor-pointer"
       >
         <span className="text-lg font-semibold text-foreground">{timeString}</span>
-        <div className="text-xs text-muted-foreground leading-tight">
+        <div className="text-xs text-foreground leading-tight">
             <span>{dayOfWeekString}</span>
             <span className="mx-1.5">|</span>
             <span>{dayOfMonthString}</span>
