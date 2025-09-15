@@ -56,7 +56,7 @@ export default function LiveClock() {
   const dayOfMonthString = formatDayWithSuffix(date);
   
   const fullscreenTimeString = format(date, 'h:mm:ss a');
-  const fullscreenDateString = format(date, 'EEEE, MMM do, yyyy');
+  const fullscreenDateString = format(date, 'EEEE, d MMM, yyyy');
 
 
   if (isFullscreen) {
@@ -86,9 +86,9 @@ export default function LiveClock() {
         <div className="text-xs text-muted-foreground leading-tight">
             <span>{dayOfWeekString}</span>
             <span className="mx-1.5">|</span>
-            <span>{monthString}</span>
-            <span className="mx-1.5">|</span>
             <span>{dayOfMonthString}</span>
+            <span className="mx-1.5">|</span>
+            <span>{monthString}</span>
         </div>
       </div>
     </div>
