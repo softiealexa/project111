@@ -57,9 +57,6 @@ const UnitConverter = dynamic(() => import('@/components/unit-converter'), {
 const BacklogPlanner = dynamic(() => import('@/components/backlog-planner'), {
     loading: () => <LoadingSpinner containerClassName="h-96" text="Loading Planner..." />
 });
-const PdfConverter = dynamic(() => import('@/components/pdf-converter'), {
-    loading: () => <LoadingSpinner containerClassName="h-96" text="Loading Converter..." />
-});
 
 const tools = [
   { value: 'backlog-planner', label: 'Backlog Planner', icon: Calculator },
@@ -72,7 +69,6 @@ const tools = [
   { value: 'planner', label: 'Study Planner', icon: CalendarDays },
   { value: 'timer', label: 'Pomodoro Timer', icon: Timer },
   { value: 'countdown', label: 'Exam Countdown', icon: Target },
-  { value: 'pdf-converter', label: 'PDF Converter', icon: FileUp },
 ];
 
 const mainTabs = ['subjects', 'progress', 'tools'];
@@ -314,9 +310,6 @@ export default function DashboardClient() {
                           </TabsContent>
                           <TabsContent value="countdown" className="mt-0">
                               <ExamCountdown />
-                          </TabsContent>
-                          <TabsContent value="pdf-converter" className="mt-0">
-                              <PdfConverter />
                           </TabsContent>
                       </div>
                   </div>
