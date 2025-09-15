@@ -48,6 +48,9 @@ const QuestionTimer = dynamic(() => import('@/components/question-timer'), {
 const ExamCountdown = dynamic(() => import('@/components/exam-countdown'), {
     loading: () => <LoadingSpinner containerClassName="h-96" text="Loading Countdowns..." />
 });
+const MiniCountdown = dynamic(() => import('@/components/mini-countdown'), {
+    loading: () => <div className="hidden sm:block h-[52px] w-[130px] rounded-md bg-muted" />
+});
 const UnitConverter = dynamic(() => import('@/components/unit-converter'), {
     loading: () => <LoadingSpinner containerClassName="h-96" text="Loading Converter..." />
 });
@@ -227,7 +230,10 @@ export default function DashboardClient() {
                     </TabsList>
                     <ScrollBar orientation="horizontal" />
                   </ScrollArea>
-                  <LiveClock />
+                   <div className="hidden sm:flex items-center gap-2">
+                    <MiniCountdown />
+                    <LiveClock />
+                  </div>
                 </div>
 
                 {activeProfile.subjects.map((subject) => (

@@ -78,6 +78,7 @@ interface DataContextType {
   updateExamCountdown: (countdown: ExamCountdown) => void;
   deleteExamCountdown: (countdownId: string) => void;
   setExamCountdowns: (countdowns: ExamCountdown[]) => void;
+  setPinnedCountdownId: (id: string | null) => void;
   addTimeOffRequest: (request: Omit<TimeOffRequest, 'id'>) => void;
   addShift: (shift: Omit<Shift, 'id'>) => void;
   updateShift: (shift: Shift) => void;
@@ -1001,6 +1002,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateProfiles(newProfiles, activeProfileName, { examCountdowns: countdowns });
   }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
+  const setPinnedCountdownId = useCallback((id: string | null) => {
+    if (!activeProfile) return;
+    const newProfiles = profiles.map(p => 
+        p.name === activeProfileName ? { ...p, pinnedCountdownId: id } : p
+    );
+    updateProfiles(newProfiles, activeProfileName, { pinnedCountdownId: id });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
+
   const addTimeOffRequest = useCallback((request: Omit<TimeOffRequest, 'id'>) => {
     if (!activeProfile) return;
     const newRequest: TimeOffRequest = { ...request, id: crypto.randomUUID() };
@@ -1129,7 +1138,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addSimpleTodo, updateSimpleTodo, deleteSimpleTodo, setSimpleTodos,
     addQuestionSession, addTimeEntry, updateTimeEntry, deleteTimeEntry, setTimeEntries,
     addProject, updateProject, deleteProject, updateTimesheetEntry, setTimesheetData,
-    addExamCountdown, updateExamCountdown, deleteExamCountdown, setExamCountdowns,
+    addExamCountdown, updateExamCountdown, deleteExamCountdown, setExamCountdowns, setPinnedCountdownId,
     addTimeOffRequest, addShift, updateShift, deleteShift, addTeamMember, updateTeamMember, deleteTeamMember,
     exportData, importData, signOutUser, refreshUserDoc,
     theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth,
@@ -1143,7 +1152,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addSimpleTodo, updateSimpleTodo, deleteSimpleTodo, setSimpleTodos,
     addQuestionSession, addTimeEntry, updateTimeEntry, deleteTimeEntry, setTimeEntries,
     addProject, updateProject, deleteProject, updateTimesheetEntry, setTimesheetData,
-    addExamCountdown, updateExamCountdown, deleteExamCountdown, setExamCountdowns,
+    addExamCountdown, updateExamCountdown, deleteExamCountdown, setExamCountdowns, setPinnedCountdownId,
     addTimeOffRequest, addShift, updateShift, deleteShift, addTeamMember, updateTeamMember, deleteTeamMember,
     exportData, importData, signOutUser, refreshUserDoc,
     theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth, setActiveSubjectName,

@@ -144,6 +144,7 @@ export interface Profile {
   progressHistory?: ProgressPoint[];
   questionSessions?: QuestionSession[];
   examCountdowns?: ExamCountdown[];
+  pinnedCountdownId?: string | null;
   timeEntries?: TimeEntry[];
   projects?: Project[];
   timesheetData?: TimesheetData;
