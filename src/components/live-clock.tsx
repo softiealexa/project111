@@ -52,11 +52,11 @@ export default function LiveClock() {
   
   const timeString = format(date, 'h:mm a');
   const dayOfWeekString = format(date, 'eee');
-  const monthString = format(date, 'MMMM');
+  const monthString = format(date, 'MMM');
   const dayOfMonthString = formatDayWithSuffix(date);
   
   const fullscreenTimeString = format(date, 'h:mm:ss a');
-  const fullscreenDateString = format(date, 'EEEE, MMMM do, yyyy');
+  const fullscreenDateString = format(date, 'EEEE, MMM do, yyyy');
 
 
   if (isFullscreen) {
