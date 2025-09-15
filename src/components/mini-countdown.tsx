@@ -47,17 +47,17 @@ export default function MiniCountdown() {
         pinnedCountdownId: activeProfile?.pinnedCountdownId || null,
     }), [activeProfile]);
 
-    const pinnedCountdown = useMemo(() => {
-        if (!pinnedCountdownId) {
-            // If no countdown is pinned, but some exist, pin the first one by default.
-            if (countdowns.length > 0) {
-                setPinnedCountdownId(countdowns[0].id);
-                return countdowns[0];
-            }
-            return null;
+    // Fix: Move the side-effect (setting a default) into useEffect
+    useEffect(() => {
+        if (!pinnedCountdownId && countdowns.length > 0) {
+            setPinnedCountdownId(countdowns[0].id);
         }
-        return countdowns.find(c => c.id === pinnedCountdownId) || null;
     }, [pinnedCountdownId, countdowns, setPinnedCountdownId]);
+
+    const pinnedCountdown = useMemo(() => {
+        if (!pinnedCountdownId) return null;
+        return countdowns.find(c => c.id === pinnedCountdownId) || null;
+    }, [pinnedCountdownId, countdowns]);
 
     const handleGoToTool = () => {
         router.push('/dashboard?tab=tools');
