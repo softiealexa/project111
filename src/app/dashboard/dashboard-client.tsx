@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import LiveClock from '@/components/live-clock';
 import { getIconComponent } from '@/lib/icons';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Pencil, Timer, ListTodo, CalendarDays, Link as LinkIcon, Keyboard, Target, Beaker, CheckSquare, Calculator } from 'lucide-react';
+import { Pencil, Timer, ListTodo, CalendarDays, Link as LinkIcon, Keyboard, Target, Beaker, CheckSquare, Calculator, FileUp } from 'lucide-react';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { useSearchParams } from 'next/navigation';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -54,6 +54,9 @@ const UnitConverter = dynamic(() => import('@/components/unit-converter'), {
 const BacklogPlanner = dynamic(() => import('@/components/backlog-planner'), {
     loading: () => <LoadingSpinner containerClassName="h-96" text="Loading Planner..." />
 });
+const PdfConverter = dynamic(() => import('@/components/pdf-converter'), {
+    loading: () => <LoadingSpinner containerClassName="h-96" text="Loading Converter..." />
+});
 
 const tools = [
   { value: 'backlog-planner', label: 'Backlog Planner', icon: Calculator },
@@ -66,6 +69,7 @@ const tools = [
   { value: 'planner', label: 'Study Planner', icon: CalendarDays },
   { value: 'timer', label: 'Pomodoro Timer', icon: Timer },
   { value: 'countdown', label: 'Exam Countdown', icon: Target },
+  { value: 'pdf-converter', label: 'PDF Converter', icon: FileUp },
 ];
 
 const mainTabs = ['subjects', 'progress', 'tools'];
@@ -205,7 +209,7 @@ export default function DashboardClient() {
 
             <TabsContent value="subjects">
               <Tabs value={activeSubjectName ?? ''} onValueChange={setActiveSubjectName} className="w-full">
-                <div className="flex items-center justify-between gap-4">
+                <div className="flex items-start justify-between gap-4">
                   <ScrollArea className="flex-1 whitespace-nowrap rounded-md pb-2.5">
                     <TabsList className={cn(
                       "transition-all duration-300 p-1.5 sm:p-1 h-auto sm:h-10",
@@ -304,6 +308,9 @@ export default function DashboardClient() {
                           </TabsContent>
                           <TabsContent value="countdown" className="mt-0">
                               <ExamCountdown />
+                          </TabsContent>
+                          <TabsContent value="pdf-converter" className="mt-0">
+                              <PdfConverter />
                           </TabsContent>
                       </div>
                   </div>

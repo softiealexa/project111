@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { Button } from './ui/button';
-import { cn } from '@/lib/utils';
+import { cn, formatDayWithSuffix } from '@/lib/utils';
 import { Maximize, Minimize } from 'lucide-react';
 
 export default function LiveClock() {
@@ -49,9 +49,12 @@ export default function LiveClock() {
       </div>
     );
   }
-
+  
   const timeString = format(date, 'h:mm a');
-  const dateString = format(date, 'eee MMMM do');
+  const dayOfWeekString = format(date, 'eee');
+  const monthString = format(date, 'MMMM');
+  const dayOfMonthString = formatDayWithSuffix(date);
+  
   const fullscreenTimeString = format(date, 'h:mm:ss a');
   const fullscreenDateString = format(date, 'EEEE, MMMM do, yyyy');
 
@@ -77,10 +80,16 @@ export default function LiveClock() {
     <div ref={containerRef}>
       <div
         onClick={handleFullscreen}
-        className="hidden sm:flex flex-col items-center justify-center text-center bg-muted rounded-md px-4 py-1.5 h-[52px] w-[120px] text-foreground cursor-pointer"
+        className="hidden sm:flex flex-col items-center justify-center text-center bg-muted rounded-md px-4 py-1.5 h-auto min-h-[52px] w-[130px] text-foreground cursor-pointer"
       >
         <span className="text-lg font-semibold text-foreground">{timeString}</span>
-        <span className="text-xs text-muted-foreground">{dateString}</span>
+        <div className="text-xs text-muted-foreground leading-tight">
+            <span>{dayOfWeekString}</span>
+            <span className="mx-1.5">|</span>
+            <span>{monthString}</span>
+            <span className="mx-1.5">|</span>
+            <span>{dayOfMonthString}</span>
+        </div>
       </div>
     </div>
   );
