@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -13,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Plus, Pencil, Trash2, GripVertical, Calendar as CalendarIcon, Target } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { format, differenceInDays, differenceInHours, differenceInMinutes, differenceInSeconds } from 'date-fns';
+import { format, differenceInDays, differenceInHours, differenceInMinutes, differenceInSeconds, differenceInMonths } from 'date-fns';
 import {
   DndContext,
   closestCenter,
@@ -42,6 +43,7 @@ function CountdownDisplay({ date }: { date: number }) {
 
   const targetDate = new Date(date);
   const totalDays = differenceInDays(targetDate, now);
+  const totalMonths = differenceInMonths(targetDate, now);
   const hours = differenceInHours(targetDate, now) % 24;
   const minutes = differenceInMinutes(targetDate, now) % 60;
   const seconds = differenceInSeconds(targetDate, now) % 60;
@@ -51,23 +53,30 @@ function CountdownDisplay({ date }: { date: number }) {
   }
 
   return (
-    <div className="grid grid-cols-4 gap-2 text-center">
-      <div>
-        <p className="text-3xl font-bold">{totalDays}</p>
-        <p className="text-xs text-muted-foreground">Days</p>
+    <div className="space-y-2">
+      <div className="grid grid-cols-4 gap-2 text-center">
+        <div>
+          <p className="text-3xl font-bold">{totalDays}</p>
+          <p className="text-xs text-muted-foreground">Days</p>
+        </div>
+        <div>
+          <p className="text-3xl font-bold">{hours}</p>
+          <p className="text-xs text-muted-foreground">Hours</p>
+        </div>
+        <div>
+          <p className="text-3xl font-bold">{minutes}</p>
+          <p className="text-xs text-muted-foreground">Minutes</p>
+        </div>
+        <div>
+          <p className="text-3xl font-bold">{seconds}</p>
+          <p className="text-xs text-muted-foreground">Seconds</p>
+        </div>
       </div>
-      <div>
-        <p className="text-3xl font-bold">{hours}</p>
-        <p className="text-xs text-muted-foreground">Hours</p>
-      </div>
-      <div>
-        <p className="text-3xl font-bold">{minutes}</p>
-        <p className="text-xs text-muted-foreground">Minutes</p>
-      </div>
-      <div>
-        <p className="text-3xl font-bold">{seconds}</p>
-        <p className="text-xs text-muted-foreground">Seconds</p>
-      </div>
+      {totalMonths > 0 && (
+          <p className="text-center text-sm text-muted-foreground">
+              (approx. {totalMonths} month{totalMonths > 1 ? 's' : ''} left)
+          </p>
+      )}
     </div>
   );
 }
