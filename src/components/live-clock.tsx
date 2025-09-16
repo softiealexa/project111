@@ -80,7 +80,7 @@ export default function LiveClock() {
     <div ref={containerRef}>
       <div
         onClick={handleFullscreen}
-        className="hidden sm:flex flex-col items-center justify-center text-center bg-muted rounded-md px-4 py-1.5 h-auto min-h-[52px] w-[130px] text-foreground cursor-pointer transition-all hover:shadow-lg hover:shadow-primary/10 hover:border-primary/20 border"
+        className="hidden sm:flex flex-col items-center justify-center text-center bg-muted rounded-md px-4 py-1.5 h-auto min-h-[52px] w-[130px] text-foreground cursor-pointer transition-all hover:shadow-lg hover:shadow-primary/10 hover:border-primary/50 border"
       >
         <span className="text-lg font-semibold text-foreground">{timeString}</span>
         <div className="text-xs text-foreground leading-tight">
