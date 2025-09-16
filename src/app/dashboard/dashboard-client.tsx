@@ -49,7 +49,7 @@ const ExamCountdown = dynamic(() => import('@/components/exam-countdown'), {
     loading: () => <LoadingSpinner containerClassName="h-96" text="Loading Countdowns..." />
 });
 const MiniCountdown = dynamic(() => import('@/components/mini-countdown'), {
-    loading: () => <div className="hidden sm:block h-[52px] w-[130px] rounded-md bg-muted" />
+    loading: () => <div className="hidden sm:block h-[52px] w-[117px] rounded-md bg-muted" />
 });
 const UnitConverter = dynamic(() => import('@/components/unit-converter'), {
     loading: () => <LoadingSpinner containerClassName="h-96" text="Loading Converter..." />

@@ -72,7 +72,7 @@ export default function MiniCountdown() {
     }
 
   return (
-    <div className="relative group flex flex-col items-center justify-center text-center bg-muted rounded-md px-4 py-1.5 h-auto min-h-[52px] w-[130px] text-foreground">
+    <div className="relative group flex flex-col items-center justify-center text-center bg-muted rounded-md px-4 py-1.5 h-auto min-h-[52px] w-[117px] text-foreground">
         {pinnedCountdown ? (
             <>
                 <CountdownTimer date={pinnedCountdown.date} />
