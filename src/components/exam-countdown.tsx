@@ -74,7 +74,7 @@ function CountdownDisplay({ date }: { date: number }) {
       </div>
       {totalMonths > 0 && (
           <p className="text-center text-sm text-muted-foreground">
-              (approx. {totalMonths} month{totalMonths > 1 ? 's' : ''} left)
+              ({totalMonths} month{totalMonths > 1 ? 's' : ''} left)
           </p>
       )}
     </div>
