@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ShieldAlert, Users, LoaderCircle, MessageSquare, ChevronDown, Archive, ChevronLeft, ChevronRight, Pencil, DownloadCloud, UserPlus, TrendingUp, addDays } from 'lucide-react';
+import { ShieldAlert, Users, LoaderCircle, MessageSquare, ChevronDown, Archive, ChevronLeft, ChevronRight, Pencil, DownloadCloud, UserPlus, TrendingUp } from 'lucide-react';
 import { collection, query, orderBy, Timestamp, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppUser, Feedback, FeedbackStatus, CheckedState } from '@/lib/types';
@@ -21,7 +21,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { format, formatDistanceToNow, isAfter, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addMonths, subMonths, isWithinInterval, eachDayOfInterval } from 'date-fns';
+import { format, formatDistanceToNow, isAfter, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addMonths, subMonths, isWithinInterval, eachDayOfInterval, addDays } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -446,17 +446,17 @@ export default function AdminPage() {
                                                 A list of all users who have registered in the application.
                                             </CardDescription>
                                         </div>
-                                        <div className="flex items-center gap-2 pr-4">
-                                             <Button onClick={(e) => {e.stopPropagation(); handleExport()}} disabled={isExporting || selectedUsers.length === 0} size="sm">
-                                                {isExporting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <DownloadCloud className="mr-2 h-4 w-4" />}
-                                                Export ({selectedUsers.length})
-                                            </Button>
-                                        </div>
                                     </div>
                                 </div>
                                 <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
                             </AccordionTrigger>
                             <AccordionContent className="px-6 pb-6 pt-0">
+                                <div className="flex items-center justify-end gap-2 pb-4">
+                                     <Button onClick={handleExport} disabled={isExporting || selectedUsers.length === 0} size="sm">
+                                        {isExporting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <DownloadCloud className="mr-2 h-4 w-4" />}
+                                        Export ({selectedUsers.length})
+                                    </Button>
+                                </div>
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
