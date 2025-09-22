@@ -166,6 +166,11 @@ export interface AppUser {
     lastActivityAt?: Timestamp;
 }
 
+export interface DisplayUser extends AppUser {
+    createdAtDate?: Date;
+    lastActivityDate?: Date;
+}
+
 export type FeedbackStatus = 'Pending' | 'In Progress' | 'Done' | 'Fixed';
 
 export interface Feedback {

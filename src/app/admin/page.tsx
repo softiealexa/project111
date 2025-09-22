@@ -12,7 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ShieldAlert, Users, LoaderCircle, MessageSquare, ChevronDown, Archive, ChevronLeft, ChevronRight, Pencil, DownloadCloud, UserPlus, TrendingUp, Eye } from 'lucide-react';
 import { collection, query, orderBy, Timestamp, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { AppUser, Feedback, FeedbackStatus, CheckedState } from '@/lib/types';
+import type { AppUser, Feedback, FeedbackStatus, CheckedState, DisplayUser } from '@/lib/types';
 import Navbar from '@/components/navbar';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import {
@@ -39,11 +39,6 @@ interface DisplayFeedback extends Feedback {
     id: string;
     createdAt: Date;
     status: FeedbackStatus;
-}
-
-interface DisplayUser extends AppUser {
-    createdAtDate?: Date;
-    lastActivityDate?: Date;
 }
 
 const statusColors: Record<FeedbackStatus, string> = {
@@ -160,17 +155,18 @@ export default function AdminPage() {
             const usersCol = collection(db, 'users');
             const usersUnsubscribe = onSnapshot(usersCol, (snapshot) => {
                 const fetchedUsers = snapshot.docs.map(doc => {
-                    const data = doc.data();
+                    const data = doc.data() as AppUser;
                     return {
+                        ...data,
                         uid: doc.id,
-                        username: data.displayName || data.username,
+                        username: data.username,
                         email: data.email,
                         googleEmail: data.googleEmail,
                         role: data.role,
                         createdAt: data.createdAt,
                         lastActivityAt: data.lastActivityAt,
-                        createdAtDate: data.createdAt ? data.createdAt.toDate() : undefined,
-                        lastActivityDate: data.lastActivityAt ? data.lastActivityAt.toDate() : undefined
+                        createdAtDate: data.createdAt ? (data.createdAt as Timestamp).toDate() : undefined,
+                        lastActivityDate: data.lastActivityAt ? (data.lastActivityAt as Timestamp).toDate() : undefined
                     } as DisplayUser;
                 });
 
