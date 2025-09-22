@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ShieldAlert, Users, LoaderCircle, MessageSquare, ChevronDown, Archive, ChevronLeft, ChevronRight, Pencil, DownloadCloud, UserPlus, TrendingUp } from 'lucide-react';
+import { ShieldAlert, Users, LoaderCircle, MessageSquare, ChevronDown, Archive, ChevronLeft, ChevronRight, Pencil, DownloadCloud, UserPlus, TrendingUp, addDays } from 'lucide-react';
 import { collection, query, orderBy, Timestamp, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppUser, Feedback, FeedbackStatus, CheckedState } from '@/lib/types';
@@ -436,21 +436,25 @@ export default function AdminPage() {
                         <AccordionItem value="item-users" className="rounded-lg border bg-card text-card-foreground shadow-sm">
                              <AccordionTrigger className="p-6 text-left hover:no-underline [&[data-state=open]>svg]:rotate-180">
                                 <div className="flex-1">
-                                    <CardTitle className="flex items-center gap-2">
-                                        <Users />
-                                        Registered Users ({users.length})
-                                    </CardTitle>
-                                    <CardDescription className="pt-1.5">
-                                        A list of all users who have registered in the application.
-                                    </CardDescription>
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <CardTitle className="flex items-center gap-2">
+                                                <Users />
+                                                Registered Users ({users.length})
+                                            </CardTitle>
+                                            <CardDescription className="pt-1.5">
+                                                A list of all users who have registered in the application.
+                                            </CardDescription>
+                                        </div>
+                                        <div className="flex items-center gap-2 pr-4">
+                                             <Button onClick={(e) => {e.stopPropagation(); handleExport()}} disabled={isExporting || selectedUsers.length === 0} size="sm">
+                                                {isExporting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <DownloadCloud className="mr-2 h-4 w-4" />}
+                                                Export ({selectedUsers.length})
+                                            </Button>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <Button onClick={(e) => {e.stopPropagation(); handleExport()}} disabled={isExporting || selectedUsers.length === 0} size="sm">
-                                        {isExporting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <DownloadCloud className="mr-2 h-4 w-4" />}
-                                        Export ({selectedUsers.length})
-                                    </Button>
-                                    <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
-                                </div>
+                                <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
                             </AccordionTrigger>
                             <AccordionContent className="px-6 pb-6 pt-0">
                                 <Table>
