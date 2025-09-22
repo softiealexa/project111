@@ -20,6 +20,7 @@ const THEME_KEY = 'studytracker_theme';
 const MODE_KEY = 'studytracker_mode';
 const SIDEBAR_WIDTH_KEY = 'studytracker_sidebar_width';
 const PROGRESS_DOWNLOAD_PROMPT_KEY = 'studytracker_progress_prompt';
+const IMPERSONATION_KEY = 'studytracker_impersonation';
 const DEFAULT_SIDEBAR_WIDTH = 448; // Corresponds to md (28rem)
 
 type DataToSave = Partial<Profile & { profiles: Profile[], activeProfileName: string | null }>;
@@ -28,6 +29,7 @@ type DataToSave = Partial<Profile & { profiles: Profile[], activeProfileName: st
 interface DataContextType {
   user: FirebaseUser | null;
   userDoc: AppUser | null;
+  impersonatedUser: AppUser | null;
   loading: boolean;
   profiles: Profile[];
   activeProfile: Profile | undefined;
@@ -91,6 +93,8 @@ interface DataContextType {
   importData: (file: File) => void;
   signOutUser: () => Promise<void>;
   refreshUserDoc: () => Promise<void>;
+  startImpersonation: (uid: string) => void;
+  endImpersonation: () => void;
   theme: string;
   setTheme: (theme: string) => void;
   mode: 'light' | 'dark';
@@ -186,6 +190,7 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
 export function DataProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [userDoc, setUserDoc] = useState<AppUser | null>(null);
+  const [impersonatedUser, setImpersonatedUser] = useState<AppUser | null>(null);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [activeProfileName, setActiveProfileName] = useState<string | null>(null);
   const [activeSubjectName, setActiveSubjectName] = useState<string | null>(null);
@@ -269,6 +274,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const saveData = useCallback(async (dataToSave: DataToSave) => {
     if (typeof window === 'undefined') return;
+    
+    // Do not save to cloud when impersonating
+    if (impersonatedUser) return;
 
     // For local storage, we always save the entire profiles object
     const localKey = getLocalKey(user?.displayName || null);
@@ -287,7 +295,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             toast({ title: "Sync Error", description: "Could not save progress to the cloud.", variant: "destructive" });
         }
     }
-  }, [user, toast, profiles, activeProfileName]);
+  }, [user, toast, profiles, activeProfileName, impersonatedUser]);
 
   const activeProfile = useMemo(() => {
     return profiles.find(p => p.name === activeProfileName);
@@ -374,29 +382,52 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       setUser(firebaseUser);
       setUserDoc(null);
+      setImpersonatedUser(null);
       setActiveSubjectName(null); 
 
-      if (firebaseUser) {
+      let dataUID = firebaseUser?.uid;
+      let isImpersonating = false;
+
+      // Check for impersonation first
+      const impersonationId = sessionStorage.getItem(IMPERSONATION_KEY);
+      if (impersonationId) {
+        isImpersonating = true;
+        dataUID = impersonationId;
+      }
+
+      if (dataUID) {
           try {
-              const firestoreData = await getUserData(firebaseUser.uid);
+              const firestoreData = await getUserData(dataUID);
               if (firestoreData && firestoreData.profiles && firestoreData.profiles.length > 0) {
                   const processed = migrateAndHydrateProfiles(firestoreData.profiles);
                   setProfiles(processed);
                   setActiveProfileName(firestoreData.activeProfileName);
-                  setUserDoc(firestoreData.userDocument);
+                  if (isImpersonating) {
+                      setImpersonatedUser(firestoreData.userDocument);
+                  } else {
+                      setUserDoc(firestoreData.userDocument);
+                  }
               } else {
                   setProfiles([]);
                   setActiveProfileName(null);
-                  setUserDoc(null);
+                  if (isImpersonating) {
+                    setImpersonatedUser(null);
+                    toast({ title: "Impersonation Failed", description: "Could not find data for the selected user.", variant: "destructive"});
+                    sessionStorage.removeItem(IMPERSONATION_KEY);
+                    router.push('/admin');
+                  } else {
+                    setUserDoc(null);
+                  }
               }
           } catch (error) {
               console.error("Failed to fetch user data:", error);
               setProfiles([]);
               setActiveProfileName(null);
               setUserDoc(null);
+              setImpersonatedUser(null);
               toast({ title: "Error", description: "Could not fetch your data from the cloud.", variant: "destructive" });
           }
-      } else {
+      } else { // No user and not impersonating
           const localKey = getLocalKey(null);
           const storedData = localStorage.getItem(localKey);
           if (storedData) {
@@ -419,20 +450,32 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, [toast]);
+  }, [toast, router]);
   
   const refreshUserDoc = useCallback(async () => {
-    if (user) {
+    if (user && !impersonatedUser) {
         const data = await getUserData(user.uid);
         if (data) {
             setUserDoc(data.userDocument);
         }
     }
-  }, [user]);
+  }, [user, impersonatedUser]);
+  
+  const startImpersonation = (uid: string) => {
+    sessionStorage.setItem(IMPERSONATION_KEY, uid);
+    router.push('/dashboard');
+    window.location.reload(); // Force a full reload to re-run the auth effect
+  };
+
+  const endImpersonation = () => {
+    sessionStorage.removeItem(IMPERSONATION_KEY);
+    router.push('/admin');
+    window.location.reload();
+  };
 
   // --- Smart Todo Rollover Logic ---
   useEffect(() => {
-    if (!activeProfile || loading) return;
+    if (!activeProfile || loading || impersonatedUser) return;
 
     const lastRolloverKey = `lastRollover_${activeProfile.name}`;
     const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -476,7 +519,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
     
     localStorage.setItem(lastRolloverKey, todayStr);
-  }, [activeProfile, loading, profiles, activeProfileName, updateProfiles]);
+  }, [activeProfile, loading, profiles, activeProfileName, updateProfiles, impersonatedUser]);
 
 
   const addProfile = useCallback((name: string) => {
@@ -1131,7 +1174,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(() => ({
-    user, userDoc, loading, profiles, activeProfile, activeSubjectName, setActiveSubjectName,
+    user, userDoc, impersonatedUser, loading, profiles, activeProfile, activeSubjectName, setActiveSubjectName,
     addProfile, removeProfile, renameProfile, switchProfile, updateSubjects, addSubject, removeSubject, renameSubject,
     addChapter, removeChapter, updateChapter, renameChapter, updateChapterDeadline, updateTasks, renameTask,
     updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
@@ -1141,11 +1184,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addProject, updateProject, deleteProject, updateTimesheetEntry, setTimesheetData,
     addExamCountdown, updateExamCountdown, deleteExamCountdown, setExamCountdowns, setPinnedCountdownId,
     addTimeOffRequest, addShift, updateShift, deleteShift, addTeamMember, updateTeamMember, deleteTeamMember,
-    exportData, importData, signOutUser, refreshUserDoc,
+    exportData, importData, signOutUser, refreshUserDoc, startImpersonation, endImpersonation,
     theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth,
     showProgressDownloadPrompt, setShowProgressDownloadPrompt,
   }), [
-    user, userDoc, loading, profiles, activeProfile, activeSubjectName,
+    user, userDoc, impersonatedUser, loading, profiles, activeProfile, activeSubjectName,
     addProfile, removeProfile, renameProfile, switchProfile, updateSubjects, addSubject, removeSubject, renameSubject,
     addChapter, removeChapter, updateChapter, renameChapter, updateChapterDeadline, updateTasks, renameTask,
     updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,

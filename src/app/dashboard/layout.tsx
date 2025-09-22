@@ -5,6 +5,7 @@ import Navbar from '@/components/navbar';
 import ProgressDownloadDialog from '@/components/progress-download-dialog';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Suspense } from 'react';
+import { ImpersonationBanner } from '@/components/impersonation-banner';
 
 export default function DashboardLayout({
   children,
@@ -14,6 +15,7 @@ export default function DashboardLayout({
   return (
     <TooltipProvider delayDuration={100}>
         <div className="flex flex-col min-h-screen">
+            <ImpersonationBanner />
             <a
                 href="#main-content"
                 className="sr-only focus:not-sr-only focus:fixed focus:z-50 focus:px-4 focus:py-2 focus:top-2 focus:left-2 bg-background text-foreground border rounded-md"

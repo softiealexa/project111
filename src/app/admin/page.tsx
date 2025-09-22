@@ -9,19 +9,19 @@ import { useRouter } from 'next/navigation';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ShieldAlert, Users, LoaderCircle, MessageSquare, ChevronDown, Archive, ChevronLeft, ChevronRight, Pencil, DownloadCloud, UserPlus, TrendingUp } from 'lucide-react';
+import { ShieldAlert, Users, LoaderCircle, MessageSquare, ChevronDown, Archive, ChevronLeft, ChevronRight, Pencil, DownloadCloud, UserPlus, TrendingUp, Eye } from 'lucide-react';
 import { collection, query, orderBy, Timestamp, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppUser, Feedback, FeedbackStatus, CheckedState } from '@/lib/types';
 import Navbar from '@/components/navbar';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { format, formatDistanceToNow, isAfter, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addMonths, subMonths, isWithinInterval, eachDayOfInterval, addDays } from 'date-fns';
+import { format, formatDistanceToNow, isAfter, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addMonths, subMonths, isWithinInterval, addDays } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -103,7 +103,7 @@ const FeedbackTable = ({ feedbackItems, onStatusChange }: { feedbackItems: Displ
 
 
 export default function AdminPage() {
-    const { user, userDoc, loading: authLoading } = useData();
+    const { user, userDoc, loading: authLoading, startImpersonation } = useData();
     const router = useRouter();
     const { toast } = useToast();
     const [users, setUsers] = useState<DisplayUser[]>([]);
@@ -239,7 +239,8 @@ export default function AdminPage() {
         }
     };
 
-    const handleExport = async () => {
+    const handleExport = async (e: React.MouseEvent) => {
+        e.stopPropagation();
         setIsExporting(true);
         try {
             const dataStr = await exportUsersData(selectedUsers);
@@ -493,7 +494,17 @@ export default function AdminPage() {
                                                         {appUser.lastActivityDate ? formatDistanceToNow(appUser.lastActivityDate, { addSuffix: true }) : 'N/A'}
                                                     </TableCell>
                                                     <TableCell>{appUser.role === 'admin' ? 'Admin' : 'User'}</TableCell>
-                                                    <TableCell>
+                                                    <TableCell className="flex items-center gap-1">
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <Button variant="ghost" size="icon" onClick={() => startImpersonation(appUser.uid)}>
+                                                                    <Eye className="h-4 w-4" />
+                                                                </Button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                <p>Impersonate User</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
                                                         <EditUserDialog 
                                                             user={appUser}
                                                             open={editingUser?.uid === appUser.uid && isEditUserDialogOpen}
