@@ -156,6 +156,11 @@ export default function AdminPage() {
             const usersUnsubscribe = onSnapshot(usersCol, (snapshot) => {
                 const fetchedUsers = snapshot.docs.map(doc => {
                     const data = doc.data() as AppUser;
+                    
+                    const isTimestamp = (value: any): value is Timestamp => {
+                        return value && typeof value.toDate === 'function';
+                    };
+
                     return {
                         ...data,
                         uid: doc.id,
@@ -165,8 +170,8 @@ export default function AdminPage() {
                         role: data.role,
                         createdAt: data.createdAt,
                         lastActivityAt: data.lastActivityAt,
-                        createdAtDate: data.createdAt ? (data.createdAt as Timestamp).toDate() : undefined,
-                        lastActivityDate: data.lastActivityAt ? (data.lastActivityAt as Timestamp).toDate() : undefined
+                        createdAtDate: isTimestamp(data.createdAt) ? data.createdAt.toDate() : undefined,
+                        lastActivityDate: isTimestamp(data.lastActivityAt) ? data.lastActivityAt.toDate() : undefined,
                     } as DisplayUser;
                 });
 
