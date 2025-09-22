@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -8,7 +9,7 @@ import { useRouter } from 'next/navigation';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ShieldAlert, Users, LoaderCircle, MessageSquare, ChevronDown, Archive, ChevronLeft, ChevronRight, Pencil, DownloadCloud } from 'lucide-react';
+import { ShieldAlert, Users, LoaderCircle, MessageSquare, ChevronDown, Archive, ChevronLeft, ChevronRight, Pencil, DownloadCloud, UserPlus, TrendingUp } from 'lucide-react';
 import { collection, query, orderBy, Timestamp, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppUser, Feedback, FeedbackStatus, CheckedState } from '@/lib/types';
@@ -20,7 +21,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { format } from 'date-fns';
+import { format, formatDistanceToNow, isAfter, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addMonths, subMonths, isWithinInterval, eachDayOfInterval } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -38,6 +39,11 @@ interface DisplayFeedback extends Feedback {
     id: string;
     createdAt: Date;
     status: FeedbackStatus;
+}
+
+interface DisplayUser extends AppUser {
+    createdAtDate?: Date;
+    lastActivityDate?: Date;
 }
 
 const statusColors: Record<FeedbackStatus, string> = {
@@ -100,7 +106,7 @@ export default function AdminPage() {
     const { user, userDoc, loading: authLoading } = useData();
     const router = useRouter();
     const { toast } = useToast();
-    const [users, setUsers] = useState<AppUser[]>([]);
+    const [users, setUsers] = useState<DisplayUser[]>([]);
     const [feedback, setFeedback] = useState<DisplayFeedback[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -111,6 +117,7 @@ export default function AdminPage() {
     const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
     const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+    const [statsDate, setStatsDate] = useState(new Date());
 
     const isUserAdmin = useMemo(() => {
         return userDoc?.role === 'admin';
@@ -160,7 +167,11 @@ export default function AdminPage() {
                         email: data.email,
                         googleEmail: data.googleEmail,
                         role: data.role,
-                    } as AppUser;
+                        createdAt: data.createdAt,
+                        lastActivityAt: data.lastActivityAt,
+                        createdAtDate: data.createdAt ? data.createdAt.toDate() : undefined,
+                        lastActivityDate: data.lastActivityAt ? data.lastActivityAt.toDate() : undefined
+                    } as DisplayUser;
                 });
 
                 // Sort users to show admins at the top
@@ -298,6 +309,31 @@ export default function AdminPage() {
         return paginatedUsers.length > 0 && paginatedUsers.every(u => selectedUsers.includes(u.uid));
     }, [paginatedUsers, selectedUsers]);
 
+    const newUsersStats = useMemo(() => {
+        const weekStart = startOfWeek(statsDate, { weekStartsOn: 1 });
+        const weekEnd = endOfWeek(statsDate, { weekStartsOn: 1 });
+        const monthStart = startOfMonth(statsDate);
+        const monthEnd = endOfMonth(statsDate);
+
+        const newThisWeek = users.filter(u => u.createdAtDate && isWithinInterval(u.createdAtDate, { start: weekStart, end: weekEnd })).length;
+        const newThisMonth = users.filter(u => u.createdAtDate && isWithinInterval(u.createdAtDate, { start: monthStart, end: monthEnd })).length;
+        
+        return { newThisWeek, newThisMonth, weekRange: { start: weekStart, end: weekEnd }, month: monthStart };
+    }, [users, statsDate]);
+
+    const recentSignups = useMemo(() => {
+        const signups = users.filter(u => u.createdAtDate).sort((a,b) => b.createdAtDate!.getTime() - a.createdAtDate!.getTime());
+        const groupedByDate: Record<string, DisplayUser[]> = {};
+        signups.forEach(user => {
+            const dateKey = format(user.createdAtDate!, 'yyyy-MM-dd');
+            if (!groupedByDate[dateKey]) {
+                groupedByDate[dateKey] = [];
+            }
+            groupedByDate[dateKey].push(user);
+        });
+        return groupedByDate;
+    }, [users]);
+
 
     if (authLoading || (user && !userDoc)) {
         return (
@@ -337,13 +373,12 @@ export default function AdminPage() {
         <TooltipProvider>
             <Navbar/>
             <main className="max-w-7xl mx-auto py-8 px-4">
-                <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
-                    <h1 className="text-3xl font-bold">Admin Panel</h1>
+                <div className="flex flex-wrap justify-between items-start mb-6 gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold">Admin Panel</h1>
+                        <p className="text-muted-foreground">Manage users, feedback, and application statistics.</p>
+                    </div>
                     <div className="flex items-center gap-2">
-                         <Button onClick={handleExport} disabled={isExporting || selectedUsers.length === 0}>
-                            {isExporting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <DownloadCloud className="mr-2 h-4 w-4" />}
-                            Export Selected ({selectedUsers.length})
-                        </Button>
                         <Select value={feedbackFilter} onValueChange={setFeedbackFilter}>
                             <SelectTrigger className="w-[200px]">
                                 <SelectValue placeholder="Filter by type" />
@@ -357,6 +392,38 @@ export default function AdminPage() {
                         </Select>
                     </div>
                 </div>
+
+                {/* Statistics Section */}
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-sm font-medium">New Users This Week</CardTitle>
+                             <div className='flex items-center rounded-md border bg-card text-xs'>
+                                <Button variant="ghost" size="sm" onClick={() => setStatsDate(d => subDays(d, 7))} className="rounded-r-none h-7 px-2"><ChevronLeft className="h-4 w-4"/></Button>
+                                <span className="px-2">{format(newUsersStats.weekRange.start, 'MMM d')} - {format(newUsersStats.weekRange.end, 'd')}</span>
+                                <Button variant="ghost" size="sm" onClick={() => setStatsDate(d => addDays(d, 7))} className="rounded-l-none h-7 px-2"><ChevronRight className="h-4 w-4"/></Button>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{newUsersStats.newThisWeek}</div>
+                            <p className="text-xs text-muted-foreground">Total new users in the selected week.</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-sm font-medium">New Users This Month</CardTitle>
+                            <div className='flex items-center rounded-md border bg-card text-xs'>
+                                <Button variant="ghost" size="sm" onClick={() => setStatsDate(subMonths(statsDate, 1))} className="rounded-r-none h-7 px-2"><ChevronLeft className="h-4 w-4"/></Button>
+                                <span className="px-2">{format(newUsersStats.month, 'MMMM yyyy')}</span>
+                                <Button variant="ghost" size="sm" onClick={() => setStatsDate(addMonths(statsDate, 1))} className="rounded-l-none h-7 px-2"><ChevronRight className="h-4 w-4"/></Button>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{newUsersStats.newThisMonth}</div>
+                             <p className="text-xs text-muted-foreground">Total new users in the selected month.</p>
+                        </CardContent>
+                    </Card>
+                </div>
                 
                 {error ? (
                     <Alert variant="destructive">
@@ -365,19 +432,25 @@ export default function AdminPage() {
                         <AlertDescription>{error}</AlertDescription>
                     </Alert>
                 ) : (
-                    <Accordion type="multiple" defaultValue={["item-1", "item-2", "item-3"]} className="w-full space-y-4">
-                        <AccordionItem value="item-1" className="rounded-lg border bg-card text-card-foreground shadow-sm">
+                    <Accordion type="multiple" defaultValue={["item-users", "item-new-feedback", "item-resolved-feedback"]} className="w-full space-y-4">
+                        <AccordionItem value="item-users" className="rounded-lg border bg-card text-card-foreground shadow-sm">
                              <AccordionTrigger className="p-6 text-left hover:no-underline [&[data-state=open]>svg]:rotate-180">
                                 <div className="flex-1">
                                     <CardTitle className="flex items-center gap-2">
                                         <Users />
-                                        Registered Users
+                                        Registered Users ({users.length})
                                     </CardTitle>
                                     <CardDescription className="pt-1.5">
                                         A list of all users who have registered in the application.
                                     </CardDescription>
                                 </div>
-                                 <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+                                <div className="flex items-center gap-2">
+                                    <Button onClick={(e) => {e.stopPropagation(); handleExport()}} disabled={isExporting || selectedUsers.length === 0} size="sm">
+                                        {isExporting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <DownloadCloud className="mr-2 h-4 w-4" />}
+                                        Export ({selectedUsers.length})
+                                    </Button>
+                                    <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+                                </div>
                             </AccordionTrigger>
                             <AccordionContent className="px-6 pb-6 pt-0">
                                 <Table>
@@ -391,43 +464,49 @@ export default function AdminPage() {
                                                 />
                                             </TableHead>
                                             <TableHead>Username</TableHead>
-                                            <TableHead>Login Email</TableHead>
-                                            <TableHead>Google Email</TableHead>
+                                            <TableHead>Registered</TableHead>
+                                            <TableHead>Last Active</TableHead>
                                             <TableHead>Role</TableHead>
                                             <TableHead>Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {paginatedUsers.length > 0 ? paginatedUsers.map((appUser) => (
-                                            <TableRow key={appUser.uid} data-state={selectedUsers.includes(appUser.uid) && "selected"}>
-                                                <TableCell>
-                                                    <Checkbox
-                                                        checked={selectedUsers.includes(appUser.uid)}
-                                                        onCheckedChange={(checked) => handleSelectUser(appUser.uid, checked)}
-                                                        aria-label={`Select user ${appUser.username}`}
-                                                    />
-                                                </TableCell>
-                                                <TableCell className="font-medium">{appUser.username}</TableCell>
-                                                <TableCell className="text-muted-foreground">{appUser.email}</TableCell>
-                                                <TableCell>{appUser.googleEmail || 'Not Set'}</TableCell>
-                                                <TableCell>{appUser.role === 'admin' ? 'Admin' : 'User'}</TableCell>
-                                                <TableCell>
-                                                    <EditUserDialog 
-                                                        user={appUser}
-                                                        open={editingUser?.uid === appUser.uid && isEditUserDialogOpen}
-                                                        onOpenChange={(open) => {
-                                                          if (open) {
-                                                            handleEditUser(appUser);
-                                                          } else {
-                                                            setEditingUser(null);
-                                                            setIsEditUserDialogOpen(false);
-                                                          }
-                                                        }}
-                                                        onSave={handleSaveUser}
-                                                    />
-                                                </TableCell>
-                                            </TableRow>
-                                        )) : (
+                                        {paginatedUsers.length > 0 ? paginatedUsers.map((appUser) => {
+                                            const isInactive = appUser.lastActivityDate && isAfter(new Date(), addDays(appUser.lastActivityDate, 7));
+                                            return (
+                                                <TableRow key={appUser.uid} data-state={selectedUsers.includes(appUser.uid) && "selected"}>
+                                                    <TableCell>
+                                                        <Checkbox
+                                                            checked={selectedUsers.includes(appUser.uid)}
+                                                            onCheckedChange={(checked) => handleSelectUser(appUser.uid, checked)}
+                                                            aria-label={`Select user ${appUser.username}`}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell className="font-medium">{appUser.username}</TableCell>
+                                                    <TableCell>{appUser.createdAtDate ? format(appUser.createdAtDate, 'PP') : 'N/A'}</TableCell>
+                                                    <TableCell className="flex items-center gap-2">
+                                                        {isInactive && <span className="h-2 w-2 rounded-full bg-red-500" title="Inactive for > 7 days"></span>}
+                                                        {appUser.lastActivityDate ? formatDistanceToNow(appUser.lastActivityDate, { addSuffix: true }) : 'N/A'}
+                                                    </TableCell>
+                                                    <TableCell>{appUser.role === 'admin' ? 'Admin' : 'User'}</TableCell>
+                                                    <TableCell>
+                                                        <EditUserDialog 
+                                                            user={appUser}
+                                                            open={editingUser?.uid === appUser.uid && isEditUserDialogOpen}
+                                                            onOpenChange={(open) => {
+                                                              if (open) {
+                                                                handleEditUser(appUser);
+                                                              } else {
+                                                                setEditingUser(null);
+                                                                setIsEditUserDialogOpen(false);
+                                                              }
+                                                            }}
+                                                            onSave={handleSaveUser}
+                                                        />
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        }) : (
                                             <TableRow>
                                                 <TableCell colSpan={6} className="h-24 text-center">
                                                     No users found.
@@ -479,7 +558,43 @@ export default function AdminPage() {
                             </AccordionContent>
                         </AccordionItem>
 
-                        <AccordionItem value="item-2" className="rounded-lg border bg-card text-card-foreground shadow-sm">
+                        <AccordionItem value="item-new-signups" className="rounded-lg border bg-card text-card-foreground shadow-sm">
+                            <AccordionTrigger className="p-6 text-left hover:no-underline [&[data-state=open]>svg]:rotate-180">
+                                <div className="flex-1">
+                                    <CardTitle className="flex items-center gap-2">
+                                        <UserPlus />
+                                        Recent Sign-ups
+                                    </CardTitle>
+                                    <CardDescription className="pt-1.5">
+                                        A chronological list of the newest users.
+                                    </CardDescription>
+                                </div>
+                                <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+                            </AccordionTrigger>
+                            <AccordionContent className="px-6 pb-6 pt-0">
+                                {Object.keys(recentSignups).length > 0 ? (
+                                    Object.entries(recentSignups).map(([date, usersOnDate]) => (
+                                        <div key={date} className="mb-4 last:mb-0">
+                                            <h4 className="font-semibold mb-2 border-b pb-1">{format(new Date(date), 'PPP')}</h4>
+                                            <div className="space-y-1">
+                                                {usersOnDate.map(u => (
+                                                    <div key={u.uid} className="text-sm p-1 rounded-md hover:bg-muted/50">
+                                                        <span className="font-medium">{u.username}</span>
+                                                        <span className="text-muted-foreground ml-2">({u.email})</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="h-24 flex items-center justify-center text-center text-sm text-muted-foreground">
+                                        No new users to display.
+                                    </div>
+                                )}
+                            </AccordionContent>
+                        </AccordionItem>
+                        
+                        <AccordionItem value="item-new-feedback" className="rounded-lg border bg-card text-card-foreground shadow-sm">
                              <AccordionTrigger className="p-6 text-left hover:no-underline [&[data-state=open]>svg]:rotate-180">
                                 <div className="flex-1">
                                     <CardTitle className="flex items-center gap-2">
@@ -497,7 +612,7 @@ export default function AdminPage() {
                             </AccordionContent>
                         </AccordionItem>
 
-                        <AccordionItem value="item-3" className="rounded-lg border bg-card text-card-foreground shadow-sm">
+                        <AccordionItem value="item-resolved-feedback" className="rounded-lg border bg-card text-card-foreground shadow-sm">
                              <AccordionTrigger className="p-6 text-left hover:no-underline [&[data-state=open]>svg]:rotate-180">
                                 <div className="flex-1">
                                     <CardTitle className="flex items-center gap-2">
@@ -520,4 +635,3 @@ export default function AdminPage() {
         </TooltipProvider>
     );
 }
-

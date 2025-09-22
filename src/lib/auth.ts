@@ -1,7 +1,7 @@
 
 
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged as onFirebaseAuthStateChanged, signOut as firebaseSignOut, updateProfile, User as FirebaseUser, sendPasswordResetEmail } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth, isFirebaseConfigured } from './firebase';
 import type { Profile, AppUser, Subject, Note, ImportantLink, SmartTodo, SimpleTodo, ProgressPoint, QuestionSession, ExamCountdown, TimeEntry, Project, TimesheetData, TimeOffPolicy, TimeOffRequest } from './types';
 
@@ -79,6 +79,8 @@ export const register = async (username: string, password: string): Promise<Auth
             profiles: [],
             activeProfileName: null,
             role: 'user', // Default role
+            createdAt: serverTimestamp(),
+            lastActivityAt: serverTimestamp(),
         });
 
         return { user };
@@ -178,7 +180,9 @@ export const getUserData = async (uid: string): Promise<UserData | null> => {
             username: data.displayName,
             email: data.email,
             googleEmail: data.googleEmail,
-            role: data.role
+            role: data.role,
+            createdAt: data.createdAt,
+            lastActivityAt: data.lastActivityAt
         };
         return {
             profiles: data.profiles || [],
@@ -203,8 +207,14 @@ export const saveUserData = async (uid: string, data: UserDataToSave) => {
     }
     const userDocRef = doc(db, 'users', uid);
     
+    // Always update the last activity timestamp
+    const dataToSave = {
+        ...data,
+        lastActivityAt: serverTimestamp()
+    };
+    
     // Firestore does not support `undefined` values. We must remove them.
-    const cleanedData = removeUndefined(data);
+    const cleanedData = removeUndefined(dataToSave);
     
     await setDoc(userDocRef, cleanedData, { merge: true });
 };

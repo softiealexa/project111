@@ -1,5 +1,7 @@
 
 
+import type { Timestamp } from 'firebase/firestore';
+
 export type TaskStatus = 'unchecked' | 'checked' | 'checked-red';
 export type Priority = 'Low' | 'Medium' | 'High';
 
@@ -160,6 +162,8 @@ export interface AppUser {
     email: string;
     googleEmail?: string;
     role?: 'admin' | 'user';
+    createdAt?: Timestamp;
+    lastActivityAt?: Timestamp;
 }
 
 export type FeedbackStatus = 'Pending' | 'In Progress' | 'Done' | 'Fixed';
