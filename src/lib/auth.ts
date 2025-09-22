@@ -182,7 +182,7 @@ export const getUserData = async (uid: string): Promise<UserData | null> => {
             googleEmail: data.googleEmail,
             role: data.role,
             createdAt: data.createdAt,
-            lastActivityAt: data.lastActivityAt
+            lastActivityAt: data.lastActivityAt,
         };
         return {
             profiles: data.profiles || [],
