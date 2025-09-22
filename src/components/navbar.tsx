@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Link from 'next/link';
@@ -15,9 +16,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CustomizationSheet } from './customization-sheet';
-import Image from 'next/image';
 import { Sheet, SheetTrigger } from './ui/sheet';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
@@ -89,7 +89,7 @@ export default function Navbar() {
                         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                           <Avatar className="h-10 w-10">
                              {user.photoURL ? (
-                              <Image src={user.photoURL} alt={user.displayName || 'user'} width={40} height={40} />
+                              <AvatarImage src={user.photoURL} alt={user.displayName || 'user'} />
                             ) : (
                               <AvatarFallback>{user.displayName?.charAt(0).toUpperCase()}</AvatarFallback>
                             )}
