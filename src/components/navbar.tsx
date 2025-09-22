@@ -112,6 +112,10 @@ export default function Navbar() {
                           <SlidersHorizontal className="mr-2 h-4 w-4" />
                           <span>Customization</span>
                         </DropdownMenuItem>
+                         <DropdownMenuItem onSelect={() => router.push('/notes')}>
+                          <FileText className="mr-2 h-4 w-4" />
+                          <span>Notes</span>
+                        </DropdownMenuItem>
                         <DropdownMenuItem onSelect={() => router.push('/settings')}>
                           <Settings className="mr-2 h-4 w-4" />
                           <span>Settings</span>
