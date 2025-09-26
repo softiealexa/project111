@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import LiveClock from '@/components/live-clock';
 import { getIconComponent } from '@/lib/icons';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Pencil, Timer, ListTodo, CalendarDays, Link as LinkIcon, Keyboard, Target, Beaker, CheckSquare, Calculator, FileUp } from 'lucide-react';
+import { Pencil, Timer, ListTodo, CalendarDays, Link as LinkIcon, Keyboard, Target, Beaker, CheckSquare, Calculator, FileUp, Cake } from 'lucide-react';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { useSearchParams } from 'next/navigation';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -57,10 +57,14 @@ const UnitConverter = dynamic(() => import('@/components/unit-converter'), {
 const BacklogPlanner = dynamic(() => import('@/components/backlog-planner'), {
     loading: () => <LoadingSpinner containerClassName="h-96" text="Loading Planner..." />
 });
+const AgeCalculator = dynamic(() => import('@/components/age-calculator'), {
+    loading: () => <LoadingSpinner containerClassName="h-96" text="Loading Calculator..." />
+});
 
 const tools = [
   { value: 'backlog-planner', label: 'Backlog Planner', icon: Calculator },
   { value: 'countdown', label: 'Exam Countdown', icon: Target },
+  { value: 'age-calculator', label: 'Age Calculator', icon: Cake },
   { value: 'todo', label: 'Smart To-Do', icon: ListTodo },
   { value: 'simple-todo', label: 'Simple To-Do', icon: CheckSquare },
   { value: 'notes', label: 'Notes Writer', icon: Pencil },
@@ -289,6 +293,9 @@ export default function DashboardClient() {
                           </TabsContent>
                            <TabsContent value="backlog-planner" className="mt-0">
                               <BacklogPlanner />
+                          </TabsContent>
+                           <TabsContent value="age-calculator" className="mt-0">
+                              <AgeCalculator />
                           </TabsContent>
                           <TabsContent value="unit-converter" className="mt-0">
                               <UnitConverter />
