@@ -6,7 +6,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TrendingUp } from 'lucide-react';
-import { differenceInYears, differenceInMonths, differenceInDays, addYears, addMonths } from 'date-fns';
+import { 
+    differenceInYears, 
+    differenceInMonths, 
+    differenceInDays, 
+    addYears, 
+    addMonths,
+    differenceInWeeks,
+    differenceInHours,
+    differenceInMinutes,
+    differenceInSeconds
+} from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { ScrollArea } from './ui/scroll-area';
 
@@ -64,11 +74,23 @@ function CustomDatePicker({ date, setDate, fromYear = 1900, toYear = new Date().
   );
 }
 
+interface AgeDetails {
+    years: number;
+    months: number;
+    days: number;
+    totalMonths: number;
+    totalWeeks: number;
+    totalDays: number;
+    totalHours: number;
+    totalMinutes: number;
+    totalSeconds: number;
+}
+
 export default function AgeCalculator() {
     const today = new Date();
     const [dob, setDob] = useState({ day: 1, month: 0, year: 2000 });
     const [targetDate, setTargetDate] = useState({ day: today.getDate(), month: today.getMonth(), year: today.getFullYear() });
-    const [age, setAge] = useState<{ years: number; months: number; days: number } | null>(null);
+    const [age, setAge] = useState<AgeDetails | null>(null);
 
     const handleCalculate = () => {
         const dobDate = new Date(dob.year, dob.month, dob.day);
@@ -85,7 +107,24 @@ export default function AgeCalculator() {
         const pastDobAndMonths = addMonths(pastDob, months);
         const days = differenceInDays(targetDateObj, pastDobAndMonths);
         
-        setAge({ years, months, days });
+        const totalMonths = differenceInMonths(targetDateObj, dobDate);
+        const totalWeeks = differenceInWeeks(targetDateObj, dobDate);
+        const totalDays = differenceInDays(targetDateObj, dobDate);
+        const totalHours = differenceInHours(targetDateObj, dobDate);
+        const totalMinutes = differenceInMinutes(targetDateObj, dobDate);
+        const totalSeconds = differenceInSeconds(targetDateObj, dobDate);
+        
+        setAge({ 
+            years, 
+            months, 
+            days,
+            totalMonths,
+            totalWeeks,
+            totalDays,
+            totalHours,
+            totalMinutes,
+            totalSeconds,
+        });
     };
     
     const isValidDate = (d: { day: number; month: number; year: number }) => {
@@ -135,20 +174,15 @@ export default function AgeCalculator() {
                     <Alert>
                         <TrendingUp className="h-4 w-4" />
                         <AlertTitle>Calculated Age</AlertTitle>
-                        <AlertDescription className="space-y-2 mt-2">
-                            <div className="grid grid-cols-3 gap-4 text-center">
-                                <div>
-                                    <p className="text-3xl font-bold">{age.years}</p>
-                                    <p className="text-xs text-muted-foreground">Years</p>
-                                </div>
-                                <div>
-                                    <p className="text-3xl font-bold">{age.months}</p>
-                                    <p className="text-xs text-muted-foreground">Months</p>
-                                </div>
-                                <div>
-                                    <p className="text-3xl font-bold">{age.days}</p>
-                                    <p className="text-xs text-muted-foreground">Days</p>
-                                </div>
+                        <AlertDescription className="space-y-2 mt-4 text-base">
+                            <div className="space-y-1">
+                               <p><span className="font-bold text-foreground text-lg">{age.years}</span> years <span className="font-bold text-foreground text-lg">{age.months}</span> months <span className="font-bold text-foreground text-lg">{age.days}</span> days</p>
+                               <p className="text-muted-foreground">or <span className="font-bold text-foreground">{age.totalMonths.toLocaleString()}</span> months <span className="font-bold text-foreground">{age.days}</span> days</p>
+                               <p className="text-muted-foreground">or <span className="font-bold text-foreground">{age.totalWeeks.toLocaleString()}</span> weeks <span className="font-bold text-foreground">{differenceInDays(targetDateForComparison, addYears(addMonths(dobDateForComparison, age.totalMonths), age.days)) % 7}</span> days</p>
+                               <p className="text-muted-foreground">or <span className="font-bold text-foreground">{age.totalDays.toLocaleString()}</span> days</p>
+                               <p className="text-muted-foreground">or <span className="font-bold text-foreground">{age.totalHours.toLocaleString()}</span> hours</p>
+                               <p className="text-muted-foreground">or <span className="font-bold text-foreground">{age.totalMinutes.toLocaleString()}</span> minutes</p>
+                               <p className="text-muted-foreground">or <span className="font-bold text-foreground">{age.totalSeconds.toLocaleString()}</span> seconds</p>
                             </div>
                         </AlertDescription>
                     </Alert>
