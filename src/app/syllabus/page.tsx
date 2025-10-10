@@ -13,6 +13,7 @@ import { LoadingSpinner } from '@/components/loading-spinner';
 import { CheckSquare } from 'lucide-react';
 import LiveClock from '@/components/live-clock';
 import MiniCountdown from '@/components/mini-countdown';
+import SyllabusChapterItem from '@/components/syllabus-chapter-item';
 
 export default function SyllabusChecklistPage() {
   const { activeProfile, activeSubjectName, setActiveSubjectName } = useData();
@@ -59,15 +60,15 @@ export default function SyllabusChecklistPage() {
 
                     {activeProfile.subjects.map((subject) => (
                     <TabsContent key={subject.name} value={subject.name} className="mt-6">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>{subject.name} Syllabus</CardTitle>
-                                <CardDescription>This is where the syllabus checklist for {subject.name} will be displayed.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-muted-foreground">Content coming soon...</p>
-                            </CardContent>
-                        </Card>
+                       <div className="space-y-4">
+                        {subject.chapters.map((chapter, index) => (
+                          <SyllabusChapterItem 
+                            key={`${subject.name}-${chapter.name}-${index}`}
+                            chapter={chapter}
+                            subject={subject}
+                          />
+                        ))}
+                      </div>
                     </TabsContent>
                     ))}
                     {(!activeSubjectName || !activeProfile.subjects.some(s => s.name === activeSubjectName)) && (
