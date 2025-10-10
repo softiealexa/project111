@@ -19,6 +19,7 @@ import { ScrollArea } from './ui/scroll-area';
 import { Separator } from './ui/separator';
 
 interface SyllabusEditDialogProps {
+  subjectName: string;
   chapterName: string;
   children: React.ReactNode;
   open: boolean;
@@ -30,16 +31,18 @@ interface Topic {
   completed: boolean;
 }
 
-export function SyllabusEditDialog({ chapterName, children, open, onOpenChange }: SyllabusEditDialogProps) {
+export function SyllabusEditDialog({ subjectName, chapterName, children, open, onOpenChange }: SyllabusEditDialogProps) {
   const [syllabusText, setSyllabusText] = useState('');
   const [topics, setTopics] = useState<Topic[]>([]);
   const [isDirty, setIsDirty] = useState(false);
+
+  const storageKey = `syllabus_${subjectName}_${chapterName}`;
 
   // Load state from localStorage when dialog opens
   useEffect(() => {
     if (open) {
       try {
-        const savedState = localStorage.getItem(`syllabus_${chapterName}`);
+        const savedState = localStorage.getItem(storageKey);
         if (savedState) {
           const { text, topics: savedTopics } = JSON.parse(savedState);
           setSyllabusText(text || '');
@@ -56,7 +59,7 @@ export function SyllabusEditDialog({ chapterName, children, open, onOpenChange }
       }
       setIsDirty(false);
     }
-  }, [open, chapterName]);
+  }, [open, storageKey]);
 
   const handleProcessText = () => {
     const newTopics = syllabusText
@@ -84,7 +87,7 @@ export function SyllabusEditDialog({ chapterName, children, open, onOpenChange }
   const handleSave = () => {
     try {
       const stateToSave = JSON.stringify({ text: syllabusText, topics });
-      localStorage.setItem(`syllabus_${chapterName}`, stateToSave);
+      localStorage.setItem(storageKey, stateToSave);
       setIsDirty(false);
       onOpenChange(false); // Close dialog on save
     } catch (error) {

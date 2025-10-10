@@ -28,7 +28,7 @@ export default function SyllabusChapterItem({ chapter, subject }: SyllabusChapte
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [topics, setTopics] = useState<Topic[]>([]);
 
-  const storageKey = `syllabus_${chapter.name}`;
+  const storageKey = `syllabus_${subject.name}_${chapter.name}`;
 
   // Load topics from localStorage when the component mounts or chapter changes
   useEffect(() => {
@@ -94,6 +94,7 @@ export default function SyllabusChapterItem({ chapter, subject }: SyllabusChapte
             <div className="pr-4 py-2">
                 <SyllabusEditDialog 
                   chapterName={chapter.name}
+                  subjectName={subject.name}
                   open={isEditDialogOpen}
                   onOpenChange={setIsEditDialogOpen}
                 >
@@ -105,32 +106,30 @@ export default function SyllabusChapterItem({ chapter, subject }: SyllabusChapte
           </AccordionPrimitive.Header>
           <AccordionPrimitive.Content className="overflow-hidden text-sm transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
             <div className="p-4 pt-0">
-               <div className="space-y-2">
-                  <ScrollArea className="h-60 w-full rounded-md border p-2">
-                      {topics.length > 0 ? (
-                          <div className="space-y-2">
-                              {topics.map((topic, index) => (
-                                  <div key={index} className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 transition-colors">
-                                      <Checkbox
-                                          id={`topic-${chapter.name}-${index}`}
-                                          checked={topic.completed}
-                                          onCheckedChange={() => handleToggleTopic(topic.name)}
-                                      />
-                                      <Label
-                                          htmlFor={`topic-${chapter.name}-${index}`}
-                                          className={`flex-1 cursor-pointer ${topic.completed ? 'line-through text-muted-foreground' : ''}`}
-                                      >
-                                          {topic.name}
-                                      </Label>
-                                  </div>
-                              ))}
-                          </div>
-                      ) : (
-                          <div className="flex h-full items-center justify-center">
-                              <p className="text-sm text-muted-foreground">No topics defined. Click the Edit button to add a syllabus.</p>
-                          </div>
-                      )}
-                  </ScrollArea>
+               <div className="rounded-md border p-4">
+                  {topics.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3">
+                          {topics.map((topic, index) => (
+                              <div key={index} className="flex items-center gap-3">
+                                  <Checkbox
+                                      id={`topic-${chapter.name}-${index}`}
+                                      checked={topic.completed}
+                                      onCheckedChange={() => handleToggleTopic(topic.name)}
+                                  />
+                                  <Label
+                                      htmlFor={`topic-${chapter.name}-${index}`}
+                                      className={`flex-1 cursor-pointer ${topic.completed ? 'line-through text-muted-foreground' : ''}`}
+                                  >
+                                      {topic.name}
+                                  </Label>
+                              </div>
+                          ))}
+                      </div>
+                  ) : (
+                      <div className="flex h-24 items-center justify-center">
+                          <p className="text-sm text-muted-foreground">No topics defined. Click the Edit button to add a syllabus.</p>
+                      </div>
+                  )}
                 </div>
             </div>
           </AccordionPrimitive.Content>
