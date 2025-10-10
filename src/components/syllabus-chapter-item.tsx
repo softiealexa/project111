@@ -12,7 +12,6 @@ import { Button } from './ui/button';
 import { SyllabusEditDialog } from './syllabus-edit-dialog';
 import { Label } from './ui/label';
 import { Checkbox } from './ui/checkbox';
-import { ScrollArea } from './ui/scroll-area';
 
 interface SyllabusChapterItemProps {
   chapter: { name: string }; // Simplified chapter prop
