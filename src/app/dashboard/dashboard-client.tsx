@@ -196,8 +196,6 @@ export default function DashboardClient() {
     )
   }
 
-  const hasMoreThanFourSubjects = activeProfile.subjects.length > 3;
-
   return (
     <div className="flex w-full flex-col items-center bg-background text-foreground pb-12">
       <h1 className="sr-only">StudyTracker Dashboard</h1>
@@ -213,11 +211,8 @@ export default function DashboardClient() {
             <TabsContent value="subjects">
               <Tabs value={activeSubjectName ?? ''} onValueChange={setActiveSubjectName} className="w-full">
                 <div className="flex items-start justify-between gap-4">
-                  <ScrollArea className="flex-1 whitespace-nowrap rounded-md pb-2.5">
-                    <TabsList className={cn(
-                      "transition-all duration-300 p-1.5 sm:p-1 h-auto sm:h-10",
-                      !hasMoreThanFourSubjects && "grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-                    )}>
+                  <ScrollArea className="whitespace-nowrap rounded-md pb-2.5">
+                    <TabsList className="p-1.5 sm:p-1 h-auto sm:h-10">
                       {activeProfile.subjects.map((subject) => {
                         const Icon = getIconComponent(subject.icon);
                         return (
