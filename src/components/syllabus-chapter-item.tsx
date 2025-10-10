@@ -16,17 +16,11 @@ interface SyllabusChapterItemProps {
 }
 
 export default function SyllabusChapterItem({ chapter, subject }: SyllabusChapterItemProps) {
-  const tasks = subject.tasks || [];
-  const totalTasks = chapter.lectureCount * tasks.length;
-  const completedTasks = Object.values(chapter.checkedState || {}).filter(item => item.status === 'checked' || item.status === 'checked-red').length;
+  // Set a static progress value for now. This will be updated later.
+  const progress = 50; 
   
-  const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-  
-  const progressColorClass = useMemo(() => {
-    if (progress < 25) return 'bg-progress-beginner';
-    if (progress <= 75) return 'bg-progress-intermediate';
-    return 'bg-progress-advanced';
-  }, [progress]);
+  // A neutral color for the progress bar until its purpose is defined.
+  const progressColorClass = 'bg-primary';
   
   return (
     <Card className="overflow-hidden border bg-card transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10">
@@ -41,7 +35,8 @@ export default function SyllabusChapterItem({ chapter, subject }: SyllabusChapte
               </div>
               <div className="flex shrink-0 items-center gap-4 w-full sm:w-[260px]">
                  <div className="flex w-full items-center gap-2 text-sm text-muted-foreground">
-                    <span className="font-medium tabular-nums whitespace-nowrap w-12 text-center">{completedTasks}/{totalTasks}</span>
+                    {/* Placeholder for task counts */}
+                    <span className="font-medium tabular-nums whitespace-nowrap w-12 text-center">--/--</span>
                     <Progress value={progress} indicatorClassName={progressColorClass} className="flex-1" />
                     <span className="font-bold tabular-nums text-foreground whitespace-nowrap w-12 text-right">{Math.round(progress)}%</span>
                 </div>
