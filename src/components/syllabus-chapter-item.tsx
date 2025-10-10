@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import { Card } from "@/components/ui/card";
 import type { Chapter, Subject } from "@/lib/types";
@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { ChevronDown, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
+import { SyllabusEditDialog } from './syllabus-edit-dialog';
 
 interface SyllabusChapterItemProps {
   chapter: Chapter;
@@ -16,10 +17,12 @@ interface SyllabusChapterItemProps {
 }
 
 export default function SyllabusChapterItem({ chapter, subject }: SyllabusChapterItemProps) {
-  // Set a static progress value for now. This will be updated later.
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  
+  // Set a static progress value for now.
   const progress = 50; 
   
-  // A neutral color for the progress bar until its purpose is defined.
+  // A neutral color for the progress bar.
   const progressColorClass = 'bg-primary';
   
   return (
@@ -35,7 +38,6 @@ export default function SyllabusChapterItem({ chapter, subject }: SyllabusChapte
               </div>
               <div className="flex shrink-0 items-center gap-4 w-full sm:w-[260px]">
                  <div className="flex w-full items-center gap-2 text-sm text-muted-foreground">
-                    {/* Placeholder for task counts */}
                     <span className="font-medium tabular-nums whitespace-nowrap w-12 text-center">--/--</span>
                     <Progress value={progress} indicatorClassName={progressColorClass} className="flex-1" />
                     <span className="font-bold tabular-nums text-foreground whitespace-nowrap w-12 text-right">{Math.round(progress)}%</span>
@@ -44,9 +46,15 @@ export default function SyllabusChapterItem({ chapter, subject }: SyllabusChapte
               </div>
             </AccordionPrimitive.Trigger>
             <div className="pr-4 py-2">
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <Pencil className="h-4 w-4" />
-                </Button>
+                <SyllabusEditDialog 
+                  chapterName={chapter.name}
+                  open={isEditDialogOpen}
+                  onOpenChange={setIsEditDialogOpen}
+                >
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Pencil className="h-4 w-4" />
+                  </Button>
+                </SyllabusEditDialog>
             </div>
           </AccordionPrimitive.Header>
           <AccordionPrimitive.Content className="overflow-hidden text-sm transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
