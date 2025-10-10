@@ -64,7 +64,7 @@ export default function SyllabusChecklistPage() {
                         {subject.chapters.map((chapter, index) => (
                           <SyllabusChapterItem 
                             key={`${subject.name}-${chapter.name}-${index}`}
-                            chapter={chapter}
+                            chapter={{ name: chapter.name }}
                             subject={subject}
                           />
                         ))}

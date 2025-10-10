@@ -1,29 +1,75 @@
 
 "use client";
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import { Card } from "@/components/ui/card";
-import type { Chapter, Subject } from "@/lib/types";
+import type { Subject } from "@/lib/types";
 import { Progress } from "@/components/ui/progress";
 import { ChevronDown, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
 import { SyllabusEditDialog } from './syllabus-edit-dialog';
+import { Label } from './ui/label';
+import { Checkbox } from './ui/checkbox';
+import { ScrollArea } from './ui/scroll-area';
 
 interface SyllabusChapterItemProps {
-  chapter: Chapter;
+  chapter: { name: string }; // Simplified chapter prop
   subject: Subject;
+}
+
+interface Topic {
+  name: string;
+  completed: boolean;
 }
 
 export default function SyllabusChapterItem({ chapter, subject }: SyllabusChapterItemProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [topics, setTopics] = useState<Topic[]>([]);
+
+  const storageKey = `syllabus_${chapter.name}`;
+
+  // Load topics from localStorage when the component mounts or chapter changes
+  useEffect(() => {
+    try {
+      const savedState = localStorage.getItem(storageKey);
+      if (savedState) {
+        const { topics: savedTopics } = JSON.parse(savedState);
+        setTopics(savedTopics || []);
+      } else {
+        setTopics([]);
+      }
+    } catch (error) {
+      console.error("Failed to load syllabus topics:", error);
+      setTopics([]);
+    }
+  }, [storageKey, isEditDialogOpen]); // Re-fetch when dialog closes
+
+  const handleToggleTopic = (topicName: string) => {
+    const newTopics = topics.map(topic =>
+      topic.name === topicName ? { ...topic, completed: !topic.completed } : topic
+    );
+    setTopics(newTopics);
+    // Save updated topics to localStorage
+    try {
+        const savedState = localStorage.getItem(storageKey);
+        const currentState = savedState ? JSON.parse(savedState) : {};
+        const stateToSave = JSON.stringify({ ...currentState, topics: newTopics });
+        localStorage.setItem(storageKey, stateToSave);
+    } catch (error) {
+        console.error("Failed to save syllabus topics:", error);
+    }
+  };
+
+  const completedCount = useMemo(() => topics.filter(t => t.completed).length, [topics]);
+  const progress = topics.length > 0 ? (completedCount / topics.length) * 100 : 0;
   
-  // Set a static progress value for now.
-  const progress = 50; 
-  
-  // A neutral color for the progress bar.
-  const progressColorClass = 'bg-primary';
+  const progressColorClass = useMemo(() => {
+    if (progress < 30) return 'bg-red-500';
+    if (progress < 70) return 'bg-yellow-500';
+    return 'bg-green-500';
+  }, [progress]);
   
   return (
     <Card className="overflow-hidden border bg-card transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10">
@@ -38,7 +84,7 @@ export default function SyllabusChapterItem({ chapter, subject }: SyllabusChapte
               </div>
               <div className="flex shrink-0 items-center gap-4 w-full sm:w-[260px]">
                  <div className="flex w-full items-center gap-2 text-sm text-muted-foreground">
-                    <span className="font-medium tabular-nums whitespace-nowrap w-12 text-center">--/--</span>
+                    <span className="font-medium tabular-nums whitespace-nowrap w-12 text-center">{completedCount}/{topics.length}</span>
                     <Progress value={progress} indicatorClassName={progressColorClass} className="flex-1" />
                     <span className="font-bold tabular-nums text-foreground whitespace-nowrap w-12 text-right">{Math.round(progress)}%</span>
                 </div>
@@ -59,7 +105,33 @@ export default function SyllabusChapterItem({ chapter, subject }: SyllabusChapte
           </AccordionPrimitive.Header>
           <AccordionPrimitive.Content className="overflow-hidden text-sm transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
             <div className="p-4 pt-0">
-                {/* Content will go here in the future */}
+               <div className="space-y-2">
+                  <ScrollArea className="h-60 w-full rounded-md border p-2">
+                      {topics.length > 0 ? (
+                          <div className="space-y-2">
+                              {topics.map((topic, index) => (
+                                  <div key={index} className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 transition-colors">
+                                      <Checkbox
+                                          id={`topic-${chapter.name}-${index}`}
+                                          checked={topic.completed}
+                                          onCheckedChange={() => handleToggleTopic(topic.name)}
+                                      />
+                                      <Label
+                                          htmlFor={`topic-${chapter.name}-${index}`}
+                                          className={`flex-1 cursor-pointer ${topic.completed ? 'line-through text-muted-foreground' : ''}`}
+                                      >
+                                          {topic.name}
+                                      </Label>
+                                  </div>
+                              ))}
+                          </div>
+                      ) : (
+                          <div className="flex h-full items-center justify-center">
+                              <p className="text-sm text-muted-foreground">No topics defined. Click the Edit button to add a syllabus.</p>
+                          </div>
+                      )}
+                  </ScrollArea>
+                </div>
             </div>
           </AccordionPrimitive.Content>
         </AccordionPrimitive.Item>
