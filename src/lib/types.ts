@@ -68,6 +68,11 @@ export interface ImportantLink {
   url: string;
 }
 
+export interface Topic {
+  name: string;
+  completed: boolean;
+}
+
 export interface Chapter {
   name: string;
   lectureCount: number;
@@ -75,6 +80,7 @@ export interface Chapter {
   notes?: Record<string, string>;
   lectureNames?: Record<string, string>;
   deadline?: number;
+  syllabus?: Topic[];
 }
 
 export interface Subject {

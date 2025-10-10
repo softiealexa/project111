@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -17,6 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from './ui/scroll-area';
 import { Separator } from './ui/separator';
+import type { Topic } from '@/lib/types';
 
 interface SyllabusEditDialogProps {
   subjectName: string;
@@ -24,42 +26,21 @@ interface SyllabusEditDialogProps {
   children: React.ReactNode;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialTopics: Topic[];
+  onSave: (topics: Topic[]) => void;
 }
 
-interface Topic {
-  name: string;
-  completed: boolean;
-}
-
-export function SyllabusEditDialog({ subjectName, chapterName, children, open, onOpenChange }: SyllabusEditDialogProps) {
+export function SyllabusEditDialog({ chapterName, children, open, onOpenChange, initialTopics, onSave }: SyllabusEditDialogProps) {
   const [syllabusText, setSyllabusText] = useState('');
   const [topics, setTopics] = useState<Topic[]>([]);
-  const [isDirty, setIsDirty] = useState(false);
 
-  const storageKey = `syllabus_${subjectName}_${chapterName}`;
-
-  // Load state from localStorage when dialog opens
   useEffect(() => {
     if (open) {
-      try {
-        const savedState = localStorage.getItem(storageKey);
-        if (savedState) {
-          const { text, topics: savedTopics } = JSON.parse(savedState);
-          setSyllabusText(text || '');
-          setTopics(savedTopics || []);
-        } else {
-          // Reset if no saved state
-          setSyllabusText('');
-          setTopics([]);
-        }
-      } catch (error) {
-        console.error("Failed to load syllabus from local storage:", error);
-        setSyllabusText('');
-        setTopics([]);
-      }
-      setIsDirty(false);
+        setTopics(initialTopics);
+        const text = initialTopics.map(t => t.name).join(', ');
+        setSyllabusText(text);
     }
-  }, [open, storageKey]);
+  }, [open, initialTopics]);
 
   const handleProcessText = () => {
     const newTopics = syllabusText
@@ -72,7 +53,6 @@ export function SyllabusEditDialog({ subjectName, chapterName, children, open, o
         return { name: topicName, completed: existingTopic?.completed || false };
       });
     setTopics(newTopics);
-    setIsDirty(true);
   };
 
   const handleToggleTopic = (topicName: string) => {
@@ -81,33 +61,17 @@ export function SyllabusEditDialog({ subjectName, chapterName, children, open, o
         topic.name === topicName ? { ...topic, completed: !topic.completed } : topic
       )
     );
-    setIsDirty(true);
   };
 
   const handleSave = () => {
-    try {
-      const stateToSave = JSON.stringify({ text: syllabusText, topics });
-      localStorage.setItem(storageKey, stateToSave);
-      setIsDirty(false);
-      onOpenChange(false); // Close dialog on save
-    } catch (error) {
-      console.error("Failed to save syllabus to local storage:", error);
-      // Optionally, show an error toast to the user
-    }
-  };
-
-  const handleOpenChange = (isOpen: boolean) => {
-    if (!isOpen && isDirty) {
-      // Here you could prompt the user if they want to save changes
-      // For simplicity, we'll just discard them.
-    }
-    onOpenChange(isOpen);
+    onSave(topics);
+    onOpenChange(false);
   };
 
   const completedCount = useMemo(() => topics.filter(t => t.completed).length, [topics]);
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
@@ -123,10 +87,7 @@ export function SyllabusEditDialog({ subjectName, chapterName, children, open, o
               id="syllabus-input"
               placeholder="e.g., Topic 1, Another Topic, Final Concept"
               value={syllabusText}
-              onChange={(e) => {
-                setSyllabusText(e.target.value);
-                setIsDirty(true);
-              }}
+              onChange={(e) => setSyllabusText(e.target.value)}
               className="min-h-[100px] text-base"
             />
           </div>
@@ -170,7 +131,7 @@ export function SyllabusEditDialog({ subjectName, chapterName, children, open, o
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSave} disabled={!isDirty}>Save Changes</Button>
+          <Button onClick={handleSave}>Save Changes</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

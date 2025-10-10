@@ -5,7 +5,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback, Suspense, lazy } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
-import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, SimpleTodo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus, CheckedState, ExamCountdown, TimeOffPolicy, TimeOffRequest, Shift, TeamMember } from '@/lib/types';
+import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, SimpleTodo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus, CheckedState, ExamCountdown, TimeOffPolicy, TimeOffRequest, Shift, TeamMember, Topic } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
 import { format, getISOWeek, getYear } from 'date-fns';
@@ -48,6 +48,7 @@ interface DataContextType {
   updateChapter: (subjectName: string, chapterName: string, newLectureCount: number) => void;
   renameChapter: (subjectName: string, oldName: string, newName: string) => void;
   updateChapterDeadline: (subjectName: string, chapterName: string, deadline: number | null) => void;
+  updateChapterSyllabus: (subjectName: string, chapterName: string, syllabus: Topic[]) => void;
   updateTasks: (subjectName: string, newTasks: string[]) => void;
   renameTask: (subjectName: string, oldName: string, newName: string) => void;
   updatePlannerNote: (dateKey: string, note: string) => void;
@@ -731,6 +732,23 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateSubjects(newSubjects);
   }, [activeProfile, updateSubjects]);
 
+    const updateChapterSyllabus = useCallback((subjectName: string, chapterName: string, syllabus: Topic[]) => {
+        if (!activeProfile) return;
+        const newSubjects = activeProfile.subjects.map(s => {
+            if (s.name === subjectName) {
+                const newChapters = s.chapters.map(c => {
+                    if (c.name === chapterName) {
+                        return { ...c, syllabus: syllabus };
+                    }
+                    return c;
+                });
+                return { ...s, chapters: newChapters };
+            }
+            return s;
+        });
+        updateSubjects(newSubjects);
+    }, [activeProfile, updateSubjects]);
+
   const updateTasks = useCallback((subjectName: string, newTasks: string[]) => {
     if (!activeProfile) return;
     const originalSubject = activeProfile.subjects.find(s => s.name === subjectName);
@@ -1176,7 +1194,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const value = useMemo(() => ({
     user, userDoc, impersonatedUser, loading, profiles, activeProfile, activeSubjectName, setActiveSubjectName,
     addProfile, removeProfile, renameProfile, switchProfile, updateSubjects, addSubject, removeSubject, renameSubject,
-    addChapter, removeChapter, updateChapter, renameChapter, updateChapterDeadline, updateTasks, renameTask,
+    addChapter, removeChapter, updateChapter, renameChapter, updateChapterDeadline, updateChapterSyllabus, updateTasks, renameTask,
     updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
     addTodo, updateTodo, deleteTodo, setTodos,
     addSimpleTodo, updateSimpleTodo, deleteSimpleTodo, setSimpleTodos,
@@ -1190,7 +1208,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }), [
     user, userDoc, impersonatedUser, loading, profiles, activeProfile, activeSubjectName,
     addProfile, removeProfile, renameProfile, switchProfile, updateSubjects, addSubject, removeSubject, renameSubject,
-    addChapter, removeChapter, updateChapter, renameChapter, updateChapterDeadline, updateTasks, renameTask,
+    addChapter, removeChapter, updateChapter, renameChapter, updateChapterDeadline, updateChapterSyllabus, updateTasks, renameTask,
     updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
     addTodo, updateTodo, deleteTodo, setTodos,
     addSimpleTodo, updateSimpleTodo, deleteSimpleTodo, setSimpleTodos,

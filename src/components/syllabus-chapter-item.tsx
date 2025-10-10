@@ -1,10 +1,11 @@
 
+
 "use client";
 
 import { useMemo, useState, useEffect } from 'react';
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import { Card } from "@/components/ui/card";
-import type { Subject } from "@/lib/types";
+import type { Subject, Topic } from "@/lib/types";
 import { Progress } from "@/components/ui/progress";
 import { ChevronDown, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -12,53 +13,28 @@ import { Button } from './ui/button';
 import { SyllabusEditDialog } from './syllabus-edit-dialog';
 import { Label } from './ui/label';
 import { Checkbox } from './ui/checkbox';
+import { useData } from '@/contexts/data-context';
 
 interface SyllabusChapterItemProps {
-  chapter: { name: string }; // Simplified chapter prop
+  chapter: { name: string; syllabus?: Topic[] };
   subject: Subject;
 }
 
-interface Topic {
-  name: string;
-  completed: boolean;
-}
-
 export default function SyllabusChapterItem({ chapter, subject }: SyllabusChapterItemProps) {
+  const { updateChapterSyllabus } = useData();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [topics, setTopics] = useState<Topic[]>([]);
-
-  const storageKey = `syllabus_${subject.name}_${chapter.name}`;
-
-  // Load topics from localStorage when the component mounts or chapter changes
-  useEffect(() => {
-    try {
-      const savedState = localStorage.getItem(storageKey);
-      if (savedState) {
-        const { topics: savedTopics } = JSON.parse(savedState);
-        setTopics(savedTopics || []);
-      } else {
-        setTopics([]);
-      }
-    } catch (error) {
-      console.error("Failed to load syllabus topics:", error);
-      setTopics([]);
-    }
-  }, [storageKey, isEditDialogOpen]); // Re-fetch when dialog closes
+  
+  const topics = useMemo(() => chapter.syllabus || [], [chapter.syllabus]);
 
   const handleToggleTopic = (topicName: string) => {
     const newTopics = topics.map(topic =>
       topic.name === topicName ? { ...topic, completed: !topic.completed } : topic
     );
-    setTopics(newTopics);
-    // Save updated topics to localStorage
-    try {
-        const savedState = localStorage.getItem(storageKey);
-        const currentState = savedState ? JSON.parse(savedState) : {};
-        const stateToSave = JSON.stringify({ ...currentState, topics: newTopics });
-        localStorage.setItem(storageKey, stateToSave);
-    } catch (error) {
-        console.error("Failed to save syllabus topics:", error);
-    }
+    updateChapterSyllabus(subject.name, chapter.name, newTopics);
+  };
+  
+  const handleSaveSyllabus = (newTopics: Topic[]) => {
+      updateChapterSyllabus(subject.name, chapter.name, newTopics);
   };
 
   const completedCount = useMemo(() => topics.filter(t => t.completed).length, [topics]);
@@ -96,6 +72,8 @@ export default function SyllabusChapterItem({ chapter, subject }: SyllabusChapte
                   subjectName={subject.name}
                   open={isEditDialogOpen}
                   onOpenChange={setIsEditDialogOpen}
+                  initialTopics={topics}
+                  onSave={handleSaveSyllabus}
                 >
                   <Button variant="ghost" size="icon" className="h-8 w-8">
                       <Pencil className="h-4 w-4" />
