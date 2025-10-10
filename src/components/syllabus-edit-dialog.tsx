@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -36,8 +35,9 @@ export function SyllabusEditDialog({ chapterName, children, open, onOpenChange, 
 
   useEffect(() => {
     if (open) {
-        setTopics(initialTopics);
-        const text = initialTopics.map(t => t.name).join(', ');
+        const initialSyllabus = initialTopics || [];
+        setTopics(initialSyllabus);
+        const text = initialSyllabus.map(t => t.name).join(', ');
         setSyllabusText(text);
     }
   }, [open, initialTopics]);
