@@ -27,6 +27,7 @@ import {
   Briefcase,
   Users,
   Cake,
+  CheckSquare,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -56,6 +57,7 @@ export const iconMap: Record<string, LucideIcon> = {
   Briefcase,
   Users,
   Cake,
+  CheckSquare,
 };
 
 export const iconNames = Object.keys(iconMap);

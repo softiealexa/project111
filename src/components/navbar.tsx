@@ -5,7 +5,7 @@
 import Link from 'next/link';
 import { useData } from '@/contexts/data-context';
 import { Button } from '@/components/ui/button';
-import { Book, LogOut, UserPlus, LogIn, SlidersHorizontal, Settings, Clock, FileText } from 'lucide-react';
+import { Book, LogOut, UserPlus, LogIn, SlidersHorizontal, Settings, Clock, FileText, CheckSquare } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import {
@@ -59,6 +59,20 @@ export default function Navbar() {
                     <Tooltip>
                       <TooltipTrigger asChild>
                          <Button asChild variant="ghost" size="icon">
+                          <Link href="/syllabus">
+                            <CheckSquare className="h-5 w-5" />
+                            <span className="sr-only">Syllabus</span>
+                          </Link>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Syllabus</p>
+                      </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                         <Button asChild variant="ghost" size="icon">
                           <Link href="/clockify">
                             <Clock className="h-5 w-5" />
                             <span className="sr-only">Clockify</span>
@@ -104,6 +118,10 @@ export default function Navbar() {
                           </div>
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
+                        <DropdownMenuItem onSelect={() => router.push('/syllabus')}>
+                          <CheckSquare className="mr-2 h-4 w-4" />
+                          <span>Syllabus</span>
+                        </DropdownMenuItem>
                          <DropdownMenuItem onSelect={() => router.push('/clockify')}>
                           <Clock className="mr-2 h-4 w-4" />
                           <span>Clockify</span>
