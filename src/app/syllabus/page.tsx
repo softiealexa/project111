@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils';
 import { getIconComponent } from '@/lib/icons';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { CheckSquare } from 'lucide-react';
+import LiveClock from '@/components/live-clock';
+import MiniCountdown from '@/components/mini-countdown';
 
 export default function SyllabusChecklistPage() {
   const { activeProfile, activeSubjectName, setActiveSubjectName } = useData();
@@ -36,23 +38,29 @@ export default function SyllabusChecklistPage() {
             <div className="max-w-5xl mx-auto">
                 {activeProfile.subjects.length > 0 ? (
                 <Tabs value={activeSubjectName ?? ''} onValueChange={setActiveSubjectName} className="w-full">
-                    <ScrollArea className="flex-1 whitespace-nowrap rounded-md pb-2.5">
-                        <TabsList className={cn(
-                        "transition-all duration-300 p-1.5 sm:p-1 h-auto sm:h-10",
-                        !hasMoreThanFourSubjects && "grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-                        )}>
-                        {activeProfile.subjects.map((subject) => {
-                            const Icon = getIconComponent(subject.icon);
-                            return (
-                            <TabsTrigger key={subject.name} value={subject.name} className="flex items-center gap-2 text-sm sm:text-base h-9 sm:h-auto">
-                                <Icon className="h-5 w-5" />
-                                <span>{subject.name}</span>
-                            </TabsTrigger>
-                            )
-                        })}
-                        </TabsList>
-                        <ScrollBar orientation="horizontal" />
-                    </ScrollArea>
+                    <div className="flex items-start justify-between gap-4">
+                        <ScrollArea className="flex-1 whitespace-nowrap rounded-md pb-2.5">
+                            <TabsList className={cn(
+                            "transition-all duration-300 p-1.5 sm:p-1 h-auto sm:h-10",
+                            !hasMoreThanFourSubjects && "grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+                            )}>
+                            {activeProfile.subjects.map((subject) => {
+                                const Icon = getIconComponent(subject.icon);
+                                return (
+                                <TabsTrigger key={subject.name} value={subject.name} className="flex items-center gap-2 text-sm sm:text-base h-9 sm:h-auto">
+                                    <Icon className="h-5 w-5" />
+                                    <span>{subject.name}</span>
+                                </TabsTrigger>
+                                )
+                            })}
+                            </TabsList>
+                            <ScrollBar orientation="horizontal" />
+                        </ScrollArea>
+                        <div className="hidden sm:flex items-center gap-2">
+                            <MiniCountdown />
+                            <LiveClock />
+                        </div>
+                    </div>
 
                     {activeProfile.subjects.map((subject) => (
                     <TabsContent key={subject.name} value={subject.name} className="mt-6">
