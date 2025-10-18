@@ -77,7 +77,7 @@ export default function BacklogPlanner() {
     const result = useMemo(() => {
         const totalBacklog = parseInt(backlogLectures, 10);
         const newPerDay = newLecturesEnabled ? parseInt(newLecturesPerDay, 10) : 0;
-        const workDays = parseInt(studyDaysPerWeek, 10);
+        const workDays = newLecturesEnabled ? parseInt(studyDaysPerWeek, 10) : 7;
         
         if (isNaN(totalBacklog) || isNaN(newPerDay) || isNaN(workDays) || totalBacklog < 0 || workDays < 1 || workDays > 7) {
             return { days: null, requiredPace: null, message: "Please enter valid numbers in all backlog and workload fields." };
@@ -93,26 +93,32 @@ export default function BacklogPlanner() {
                  return { days: null, requiredPace: null, message: "Please enter a valid number for your daily pace." };
             }
             
-            const surplusOnWorkDays = pace - newPerDay;
-            if (surplusOnWorkDays <= 0 && workDays >= 7) {
-                return { days: null, requiredPace: null, message: "Your daily pace must be higher than new lectures to make progress on work days." };
-            }
+            if (newLecturesEnabled) {
+                const surplusOnWorkDays = pace - newPerDay;
+                if (surplusOnWorkDays <= 0 && workDays >= 7) {
+                    return { days: null, requiredPace: null, message: "Your daily pace must be higher than new lectures to make progress on work days." };
+                }
 
-            const offDays = 7 - workDays;
-            const weeklyProgress = (surplusOnWorkDays * workDays) + (pace * offDays);
-            if (weeklyProgress <= 0) {
-                return { days: null, requiredPace: null, message: "With this schedule, you won't clear your backlog. Try increasing your pace." };
+                const offDays = 7 - workDays;
+                const weeklyProgress = (surplusOnWorkDays * workDays) + (pace * offDays);
+                if (weeklyProgress <= 0) {
+                    return { days: null, requiredPace: null, message: "With this schedule, you won't clear your backlog. Try increasing your pace." };
+                }
             }
             
             let finalDays = 0;
             let remainingBacklog = totalBacklog;
             while(remainingBacklog > 0) {
                  finalDays++;
-                 const dayOfWeek = (finalDays - 1) % 7;
-                 if(dayOfWeek < workDays) {
-                    remainingBacklog -= surplusOnWorkDays;
+                 if (newLecturesEnabled) {
+                     const dayOfWeek = (finalDays - 1) % 7;
+                     if(dayOfWeek < workDays) {
+                        remainingBacklog -= (pace - newPerDay);
+                     } else {
+                        remainingBacklog -= pace;
+                     }
                  } else {
-                    remainingBacklog -= pace;
+                     remainingBacklog -= pace;
                  }
             }
             const completionDate = addDays(new Date(), finalDays);
@@ -132,14 +138,19 @@ export default function BacklogPlanner() {
             // This is a complex iterative problem, we can find the pace by testing values.
             // Test paces from `newPerDay` up to a reasonable limit.
             for (let testPace = newPerDay + 0.01; testPace < 100; testPace += 0.01) {
-                const surplusOnWorkDays = testPace - newPerDay;
+                
                 let daysToComplete = 0;
                 let remaining = totalBacklog;
+
                 while (remaining > 0) {
                     daysToComplete++;
-                    const dayOfWeek = (daysToComplete - 1) % 7;
-                    if (dayOfWeek < workDays) {
-                        remaining -= surplusOnWorkDays;
+                    if (newLecturesEnabled) {
+                        const dayOfWeek = (daysToComplete - 1) % 7;
+                        if (dayOfWeek < workDays) {
+                            remaining -= (testPace - newPerDay);
+                        } else {
+                            remaining -= testPace;
+                        }
                     } else {
                         remaining -= testPace;
                     }
@@ -219,7 +230,7 @@ export default function BacklogPlanner() {
                     </div>
                      <div className="grid gap-2">
                         <Label htmlFor="study-days">Days/Week with New Lectures</Label>
-                        <Input id="study-days" type="number" value={studyDaysPerWeek} onChange={(e) => setStudyDaysPerWeek(e.target.value)} placeholder="e.g., 6" min="1" max="7"/>
+                        <Input id="study-days" type="number" value={studyDaysPerWeek} onChange={(e) => setStudyDaysPerWeek(e.target.value)} placeholder="e.g., 6" min="1" max="7" disabled={!newLecturesEnabled}/>
                     </div>
                 </div>
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
