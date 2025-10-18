@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from './ui/button';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
-import { PartyPopper, CalendarCheck, Calendar as CalendarIcon, Target, RefreshCcw } from 'lucide-react';
+import { PartyPopper, CalendarCheck, Calendar as CalendarIcon, Target, RefreshCcw, Power, PowerOff } from 'lucide-react';
 import { addDays, format, differenceInDays, startOfToday } from 'date-fns';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -29,6 +29,7 @@ export default function BacklogPlanner() {
     const [pacePerDay, setPacePerDay] = useState('4');
     const [deadline, setDeadline] = useState<Date | undefined>();
     const [mode, setMode] = useState<PlannerMode>('calculateDays');
+    const [newLecturesEnabled, setNewLecturesEnabled] = useState(true);
 
     const calculateCurrentBacklog = useCallback(() => {
         if (!activeProfile) return 0;
@@ -75,7 +76,7 @@ export default function BacklogPlanner() {
 
     const result = useMemo(() => {
         const totalBacklog = parseInt(backlogLectures, 10);
-        const newPerDay = parseInt(newLecturesPerDay, 10);
+        const newPerDay = newLecturesEnabled ? parseInt(newLecturesPerDay, 10) : 0;
         const workDays = parseInt(studyDaysPerWeek, 10);
         
         if (isNaN(totalBacklog) || isNaN(newPerDay) || isNaN(workDays) || totalBacklog < 0 || workDays < 1 || workDays > 7) {
@@ -152,7 +153,7 @@ export default function BacklogPlanner() {
 
         return { days: null, requiredPace: null, message: "An unexpected error occurred." };
 
-    }, [backlogLectures, newLecturesPerDay, studyDaysPerWeek, pacePerDay, deadline, mode]);
+    }, [backlogLectures, newLecturesPerDay, studyDaysPerWeek, pacePerDay, deadline, mode, newLecturesEnabled]);
 
     return (
         <Card>
@@ -189,7 +190,32 @@ export default function BacklogPlanner() {
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="new-lectures">New Lectures per Day</Label>
-                        <Input id="new-lectures" type="number" value={newLecturesPerDay} onChange={(e) => setNewLecturesPerDay(e.target.value)} placeholder="e.g., 3" />
+                        <div className="flex items-center gap-2">
+                            <Input 
+                                id="new-lectures" 
+                                type="number" 
+                                value={newLecturesPerDay} 
+                                onChange={(e) => setNewLecturesPerDay(e.target.value)} 
+                                placeholder="e.g., 3" 
+                                disabled={!newLecturesEnabled}
+                                className="flex-1"
+                            />
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button 
+                                        variant="outline" 
+                                        onClick={() => setNewLecturesEnabled(prev => !prev)}
+                                        className="h-10" 
+                                        aria-label={newLecturesEnabled ? "Disable new lectures per day" : "Enable new lectures per day"}
+                                    >
+                                        {newLecturesEnabled ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4 text-primary" />}
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{newLecturesEnabled ? 'Disable daily new lectures' : 'Enable daily new lectures'}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </div>
                     </div>
                      <div className="grid gap-2">
                         <Label htmlFor="study-days">Days/Week with New Lectures</Label>
