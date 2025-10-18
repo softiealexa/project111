@@ -247,7 +247,8 @@ export default function BacklogPlanner() {
                         <Input id="study-days" type="number" value={studyDaysPerWeek} onChange={(e) => setStudyDaysPerWeek(e.target.value)} placeholder="e.g., 6" min="1" max="7" disabled={!newLecturesEnabled}/>
                     </div>
                 </div>
-                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {mode === 'calculateDays' ? (
                         <div className="grid gap-2">
                             <Label htmlFor="pace">Total Lectures to Complete per Day (Your Pace)</Label>
