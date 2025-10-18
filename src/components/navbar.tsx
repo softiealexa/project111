@@ -58,15 +58,13 @@ export default function Navbar() {
                     
                     <Tooltip>
                       <TooltipTrigger asChild>
-                         <Button asChild variant="ghost" size="icon">
-                          <Link href="/syllabus">
-                            <CheckSquare className="h-5 w-5" />
-                            <span className="sr-only">Syllabus</span>
-                          </Link>
+                         <Button variant="ghost" size="icon" disabled>
+                          <CheckSquare className="h-5 w-5" />
+                          <span className="sr-only">Syllabus</span>
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Syllabus</p>
+                        <p>Syllabus (Coming Soon)</p>
                       </TooltipContent>
                     </Tooltip>
 
@@ -118,7 +116,7 @@ export default function Navbar() {
                           </div>
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onSelect={() => router.push('/syllabus')}>
+                        <DropdownMenuItem onSelect={() => router.push('/syllabus')} disabled>
                           <CheckSquare className="mr-2 h-4 w-4" />
                           <span>Syllabus</span>
                         </DropdownMenuItem>
