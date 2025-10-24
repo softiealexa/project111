@@ -125,7 +125,7 @@ const ManualEntryDialog = ({ onSave }: { onSave: (duration: number, type: 'study
                         </SelectContent>
                     </Select>
                     {type === 'study' && activeProfile?.subjects && activeProfile.subjects.length > 0 && (
-                        <Select value={subject || ''} onValueChange={(v) => setSubject(v === 'no-subject' ? null : v)}>
+                        <Select value={subject || 'no-subject'} onValueChange={(v) => setSubject(v === 'no-subject' ? null : v)}>
                             <SelectTrigger><SelectValue placeholder="Select a subject (optional)" /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="no-subject">No Subject</SelectItem>
@@ -299,7 +299,7 @@ export default function StopwatchPage() {
           fill: colors[index % colors.length]
       })).sort((a,b) => b.time - a.time);
 
-  }, [selectedDate, activeProfile, stopwatchState.lastUpdate]);
+  }, [selectedDate, activeProfile, stopwatchState.lastUpdate, getSessionsForDate]);
 
   const monthlyReport = useMemo(() => {
       const start = startOfMonth(selectedDate || new Date());
@@ -384,7 +384,7 @@ export default function StopwatchPage() {
                                                 Start Studying
                                             </Button>
                                             {activeProfile?.subjects && activeProfile.subjects.length > 0 && (
-                                                <Select value={selectedSubject || ''} onValueChange={(v) => setSelectedSubject(v === 'no-subject' ? null : v)}>
+                                                <Select value={selectedSubject || 'no-subject'} onValueChange={(v) => setSelectedSubject(v === 'no-subject' ? null : v)}>
                                                     <SelectTrigger className="w-[180px]">
                                                         <SelectValue placeholder="Select a subject" />
                                                     </SelectTrigger>

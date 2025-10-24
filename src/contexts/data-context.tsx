@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback, Suspense, lazy } from 'react';
@@ -99,7 +98,7 @@ interface DataContextType {
   updateTeamMember: (member: TeamMember) => void;
   deleteTeamMember: (memberId: string) => void;
   stopwatchState: StopwatchState;
-  startStopwatch: () => void;
+  startStopwatch: (subject: string | null) => void;
   stopStopwatch: () => void;
   resetStopwatch: () => void;
   getSummaryForDate: (date: Date) => StopwatchDaySummary | null;
@@ -107,7 +106,7 @@ interface DataContextType {
   getAllSummaries: () => Record<string, StopwatchDaySummary>;
   addStopwatchLap: () => void;
   setStopwatchStudyGoal: (newGoal: number) => void;
-  addManualStopwatchSession: (duration: number, type: 'study' | 'break') => void;
+  addManualStopwatchSession: (duration: number, type: 'study' | 'break', subject: string | null) => void;
   exportData: () => void;
   importData: (file: File) => void;
   signOutUser: () => Promise<void>;
@@ -1161,7 +1160,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setStopwatchState(prev => ({ ...prev, lastUpdate: Date.now() }));
   }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
-  const startStopwatch = useCallback(() => {
+  const startStopwatch = useCallback((subject: string | null) => {
     if (stopwatchState.isRunning) return;
 
     const newSession: StopwatchSession = {
@@ -1171,6 +1170,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         endTime: 0,
         duration: 0,
         laps: [],
+        subject: stopwatchState.currentSessionType === 'study' ? subject : null
     };
     
     if (activeProfile) {
@@ -1294,7 +1294,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateProfiles(newProfiles, activeProfileName, { stopwatchStudyGoal: newGoal });
   }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
-  const addManualStopwatchSession = useCallback((duration: number, type: 'study' | 'break') => {
+  const addManualStopwatchSession = useCallback((duration: number, type: 'study' | 'break', subject: string | null) => {
     if (!activeProfile) return;
     
     const now = Date.now();
@@ -1307,6 +1307,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       endTime: now,
       duration,
       manual: true,
+      subject: type === 'study' ? subject : null,
     };
     
     const sessions = { ...activeProfile.stopwatchSessions };

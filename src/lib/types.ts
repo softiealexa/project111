@@ -149,6 +149,7 @@ export interface StopwatchSession {
   duration: number; // in seconds
   laps?: number[]; // Array of lap durations in seconds
   manual?: boolean; // Flag for manually added sessions
+  subject?: string | null;
 }
 
 export interface StopwatchDaySummary {
