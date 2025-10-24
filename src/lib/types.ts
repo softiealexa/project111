@@ -147,6 +147,8 @@ export interface StopwatchSession {
   startTime: number;
   endTime: number;
   duration: number; // in seconds
+  laps?: number[]; // Array of lap durations in seconds
+  manual?: boolean; // Flag for manually added sessions
 }
 
 export interface StopwatchDaySummary {
@@ -178,6 +180,7 @@ export interface Profile {
   shifts?: Shift[];
   stopwatchSessions?: Record<string, StopwatchSession[]>;
   stopwatchSummaries?: Record<string, StopwatchDaySummary>;
+  stopwatchStudyGoal?: number; // Daily goal in seconds
 }
 
 export interface AppUser {

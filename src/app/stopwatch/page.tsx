@@ -1,15 +1,15 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useData } from '@/contexts/data-context';
 import type { StopwatchSession, StopwatchDaySummary } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Play, Pause, RotateCcw, History, BarChart2, CalendarDays, ChevronLeft, ChevronRight, Moon, Sun } from 'lucide-react';
+import { Play, Pause, RotateCcw, History, BarChart2, CalendarDays, ChevronLeft, ChevronRight, Moon, Sun, Plus, Maximize, Minimize, Target } from 'lucide-react';
 import { format, formatDuration, intervalToDuration, startOfDay, endOfDay, eachDayOfInterval, startOfWeek, endOfWeek, isSameDay, subDays, addDays, startOfMonth, endOfMonth } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
-import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, CartesianGrid } from 'recharts';
+import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, CartesianGrid, Label } from 'recharts';
 import Navbar from '@/components/navbar';
 import { cn } from '@/lib/utils';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -25,26 +25,49 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Progress } from '@/components/ui/progress';
 
-const formatStopwatchTime = (seconds: number) => {
-  const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
-  const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
-  const s = Math.floor(seconds % 60).toString().padStart(2, '0');
-  return `${h}:${m}:${s}`;
+
+const formatStopwatchTime = (seconds: number, showMs = false) => {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  const ms = Math.floor((seconds * 1000) % 1000);
+
+  const parts = [
+    h > 0 ? h.toString().padStart(2, '0') : null,
+    m.toString().padStart(2, '0'),
+    s.toString().padStart(2, '0')
+  ].filter(Boolean);
+
+  let timeStr = parts.join(':');
+  
+  if (showMs) {
+    timeStr += `.${ms.toString().padStart(3, '0')}`;
+  }
+
+  return timeStr;
 };
+
+const parseDurationToSeconds = (hours: string, minutes: string): number => {
+    const h = parseInt(hours, 10) || 0;
+    const m = parseInt(minutes, 10) || 0;
+    return h * 3600 + m * 60;
+};
+
 
 function LiveDigitalClock() {
     const [time, setTime] = useState<Date | null>(null);
 
     useEffect(() => {
-        // Set the initial time on the client
         setTime(new Date()); 
-        
         const timer = setInterval(() => setTime(new Date()), 1000);
         return () => clearInterval(timer);
     }, []);
 
-    // Render a placeholder on the server and initial client render
     if (!time) {
         return <div className="text-xl font-semibold font-mono">--:--:-- --</div>;
     }
@@ -52,6 +75,92 @@ function LiveDigitalClock() {
     return <div className="text-xl font-semibold font-mono">{format(time, 'p')}</div>;
 }
 
+
+const ManualEntryDialog = ({ onSave }: { onSave: (duration: number, type: 'study' | 'break') => void }) => {
+    const [open, setOpen] = useState(false);
+    const [hours, setHours] = useState('');
+    const [minutes, setMinutes] = useState('');
+    const [type, setType] = useState<'study' | 'break'>('study');
+
+    const handleSave = () => {
+        const durationInSeconds = parseDurationToSeconds(hours, minutes);
+        if (durationInSeconds > 0) {
+            onSave(durationInSeconds, type);
+            setOpen(false);
+            setHours('');
+            setMinutes('');
+        }
+    };
+    
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline" size="sm"><Plus className="mr-2 h-4 w-4"/> Manual Entry</Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Add Manual Time Entry</DialogTitle>
+                    <DialogDescription>Log a session that you forgot to time.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-2">
+                    <div className="grid grid-cols-2 gap-4">
+                        <Input placeholder="Hours" type="number" value={hours} onChange={(e) => setHours(e.target.value)} />
+                        <Input placeholder="Minutes" type="number" value={minutes} onChange={(e) => setMinutes(e.target.value)} />
+                    </div>
+                     <Select value={type} onValueChange={(v: 'study' | 'break') => setType(v)}>
+                        <SelectTrigger><SelectValue/></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="study">Study Session</SelectItem>
+                            <SelectItem value="break">Break</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                    <Button onClick={handleSave}>Save Entry</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+const GoalDialog = ({ currentGoal, onSave }: { currentGoal: number, onSave: (newGoal: number) => void }) => {
+    const [open, setOpen] = useState(false);
+    const [hours, setHours] = useState(Math.floor(currentGoal / 3600).toString());
+
+    useEffect(() => {
+        setHours(Math.floor(currentGoal / 3600).toString());
+    }, [currentGoal, open]);
+
+    const handleSave = () => {
+        const goalInSeconds = parseDurationToSeconds(hours, '0');
+        onSave(goalInSeconds);
+        setOpen(false);
+    }
+    
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                 <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
+                    <Target className="h-4 w-4" />
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-xs">
+                <DialogHeader>
+                    <DialogTitle>Set Daily Study Goal</DialogTitle>
+                </DialogHeader>
+                <div className="py-4 space-y-2">
+                    <label htmlFor="goal-hours" className="text-sm font-medium">Goal (in hours)</label>
+                    <Input id="goal-hours" type="number" value={hours} onChange={(e) => setHours(e.target.value)} />
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                    <Button onClick={handleSave}>Set Goal</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
 
 export default function StopwatchPage() {
   const {
@@ -62,17 +171,23 @@ export default function StopwatchPage() {
     getSummaryForDate,
     getSessionsForDate,
     getAllSummaries,
+    addStopwatchLap,
+    activeProfile,
+    setStopwatchStudyGoal,
+    addManualStopwatchSession,
   } = useData();
 
   const [selectedDate, setSelectedDate] = useState(startOfDay(new Date()));
   const [ticker, setTicker] = useState(0);
-
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
   useEffect(() => {
     let timer: NodeJS.Timeout | undefined;
     if (stopwatchState.isRunning) {
       timer = setInterval(() => {
         setTicker(prev => prev + 1);
-      }, 1000);
+      }, 50); // Update more frequently for smoother ms display
     }
     return () => clearInterval(timer);
   }, [stopwatchState.isRunning]);
@@ -80,23 +195,43 @@ export default function StopwatchPage() {
   const currentDaySummary = useMemo(() => getSummaryForDate(startOfDay(new Date())), [getSummaryForDate, stopwatchState.lastUpdate]);
   const selectedDaySummary = useMemo(() => getSummaryForDate(selectedDate), [getSummaryForDate, selectedDate, stopwatchState.lastUpdate]);
   const selectedDaySessions = useMemo(() => getSessionsForDate(selectedDate), [getSessionsForDate, selectedDate, stopwatchState.lastUpdate]);
+  const dailyGoal = useMemo(() => activeProfile?.stopwatchStudyGoal || 0, [activeProfile]);
 
   const elapsedTime = useMemo(() => {
     if (!stopwatchState.isRunning || !stopwatchState.startTime) return 0;
-    return Math.floor((Date.now() - stopwatchState.startTime) / 1000);
+    return (Date.now() - stopwatchState.startTime) / 1000;
   }, [stopwatchState.isRunning, stopwatchState.startTime, ticker]);
 
   const totalStudyTimeToday = (currentDaySummary?.totalStudyTime || 0) + (stopwatchState.currentSessionType === 'study' ? elapsedTime : 0);
+  const goalProgress = dailyGoal > 0 ? (totalStudyTimeToday / dailyGoal) * 100 : 0;
 
-  const modifiers = {
-    hasData: (date: Date) => !!getSummaryForDate(date),
-  };
-  const modifiersClassNames = {
-    hasData: 'has-data',
+  const currentSessionLaps = useMemo(() => {
+    if (!stopwatchState.currentSessionId) return [];
+    const todayKey = format(startOfDay(new Date()), 'yyyy-MM-dd');
+    const todaySessions = activeProfile?.stopwatchSessions?.[todayKey] || [];
+    const currentSession = todaySessions.find(s => s.id === stopwatchState.currentSessionId);
+    return currentSession?.laps || [];
+  }, [stopwatchState.currentSessionId, stopwatchState.lastUpdate, activeProfile?.stopwatchSessions]);
+
+
+  useEffect(() => {
+    const onFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+  }, []);
+
+  const handleFullscreen = () => {
+    if (!containerRef.current) return;
+    if (!document.fullscreenElement) {
+      containerRef.current.requestFullscreen().catch(err => {
+        alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+      });
+    } else {
+      document.exitFullscreen();
+    }
   };
 
   const allSummaries = getAllSummaries();
-
   const weeklyReport = useMemo(() => {
       const start = startOfWeek(selectedDate, { weekStartsOn: 1 });
       const end = endOfWeek(selectedDate, { weekStartsOn: 1 });
@@ -105,8 +240,8 @@ export default function StopwatchPage() {
           const summary = allSummaries[format(day, 'yyyy-MM-dd')];
           return {
               name: format(day, 'EEE'),
-              study: (summary?.totalStudyTime || 0) / 3600, // in hours
-              break: (summary?.totalBreakTime || 0) / 3600, // in hours
+              study: (summary?.totalStudyTime || 0) / 3600,
+              break: (summary?.totalBreakTime || 0) / 3600,
           }
       });
   }, [selectedDate, allSummaries]);
@@ -117,10 +252,7 @@ export default function StopwatchPage() {
       const monthDays = eachDayOfInterval({ start, end });
       return monthDays.map(day => {
           const summary = allSummaries[format(day, 'yyyy-MM-dd')];
-          return {
-              name: format(day, 'd'),
-              study: (summary?.totalStudyTime || 0) / 3600, // in hours
-          }
+          return { name: format(day, 'd'), study: (summary?.totalStudyTime || 0) / 3600 }
       });
   }, [selectedDate, allSummaries]);
 
@@ -128,11 +260,25 @@ export default function StopwatchPage() {
       study: { label: "Study", color: "hsl(var(--primary))" },
       break: { label: "Break", color: "hsl(var(--muted-foreground))" },
   };
-
+  
+  if (isFullscreen) {
+    return (
+        <div ref={containerRef} className="fixed inset-0 bg-background flex flex-col items-center justify-center z-50 text-center p-4">
+            <h2 className="text-3xl md:text-4xl text-muted-foreground mb-8 capitalize">{stopwatchState.currentSessionType} Session</h2>
+            <div className="font-mono text-8xl md:text-9xl font-bold tracking-tighter bg-gradient-to-br from-primary via-foreground to-primary bg-clip-text text-transparent">
+                {formatStopwatchTime(elapsedTime)}
+            </div>
+            <Button variant="ghost" size="icon" onClick={handleFullscreen} className="absolute top-4 right-4">
+                <Minimize className="h-6 w-6" />
+                <span className="sr-only">Exit Fullscreen</span>
+            </Button>
+        </div>
+    );
+  }
 
   return (
     <TooltipProvider>
-        <div className="flex flex-col min-h-screen bg-muted/40">
+        <div ref={containerRef} className="flex flex-col min-h-screen bg-muted/40">
             <Navbar />
             <main className="flex-1 p-4 sm:p-6 md:p-8">
                 <div className="max-w-7xl mx-auto space-y-8">
@@ -147,14 +293,23 @@ export default function StopwatchPage() {
                                     {stopwatchState.currentSessionType === 'study' ? 'Studying' : 'On Break'}
                                 </CardDescription>
                                 <div className="text-5xl font-bold font-mono tracking-tighter">
-                                    {formatStopwatchTime(elapsedTime)}
+                                    {formatStopwatchTime(elapsedTime, true)}
                                 </div>
                             </div>
-                            <div className="p-6 flex flex-col items-center justify-center bg-primary/5">
-                                <CardDescription>Total Study Time Today</CardDescription>
+                             <div className="p-6 flex flex-col items-center justify-center bg-primary/5">
+                                <div className="flex items-center gap-2">
+                                    <CardDescription>Total Study Time Today</CardDescription>
+                                    <GoalDialog currentGoal={dailyGoal} onSave={setStopwatchStudyGoal} />
+                                </div>
                                 <div className="text-3xl font-bold font-mono tracking-tighter">
                                     {formatStopwatchTime(totalStudyTimeToday)}
                                 </div>
+                                {dailyGoal > 0 && (
+                                    <div className="w-full max-w-[200px] mt-2">
+                                        <Progress value={goalProgress} className="h-2" />
+                                        <p className="text-xs text-muted-foreground mt-1 text-center">{Math.round(goalProgress)}% of {formatStopwatchTime(dailyGoal)} goal</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                         <CardContent className="p-6 text-center">
@@ -170,6 +325,9 @@ export default function StopwatchPage() {
                                         Start Studying
                                     </Button>
                                 )}
+                                {stopwatchState.isRunning && stopwatchState.currentSessionType === 'study' && (
+                                    <Button size="sm" variant="outline" onClick={addStopwatchLap}>Lap</Button>
+                                )}
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
                                         <Button size="sm" variant="outline">
@@ -180,7 +338,7 @@ export default function StopwatchPage() {
                                         <AlertDialogHeader>
                                             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                                             <AlertDialogDescription>
-                                                This action cannot be undone. This will permanently delete all stopwatch data for today.
+                                                This will permanently delete all stopwatch data for today and cannot be undone.
                                             </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
@@ -189,6 +347,7 @@ export default function StopwatchPage() {
                                         </AlertDialogFooter>
                                     </AlertDialogContent>
                                 </AlertDialog>
+                                <Button size="icon" variant="ghost" onClick={handleFullscreen} className="ml-4"><Maximize className="h-5 w-5"/></Button>
                             </div>
                         </CardContent>
                     </Card>
@@ -201,10 +360,13 @@ export default function StopwatchPage() {
                                         <CardTitle>Daily Log</CardTitle>
                                         <CardDescription>Breakdown of your activity for the selected day.</CardDescription>
                                     </div>
-                                    <div className='flex items-center rounded-md border bg-card text-sm flex-shrink-0'>
-                                        <Button variant="ghost" onClick={() => setSelectedDate(subDays(selectedDate, 1))} className="rounded-r-none h-9"><ChevronLeft className="mr-1 h-4 w-4"/> Prev</Button>
-                                        <Button variant="ghost" onClick={() => setSelectedDate(new Date())} className="rounded-none border-x h-9">Today</Button>
-                                        <Button variant="ghost" onClick={() => setSelectedDate(addDays(selectedDate, 1))} className="rounded-l-none h-9">Next <ChevronRight className="ml-1 h-4 w-4"/></Button>
+                                    <div className="flex items-center gap-2">
+                                        <ManualEntryDialog onSave={addManualStopwatchSession} />
+                                        <div className='flex items-center rounded-md border bg-card text-sm flex-shrink-0'>
+                                            <Button variant="ghost" onClick={() => setSelectedDate(subDays(selectedDate, 1))} className="rounded-r-none h-9"><ChevronLeft className="mr-1 h-4 w-4"/> Prev</Button>
+                                            <Button variant="ghost" onClick={() => setSelectedDate(new Date())} className="rounded-none border-x h-9">Today</Button>
+                                            <Button variant="ghost" onClick={() => setSelectedDate(addDays(selectedDate, 1))} className="rounded-l-none h-9">Next <ChevronRight className="ml-1 h-4 w-4"/></Button>
+                                        </div>
                                     </div>
                                 </CardHeader>
                                 <CardContent>
@@ -227,20 +389,34 @@ export default function StopwatchPage() {
                                         </div>
                                     </div>
                                     <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
-                                        {selectedDaySessions.length > 0 ? selectedDaySessions.map(session => (
+                                        {selectedDaySessions.map(session => (
                                             <div key={session.id} className={cn("flex items-center gap-4 p-3 rounded-md border", session.type === 'study' ? 'bg-primary/5 border-primary/20' : 'bg-muted/50')}>
                                                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-card">
                                                     {session.type === 'study' ? <Sun className="h-5 w-5 text-primary" /> : <Moon className="h-5 w-5 text-muted-foreground" />}
                                                 </div>
                                                 <div className="flex-1">
-                                                    <p className="font-semibold capitalize">{session.type} Session</p>
+                                                    <p className="font-semibold capitalize">{session.type} Session {session.manual && '(Manual)'}</p>
                                                     <p className="text-xs text-muted-foreground">
                                                         {format(new Date(session.startTime), 'p')} - {format(new Date(session.endTime), 'p')}
                                                     </p>
                                                 </div>
                                                 <p className="font-mono font-semibold">{formatStopwatchTime(session.duration)}</p>
                                             </div>
-                                        )) : (
+                                        ))}
+                                        {isSameDay(selectedDate, new Date()) && currentSessionLaps.length > 0 && (
+                                             <div className="p-3 rounded-md border bg-muted/50">
+                                                <p className="font-semibold text-sm mb-2">Current Session Laps</p>
+                                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                                    {currentSessionLaps.map((lap, i) => (
+                                                        <div key={i} className="text-xs flex justify-between bg-background p-1.5 rounded">
+                                                            <span className="text-muted-foreground">Lap {i + 1}:</span>
+                                                            <span className="font-mono font-medium">{formatStopwatchTime(lap)}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                             </div>
+                                        )}
+                                        {selectedDaySessions.length === 0 && (
                                             <div className="text-center py-10 text-muted-foreground">No sessions recorded for this day.</div>
                                         )}
                                     </div>
@@ -275,7 +451,7 @@ export default function StopwatchPage() {
                                     <ChartContainer config={chartConfig} className="h-64">
                                         <BarChart data={monthlyReport} margin={{ top: 20, right: 10, left: -20, bottom: 5 }}>
                                             <CartesianGrid vertical={false} />
-                                            <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} />
+                                            <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} interval="preserveStartEnd" />
                                             <YAxis unit="h" />
                                             <ChartTooltip content={<ChartTooltipContent />} />
                                             <Bar dataKey="study" fill="hsl(var(--primary))" radius={4} />
@@ -294,8 +470,8 @@ export default function StopwatchPage() {
                                 selected={selectedDate}
                                 onSelect={(day) => day && setSelectedDate(day)}
                                 className="rounded-md border bg-card"
-                                modifiers={modifiers}
-                                modifiersClassNames={modifiersClassNames}
+                                modifiers={{ hasData: (date: Date) => !!getAllSummaries()[format(date, 'yyyy-MM-dd')] }}
+                                modifiersClassNames={{ hasData: 'has-data' }}
                             />
                         </div>
                     </div>
