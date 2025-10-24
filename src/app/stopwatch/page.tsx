@@ -147,7 +147,7 @@ export default function StopwatchPage() {
                             </div>
                         </div>
                         <CardContent className="p-6 text-center">
-                            <div className="flex justify-center gap-4">
+                            <div className="flex justify-center items-center gap-4">
                                 {stopwatchState.isRunning ? (
                                     <Button size="lg" className="w-40" onClick={stopStopwatch}>
                                         <Pause className="mr-2 h-5 w-5" />
@@ -159,8 +159,8 @@ export default function StopwatchPage() {
                                         Start Studying
                                     </Button>
                                 )}
-                                <Button size="lg" variant="outline" onClick={resetStopwatch}>
-                                    <RotateCcw className="mr-2 h-5 w-5" /> Reset Day
+                                <Button size="sm" variant="outline" onClick={resetStopwatch}>
+                                    <RotateCcw className="mr-2 h-4 w-4" /> Reset Day
                                 </Button>
                             </div>
                         </CardContent>
@@ -278,4 +278,3 @@ export default function StopwatchPage() {
     </TooltipProvider>
   );
 }
-
