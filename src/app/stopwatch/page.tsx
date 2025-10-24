@@ -6,10 +6,10 @@ import { useData } from '@/contexts/data-context';
 import type { StopwatchSession, StopwatchDaySummary } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Play, Pause, RotateCcw, History, BarChart2, CalendarDays, ChevronLeft, ChevronRight, Moon, Sun, Plus, Maximize, Minimize, Target } from 'lucide-react';
-import { format, formatDuration, intervalToDuration, startOfDay, endOfDay, eachDayOfInterval, startOfWeek, endOfWeek, isSameDay, subDays, addDays, startOfMonth, endOfMonth } from 'date-fns';
+import { Play, Pause, RotateCcw, History, BarChart2, CalendarDays, ChevronLeft, ChevronRight, Moon, Sun, Plus, Maximize, Minimize, Target, BarChart, Package } from 'lucide-react';
+import { format, formatDuration, intervalToDuration, startOfDay, endOfDay, eachDayOfInterval, startOfWeek, endOfWeek, isSameDay, subDays, addDays, startOfMonth, endOfMonth, getISOWeek, getYear } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
-import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, CartesianGrid, Label } from 'recharts';
+import { ResponsiveContainer, BarChart as RechartsBarChart, XAxis, YAxis, Tooltip, Bar, CartesianGrid, Label, Cell } from 'recharts';
 import Navbar from '@/components/navbar';
 import { cn } from '@/lib/utils';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -29,6 +29,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
+import { getIconComponent } from '@/lib/icons';
 
 
 const formatStopwatchTime = (seconds: number, showMs = false) => {
@@ -76,21 +77,30 @@ function LiveDigitalClock() {
 }
 
 
-const ManualEntryDialog = ({ onSave }: { onSave: (duration: number, type: 'study' | 'break') => void }) => {
+const ManualEntryDialog = ({ onSave }: { onSave: (duration: number, type: 'study' | 'break', subject: string | null) => void }) => {
+    const { activeProfile } = useData();
     const [open, setOpen] = useState(false);
     const [hours, setHours] = useState('');
     const [minutes, setMinutes] = useState('');
     const [type, setType] = useState<'study' | 'break'>('study');
+    const [subject, setSubject] = useState<string | null>(null);
 
     const handleSave = () => {
         const durationInSeconds = parseDurationToSeconds(hours, minutes);
         if (durationInSeconds > 0) {
-            onSave(durationInSeconds, type);
+            onSave(durationInSeconds, type, type === 'study' ? subject : null);
             setOpen(false);
             setHours('');
             setMinutes('');
         }
     };
+
+     useEffect(() => {
+        if (!open) {
+            setSubject(null);
+            setType('study');
+        }
+    }, [open]);
     
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -114,6 +124,17 @@ const ManualEntryDialog = ({ onSave }: { onSave: (duration: number, type: 'study
                             <SelectItem value="break">Break</SelectItem>
                         </SelectContent>
                     </Select>
+                    {type === 'study' && activeProfile?.subjects && activeProfile.subjects.length > 0 && (
+                        <Select value={subject || ''} onValueChange={(v) => setSubject(v === 'no-subject' ? null : v)}>
+                            <SelectTrigger><SelectValue placeholder="Select a subject (optional)" /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="no-subject">No Subject</SelectItem>
+                                {activeProfile.subjects.map(s => (
+                                    <SelectItem key={s.name} value={s.name}>{s.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
@@ -181,7 +202,8 @@ export default function StopwatchPage() {
   const [ticker, setTicker] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  
+  const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
+
   useEffect(() => {
     setSelectedDate(startOfDay(new Date()));
   }, []);
@@ -236,6 +258,7 @@ export default function StopwatchPage() {
   };
 
   const allSummaries = getAllSummaries();
+  
   const weeklyReport = useMemo(() => {
       const start = startOfWeek(selectedDate || new Date(), { weekStartsOn: 1 });
       const end = endOfWeek(selectedDate || new Date(), { weekStartsOn: 1 });
@@ -249,6 +272,34 @@ export default function StopwatchPage() {
           }
       });
   }, [selectedDate, allSummaries]);
+
+  const weeklySubjectBreakdown = useMemo(() => {
+      if (!selectedDate) return [];
+
+      const start = startOfWeek(selectedDate, { weekStartsOn: 1 });
+      const end = endOfWeek(selectedDate, { weekStartsOn: 1 });
+      const weekDays = eachDayOfInterval({ start, end });
+      const subjectTime: Record<string, number> = {};
+
+      weekDays.forEach(day => {
+          const sessions = getSessionsForDate(day);
+          sessions.forEach(session => {
+              if (session.type === 'study' && session.subject) {
+                  if (!subjectTime[session.subject]) subjectTime[session.subject] = 0;
+                  subjectTime[session.subject] += session.duration;
+              }
+          });
+      });
+      
+      const colors = ["hsl(180, 80%, 55%)", "hsl(221, 83%, 65%)", "hsl(262, 85%, 68%)", "hsl(24, 96%, 63%)", "hsl(142, 76%, 46%)"];
+      
+      return Object.entries(subjectTime).map(([subject, time], index) => ({
+          name: subject,
+          time: time / 3600,
+          fill: colors[index % colors.length]
+      })).sort((a,b) => b.time - a.time);
+
+  }, [selectedDate, activeProfile, stopwatchState.lastUpdate]);
 
   const monthlyReport = useMemo(() => {
       const start = startOfMonth(selectedDate || new Date());
@@ -264,6 +315,11 @@ export default function StopwatchPage() {
       study: { label: "Study", color: "hsl(var(--primary))" },
       break: { label: "Break", color: "hsl(var(--muted-foreground))" },
   };
+  
+  const subjectChartConfig = weeklySubjectBreakdown.reduce((acc, item) => {
+      acc[item.name] = { label: item.name, color: item.fill };
+      return acc;
+  }, {} as any);
 
   return (
     <TooltipProvider>
@@ -315,17 +371,32 @@ export default function StopwatchPage() {
                                 </div>
                             </div>
                             <CardContent className="p-6 text-center">
-                                <div className="flex justify-center items-center gap-4">
+                                <div className="flex justify-center items-center gap-4 flex-wrap">
                                     {stopwatchState.isRunning ? (
                                         <Button size="lg" className="w-40 transform transition-transform duration-200 hover:scale-105" onClick={stopStopwatch}>
                                             <Pause className="mr-2 h-5 w-5" />
                                             {stopwatchState.currentSessionType === 'study' ? 'Take Break' : 'End Break'}
                                         </Button>
                                     ) : (
-                                        <Button size="lg" className="w-40 transform transition-transform duration-200 hover:scale-105" onClick={startStopwatch}>
-                                            <Play className="mr-2 h-5 w-5" />
-                                            Start Studying
-                                        </Button>
+                                        <>
+                                            <Button size="lg" className="w-40 transform transition-transform duration-200 hover:scale-105" onClick={() => startStopwatch(selectedSubject)}>
+                                                <Play className="mr-2 h-5 w-5" />
+                                                Start Studying
+                                            </Button>
+                                            {activeProfile?.subjects && activeProfile.subjects.length > 0 && (
+                                                <Select value={selectedSubject || ''} onValueChange={(v) => setSelectedSubject(v === 'no-subject' ? null : v)}>
+                                                    <SelectTrigger className="w-[180px]">
+                                                        <SelectValue placeholder="Select a subject" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="no-subject">No Subject</SelectItem>
+                                                        {activeProfile.subjects.map(s => (
+                                                            <SelectItem key={s.name} value={s.name}>{s.name}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            )}
+                                        </>
                                     )}
                                     {stopwatchState.isRunning && stopwatchState.currentSessionType === 'study' && (
                                         <Button size="lg" variant="outline" onClick={addStopwatchLap}>Lap</Button>
@@ -391,20 +462,24 @@ export default function StopwatchPage() {
                                             </div>
                                         </div>
                                         <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
-                                            {selectedDaySessions.map(session => (
-                                                <div key={session.id} className={cn("flex items-center gap-4 p-3 rounded-md border", session.type === 'study' ? 'bg-primary/5 border-primary/20' : 'bg-muted/50')}>
-                                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-card">
-                                                        {session.type === 'study' ? <Sun className="h-5 w-5 text-primary" /> : <Moon className="h-5 w-5 text-muted-foreground" />}
+                                            {selectedDaySessions.map(session => {
+                                                const Icon = session.subject ? getIconComponent(activeProfile?.subjects.find(s=>s.name === session.subject)?.icon) : Package;
+                                                return (
+                                                    <div key={session.id} className={cn("flex items-center gap-4 p-3 rounded-md border", session.type === 'study' ? 'bg-primary/5 border-primary/20' : 'bg-muted/50')}>
+                                                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-card">
+                                                            {session.type === 'study' ? <Icon className="h-5 w-5 text-primary" /> : <Moon className="h-5 w-5 text-muted-foreground" />}
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <p className="font-semibold capitalize">{session.type} Session {session.manual && '(Manual)'}</p>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                {format(new Date(session.startTime), 'p')} - {format(new Date(session.endTime), 'p')}
+                                                                {session.subject && <span className="font-medium text-primary/80"> • {session.subject}</span>}
+                                                            </p>
+                                                        </div>
+                                                        <p className="font-mono font-semibold">{formatStopwatchTime(session.duration)}</p>
                                                     </div>
-                                                    <div className="flex-1">
-                                                        <p className="font-semibold capitalize">{session.type} Session {session.manual && '(Manual)'}</p>
-                                                        <p className="text-xs text-muted-foreground">
-                                                            {format(new Date(session.startTime), 'p')} - {format(new Date(session.endTime), 'p')}
-                                                        </p>
-                                                    </div>
-                                                    <p className="font-mono font-semibold">{formatStopwatchTime(session.duration)}</p>
-                                                </div>
-                                            ))}
+                                                )
+                                            })}
                                             {selectedDate && isSameDay(selectedDate, new Date()) && currentSessionLaps.length > 0 && (
                                                  <div className="p-3 rounded-md border bg-muted/50">
                                                     <p className="font-semibold text-sm mb-2">Current Session Laps</p>
@@ -432,15 +507,45 @@ export default function StopwatchPage() {
                                     </CardHeader>
                                     <CardContent>
                                         <ChartContainer config={chartConfig} className="h-64">
-                                            <BarChart data={weeklyReport} margin={{ top: 20, right: 10, left: -20, bottom: 5 }}>
+                                            <RechartsBarChart data={weeklyReport} margin={{ top: 20, right: 10, left: -20, bottom: 5 }}>
                                                 <CartesianGrid vertical={false} />
                                                 <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} />
                                                 <YAxis unit="h" />
                                                 <ChartTooltip content={<ChartTooltipContent />} />
                                                 <Bar dataKey="study" fill="hsl(var(--primary))" radius={4} />
                                                 <Bar dataKey="break" fill="hsl(var(--muted-foreground))" radius={4} />
-                                            </BarChart>
+                                            </RechartsBarChart>
                                         </ChartContainer>
+                                    </CardContent>
+                                </Card>
+                                 <Card>
+                                    <CardHeader>
+                                        <CardTitle>Weekly Subject Breakdown</CardTitle>
+                                        <CardDescription>Time spent per subject for the week of {format(startOfWeek(selectedDate || new Date(), {weekStartsOn: 1}), 'MMM d')}.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {weeklySubjectBreakdown.length > 0 ? (
+                                            <ChartContainer config={subjectChartConfig} className="h-64">
+                                                <RechartsBarChart data={weeklySubjectBreakdown} layout="vertical" margin={{ left: 10, right: 30 }}>
+                                                    <CartesianGrid horizontal={false} />
+                                                    <XAxis type="number" hide />
+                                                    <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tickMargin={10} width={80} className="text-xs truncate"/>
+                                                    <ChartTooltip 
+                                                        cursor={{fill: 'hsl(var(--muted))'}}
+                                                        content={<ChartTooltipContent formatter={(value) => `${Number(value).toFixed(2)} hours`} />} 
+                                                    />
+                                                    <Bar dataKey="time" radius={4}>
+                                                        {weeklySubjectBreakdown.map((entry, index) => (
+                                                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                                                        ))}
+                                                    </Bar>
+                                                </RechartsBarChart>
+                                            </ChartContainer>
+                                        ) : (
+                                            <div className="h-64 flex items-center justify-center text-muted-foreground">
+                                                No subject-specific study time recorded this week.
+                                            </div>
+                                        )}
                                     </CardContent>
                                 </Card>
 
@@ -451,13 +556,13 @@ export default function StopwatchPage() {
                                     </CardHeader>
                                     <CardContent>
                                         <ChartContainer config={chartConfig} className="h-64">
-                                            <BarChart data={monthlyReport} margin={{ top: 20, right: 10, left: -20, bottom: 5 }}>
+                                            <RechartsBarChart data={monthlyReport} margin={{ top: 20, right: 10, left: -20, bottom: 5 }}>
                                                 <CartesianGrid vertical={false} />
                                                 <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} interval="preserveStartEnd" />
                                                 <YAxis unit="h" />
                                                 <ChartTooltip content={<ChartTooltipContent />} />
                                                 <Bar dataKey="study" fill="hsl(var(--primary))" radius={4} />
-                                            </BarChart>
+                                            </RechartsBarChart>
                                         </ChartContainer>
                                     </CardContent>
                                 </Card>
