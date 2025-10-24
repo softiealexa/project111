@@ -169,12 +169,12 @@ export default function StopwatchPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <div className="lg:col-span-2 space-y-8">
                             <Card>
-                                <CardHeader className="flex flex-row items-center justify-between">
+                                <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                     <div>
                                         <CardTitle>Daily Log</CardTitle>
                                         <CardDescription>Breakdown of your activity for the selected day.</CardDescription>
                                     </div>
-                                    <div className='flex items-center rounded-md border bg-card text-sm'>
+                                    <div className='flex items-center rounded-md border bg-card text-sm flex-shrink-0'>
                                         <Button variant="ghost" onClick={() => setSelectedDate(subDays(selectedDate, 1))} className="rounded-r-none h-9"><ChevronLeft className="mr-1 h-4 w-4"/> Prev</Button>
                                         <Button variant="ghost" onClick={() => setSelectedDate(new Date())} className="rounded-none border-x h-9">Today</Button>
                                         <Button variant="ghost" onClick={() => setSelectedDate(addDays(selectedDate, 1))} className="rounded-l-none h-9">Next <ChevronRight className="ml-1 h-4 w-4"/></Button>
@@ -227,9 +227,9 @@ export default function StopwatchPage() {
                                 </CardHeader>
                                 <CardContent>
                                     <ChartContainer config={chartConfig} className="h-64">
-                                        <BarChart data={weeklyReport} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
+                                        <BarChart data={weeklyReport} margin={{ top: 20, right: 10, left: -20, bottom: 5 }}>
                                             <CartesianGrid vertical={false} />
-                                            <XAxis dataKey="name" tickLine={false} axisLine={false} />
+                                            <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} />
                                             <YAxis unit="h" />
                                             <ChartTooltip content={<ChartTooltipContent />} />
                                             <Bar dataKey="study" fill="hsl(var(--primary))" radius={4} />
@@ -246,9 +246,9 @@ export default function StopwatchPage() {
                                 </CardHeader>
                                 <CardContent>
                                     <ChartContainer config={chartConfig} className="h-64">
-                                        <BarChart data={monthlyReport} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
+                                        <BarChart data={monthlyReport} margin={{ top: 20, right: 10, left: -20, bottom: 5 }}>
                                             <CartesianGrid vertical={false} />
-                                            <XAxis dataKey="name" tickLine={false} axisLine={false} />
+                                            <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} />
                                             <YAxis unit="h" />
                                             <ChartTooltip content={<ChartTooltipContent />} />
                                             <Bar dataKey="study" fill="hsl(var(--primary))" radius={4} />
@@ -257,7 +257,7 @@ export default function StopwatchPage() {
                                 </CardContent>
                             </Card>
                         </div>
-                        <div className="lg:col-span-1">
+                        <div className="lg:col-span-1 flex justify-center">
                             <style>{`.has-data:not([aria-selected]) { 
                                 font-weight: bold;
                                 background-color: hsl(var(--primary) / 0.1);
@@ -278,3 +278,4 @@ export default function StopwatchPage() {
     </TooltipProvider>
   );
 }
+
