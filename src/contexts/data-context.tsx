@@ -5,10 +5,10 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback, Suspense, lazy } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
-import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, SimpleTodo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus, CheckedState, ExamCountdown, TimeOffPolicy, TimeOffRequest, Shift, TeamMember, Topic } from '@/lib/types';
+import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, SimpleTodo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus, CheckedState, ExamCountdown, TimeOffPolicy, TimeOffRequest, Shift, TeamMember, Topic, StopwatchSession, StopwatchDaySummary } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
-import { format, getISOWeek, getYear } from 'date-fns';
+import { format, getISOWeek, getYear, startOfDay } from 'date-fns';
 import { LoadingSpinner } from '@/components/loading-spinner';
 
 // Lazily load the create profile screen
@@ -24,6 +24,13 @@ const IMPERSONATION_KEY = 'studytracker_impersonation';
 const DEFAULT_SIDEBAR_WIDTH = 448; // Corresponds to md (28rem)
 
 type DataToSave = Partial<Profile & { profiles: Profile[], activeProfileName: string | null }>;
+
+interface StopwatchState {
+    isRunning: boolean;
+    startTime: number | null;
+    currentSessionType: 'study' | 'break';
+    lastUpdate: number;
+}
 
 
 interface DataContextType {
@@ -90,6 +97,13 @@ interface DataContextType {
   addTeamMember: (name: string) => void;
   updateTeamMember: (member: TeamMember) => void;
   deleteTeamMember: (memberId: string) => void;
+  stopwatchState: StopwatchState;
+  startStopwatch: () => void;
+  stopStopwatch: () => void;
+  resetStopwatch: () => void;
+  getSummaryForDate: (date: Date) => StopwatchDaySummary | null;
+  getSessionsForDate: (date: Date) => StopwatchSession[];
+  getAllSummaries: () => Record<string, StopwatchDaySummary>;
   exportData: () => void;
   importData: (file: File) => void;
   signOutUser: () => Promise<void>;
@@ -183,6 +197,8 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
             timeOffRequests: profile.timeOffRequests || [],
             team: profile.team || [{ id: '1', name: 'You' }],
             shifts: profile.shifts || [],
+            stopwatchSessions: profile.stopwatchSessions || {},
+            stopwatchSummaries: profile.stopwatchSummaries || {},
         };
     });
 };
@@ -205,6 +221,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [sidebarWidth, setSidebarWidthState] = useState<number>(DEFAULT_SIDEBAR_WIDTH);
   const [isThemeHydrated, setIsThemeHydrated] = useState(false);
   const [showProgressDownloadPrompt, setShowProgressDownloadPrompt] = useState(false);
+
+  const [stopwatchState, setStopwatchState] = useState<StopwatchState>({
+    isRunning: false,
+    startTime: null,
+    currentSessionType: 'study',
+    lastUpdate: 0,
+  });
 
 
   const setSidebarWidth = useCallback((width: number) => {
@@ -1125,6 +1148,96 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateProfiles(newProfiles, activeProfileName, { team: updatedTeam, shifts: updatedShifts });
   }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
+  // --- Stopwatch Logic ---
+  const updateStopwatchData = useCallback((sessions: Record<string, StopwatchSession[]>, summaries: Record<string, StopwatchDaySummary>) => {
+      if (!activeProfile) return;
+      const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, stopwatchSessions: sessions, stopwatchSummaries: summaries } : p);
+      updateProfiles(newProfiles, activeProfileName, { stopwatchSessions: sessions, stopwatchSummaries: summaries });
+      setStopwatchState(prev => ({ ...prev, lastUpdate: Date.now() }));
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
+
+  const startStopwatch = useCallback(() => {
+    if (stopwatchState.isRunning) return;
+    setStopwatchState(prev => ({ ...prev, isRunning: true, startTime: Date.now() }));
+  }, [stopwatchState.isRunning]);
+
+  const stopStopwatch = useCallback(() => {
+    if (!stopwatchState.isRunning || !stopwatchState.startTime || !activeProfile) return;
+
+    const endTime = Date.now();
+    const startTime = stopwatchState.startTime;
+    const duration = Math.floor((endTime - startTime) / 1000);
+    const dateKey = format(startOfDay(new Date(startTime)), 'yyyy-MM-dd');
+
+    const newSession: StopwatchSession = {
+      id: crypto.randomUUID(),
+      type: stopwatchState.currentSessionType,
+      startTime,
+      endTime,
+      duration,
+    };
+    
+    const sessions = { ...activeProfile.stopwatchSessions };
+    if (!sessions[dateKey]) sessions[dateKey] = [];
+    sessions[dateKey].push(newSession);
+    
+    const summaries = { ...activeProfile.stopwatchSummaries };
+    let summary = summaries[dateKey] ? { ...summaries[dateKey] } : {
+        date: dateKey, totalStudyTime: 0, totalBreakTime: 0, sessionCount: 0, longestStreak: 0
+    };
+
+    if (newSession.type === 'study') {
+      summary.totalStudyTime += duration;
+      summary.sessionCount += 1;
+      summary.longestStreak = Math.max(summary.longestStreak, duration);
+    } else {
+      summary.totalBreakTime += duration;
+    }
+    summaries[dateKey] = summary;
+
+    updateStopwatchData(sessions, summaries);
+
+    setStopwatchState(prev => ({
+      ...prev,
+      isRunning: false,
+      startTime: null,
+      currentSessionType: prev.currentSessionType === 'study' ? 'break' : 'study',
+    }));
+  }, [stopwatchState, activeProfile, updateStopwatchData]);
+  
+  const resetStopwatch = useCallback(() => {
+      const todayKey = format(startOfDay(new Date()), 'yyyy-MM-dd');
+      if (activeProfile) {
+          const sessions = { ...activeProfile.stopwatchSessions };
+          delete sessions[todayKey];
+          const summaries = { ...activeProfile.stopwatchSummaries };
+          delete summaries[todayKey];
+          updateStopwatchData(sessions, summaries);
+      }
+      setStopwatchState({
+        isRunning: false,
+        startTime: null,
+        currentSessionType: 'study',
+        lastUpdate: Date.now(),
+      });
+  }, [activeProfile, updateStopwatchData]);
+  
+  const getSummaryForDate = useCallback((date: Date): StopwatchDaySummary | null => {
+      const dateKey = format(startOfDay(date), 'yyyy-MM-dd');
+      return activeProfile?.stopwatchSummaries?.[dateKey] || null;
+  }, [activeProfile]);
+
+  const getSessionsForDate = useCallback((date: Date): StopwatchSession[] => {
+      const dateKey = format(startOfDay(date), 'yyyy-MM-dd');
+      return [...(activeProfile?.stopwatchSessions?.[dateKey] || [])].sort((a,b) => a.startTime - b.startTime);
+  }, [activeProfile]);
+
+  const getAllSummaries = useCallback(() => {
+      return activeProfile?.stopwatchSummaries || {};
+  }, [activeProfile]);
+
+  // --- End Stopwatch Logic ---
+
   const exportData = useCallback(() => {
     if (typeof window === 'undefined' || profiles.length === 0) {
         toast({ title: "Export Failed", description: "No data to export.", variant: "destructive" });
@@ -1202,6 +1315,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addProject, updateProject, deleteProject, updateTimesheetEntry, setTimesheetData,
     addExamCountdown, updateExamCountdown, deleteExamCountdown, setExamCountdowns, setPinnedCountdownId,
     addTimeOffRequest, addShift, updateShift, deleteShift, addTeamMember, updateTeamMember, deleteTeamMember,
+    stopwatchState, startStopwatch, stopStopwatch, resetStopwatch, getSummaryForDate, getSessionsForDate, getAllSummaries,
     exportData, importData, signOutUser, refreshUserDoc, startImpersonation, endImpersonation,
     theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth,
     showProgressDownloadPrompt, setShowProgressDownloadPrompt,
@@ -1216,13 +1330,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addProject, updateProject, deleteProject, updateTimesheetEntry, setTimesheetData,
     addExamCountdown, updateExamCountdown, deleteExamCountdown, setExamCountdowns, setPinnedCountdownId,
     addTimeOffRequest, addShift, updateShift, deleteShift, addTeamMember, updateTeamMember, deleteTeamMember,
+    stopwatchState, startStopwatch, stopStopwatch, resetStopwatch, getSummaryForDate, getSessionsForDate, getAllSummaries,
     exportData, importData, signOutUser, refreshUserDoc,
     theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth, setActiveSubjectName,
     showProgressDownloadPrompt
   ]);
   
   const shouldShowCreateProfile = useMemo(() => {
-    const protectedPages = ['/dashboard', '/settings', '/clockify', '/admin', '/notes'];
+    const protectedPages = ['/dashboard', '/settings', '/clockify', '/admin', '/notes', '/stopwatch'];
     
     if (loading) return false;
     

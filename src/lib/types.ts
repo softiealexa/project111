@@ -141,6 +141,22 @@ export interface Shift {
 
 export type SidebarWidth = number;
 
+export interface StopwatchSession {
+  id: string;
+  type: 'study' | 'break';
+  startTime: number;
+  endTime: number;
+  duration: number; // in seconds
+}
+
+export interface StopwatchDaySummary {
+    date: string; // YYYY-MM-DD
+    totalStudyTime: number;
+    totalBreakTime: number;
+    sessionCount: number;
+    longestStreak: number;
+}
+
 export interface Profile {
   name:string;
   subjects: Subject[];
@@ -160,6 +176,8 @@ export interface Profile {
   timeOffRequests?: TimeOffRequest[];
   team?: TeamMember[];
   shifts?: Shift[];
+  stopwatchSessions?: Record<string, StopwatchSession[]>;
+  stopwatchSummaries?: Record<string, StopwatchDaySummary>;
 }
 
 export interface AppUser {

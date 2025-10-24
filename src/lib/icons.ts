@@ -28,6 +28,7 @@ import {
   Users,
   Cake,
   CheckSquare,
+  Timer,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -58,6 +59,7 @@ export const iconMap: Record<string, LucideIcon> = {
   Users,
   Cake,
   CheckSquare,
+  Timer,
 };
 
 export const iconNames = Object.keys(iconMap);
