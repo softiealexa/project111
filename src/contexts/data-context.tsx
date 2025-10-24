@@ -29,6 +29,7 @@ interface StopwatchState {
     isRunning: boolean;
     startTime: number | null;
     currentSessionType: 'study' | 'break';
+    currentSessionId: string | null;
     lastUpdate: number;
 }
 
@@ -104,6 +105,9 @@ interface DataContextType {
   getSummaryForDate: (date: Date) => StopwatchDaySummary | null;
   getSessionsForDate: (date: Date) => StopwatchSession[];
   getAllSummaries: () => Record<string, StopwatchDaySummary>;
+  addStopwatchLap: () => void;
+  setStopwatchStudyGoal: (newGoal: number) => void;
+  addManualStopwatchSession: (duration: number, type: 'study' | 'break') => void;
   exportData: () => void;
   importData: (file: File) => void;
   signOutUser: () => Promise<void>;
@@ -226,6 +230,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     isRunning: false,
     startTime: null,
     currentSessionType: 'study',
+    currentSessionId: null,
     lastUpdate: 0,
   });
 
@@ -1158,8 +1163,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const startStopwatch = useCallback(() => {
     if (stopwatchState.isRunning) return;
-    setStopwatchState(prev => ({ ...prev, isRunning: true, startTime: Date.now() }));
-  }, [stopwatchState.isRunning]);
+
+    const newSession: StopwatchSession = {
+        id: crypto.randomUUID(),
+        type: stopwatchState.currentSessionType,
+        startTime: Date.now(),
+        endTime: 0,
+        duration: 0,
+        laps: [],
+    };
+    
+    if (activeProfile) {
+        const dateKey = format(startOfDay(new Date()), 'yyyy-MM-dd');
+        const sessions = { ...(activeProfile.stopwatchSessions || {}) };
+        if (!sessions[dateKey]) sessions[dateKey] = [];
+        sessions[dateKey].push(newSession);
+        
+        const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, stopwatchSessions: sessions } : p);
+        updateProfiles(newProfiles, activeProfileName, { stopwatchSessions: sessions });
+    }
+
+    setStopwatchState(prev => ({ ...prev, isRunning: true, startTime: Date.now(), currentSessionId: newSession.id }));
+  }, [stopwatchState, activeProfile, activeProfileName, profiles, updateProfiles]);
 
   const stopStopwatch = useCallback(() => {
     if (!stopwatchState.isRunning || !stopwatchState.startTime || !activeProfile) return;
@@ -1169,24 +1194,25 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const duration = Math.floor((endTime - startTime) / 1000);
     const dateKey = format(startOfDay(new Date(startTime)), 'yyyy-MM-dd');
 
-    const newSession: StopwatchSession = {
-      id: crypto.randomUUID(),
-      type: stopwatchState.currentSessionType,
-      startTime,
-      endTime,
-      duration,
-    };
-    
     const sessions = { ...activeProfile.stopwatchSessions };
-    if (!sessions[dateKey]) sessions[dateKey] = [];
-    sessions[dateKey].push(newSession);
+    const dateSessions = [...(sessions[dateKey] || [])];
+    const currentSessionIndex = dateSessions.findIndex(s => s.id === stopwatchState.currentSessionId);
+
+    if (currentSessionIndex !== -1) {
+        dateSessions[currentSessionIndex] = {
+            ...dateSessions[currentSessionIndex],
+            endTime,
+            duration,
+        };
+        sessions[dateKey] = dateSessions;
+    }
     
     const summaries = { ...activeProfile.stopwatchSummaries };
     let summary = summaries[dateKey] ? { ...summaries[dateKey] } : {
         date: dateKey, totalStudyTime: 0, totalBreakTime: 0, sessionCount: 0, longestStreak: 0
     };
 
-    if (newSession.type === 'study') {
+    if (stopwatchState.currentSessionType === 'study') {
       summary.totalStudyTime += duration;
       summary.sessionCount += 1;
       summary.longestStreak = Math.max(summary.longestStreak, duration);
@@ -1202,6 +1228,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       isRunning: false,
       startTime: null,
       currentSessionType: prev.currentSessionType === 'study' ? 'break' : 'study',
+      currentSessionId: null,
     }));
   }, [stopwatchState, activeProfile, updateStopwatchData]);
   
@@ -1218,6 +1245,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         isRunning: false,
         startTime: null,
         currentSessionType: 'study',
+        currentSessionId: null,
         lastUpdate: Date.now(),
       });
   }, [activeProfile, updateStopwatchData]);
@@ -1235,6 +1263,74 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const getAllSummaries = useCallback(() => {
       return activeProfile?.stopwatchSummaries || {};
   }, [activeProfile]);
+
+  const addStopwatchLap = useCallback(() => {
+    if (!stopwatchState.isRunning || !stopwatchState.startTime || !activeProfile || !stopwatchState.currentSessionId) return;
+
+    const dateKey = format(startOfDay(new Date()), 'yyyy-MM-dd');
+    const sessions = { ...activeProfile.stopwatchSessions };
+    if (!sessions[dateKey]) return;
+
+    const sessionIndex = sessions[dateKey].findIndex(s => s.id === stopwatchState.currentSessionId);
+    if (sessionIndex === -1) return;
+
+    const session = sessions[dateKey][sessionIndex];
+    const laps = session.laps || [];
+    const lastLapTime = laps.reduce((sum, lap) => sum + lap, 0) * 1000;
+    const currentElapsedTime = Date.now() - stopwatchState.startTime;
+    const newLapDuration = (currentElapsedTime - lastLapTime) / 1000;
+
+    session.laps = [...laps, newLapDuration];
+    sessions[dateKey][sessionIndex] = session;
+
+    updateStopwatchData(sessions, activeProfile.stopwatchSummaries || {});
+  }, [stopwatchState, activeProfile, updateStopwatchData]);
+  
+  const setStopwatchStudyGoal = useCallback((newGoal: number) => {
+    if (!activeProfile) return;
+    const newProfiles = profiles.map(p => 
+        p.name === activeProfileName ? { ...p, stopwatchStudyGoal: newGoal } : p
+    );
+    updateProfiles(newProfiles, activeProfileName, { stopwatchStudyGoal: newGoal });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
+
+  const addManualStopwatchSession = useCallback((duration: number, type: 'study' | 'break') => {
+    if (!activeProfile) return;
+    
+    const now = Date.now();
+    const dateKey = format(startOfDay(now), 'yyyy-MM-dd');
+
+    const newSession: StopwatchSession = {
+      id: crypto.randomUUID(),
+      type: type,
+      startTime: now - (duration * 1000),
+      endTime: now,
+      duration,
+      manual: true,
+    };
+    
+    const sessions = { ...activeProfile.stopwatchSessions };
+    if (!sessions[dateKey]) sessions[dateKey] = [];
+    sessions[dateKey].push(newSession);
+
+    const summaries = { ...activeProfile.stopwatchSummaries };
+    let summary = summaries[dateKey] ? { ...summaries[dateKey] } : {
+        date: dateKey, totalStudyTime: 0, totalBreakTime: 0, sessionCount: 0, longestStreak: 0
+    };
+
+    if (type === 'study') {
+      summary.totalStudyTime += duration;
+      summary.sessionCount += 1;
+      summary.longestStreak = Math.max(summary.longestStreak, duration);
+    } else {
+      summary.totalBreakTime += duration;
+    }
+    summaries[dateKey] = summary;
+
+    updateStopwatchData(sessions, summaries);
+    toast({ title: 'Manual Entry Added', description: `Logged a ${type} session of ${format(new Date(0, 0, 0, 0, 0, duration), 'HH:mm:ss')}.`});
+
+  }, [activeProfile, updateStopwatchData, toast]);
 
   // --- End Stopwatch Logic ---
 
@@ -1315,7 +1411,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addProject, updateProject, deleteProject, updateTimesheetEntry, setTimesheetData,
     addExamCountdown, updateExamCountdown, deleteExamCountdown, setExamCountdowns, setPinnedCountdownId,
     addTimeOffRequest, addShift, updateShift, deleteShift, addTeamMember, updateTeamMember, deleteTeamMember,
-    stopwatchState, startStopwatch, stopStopwatch, resetStopwatch, getSummaryForDate, getSessionsForDate, getAllSummaries,
+    stopwatchState, startStopwatch, stopStopwatch, resetStopwatch, getSummaryForDate, getSessionsForDate, getAllSummaries, addStopwatchLap, setStopwatchStudyGoal, addManualStopwatchSession,
     exportData, importData, signOutUser, refreshUserDoc, startImpersonation, endImpersonation,
     theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth,
     showProgressDownloadPrompt, setShowProgressDownloadPrompt,
@@ -1330,7 +1426,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addProject, updateProject, deleteProject, updateTimesheetEntry, setTimesheetData,
     addExamCountdown, updateExamCountdown, deleteExamCountdown, setExamCountdowns, setPinnedCountdownId,
     addTimeOffRequest, addShift, updateShift, deleteShift, addTeamMember, updateTeamMember, deleteTeamMember,
-    stopwatchState, startStopwatch, stopStopwatch, resetStopwatch, getSummaryForDate, getSessionsForDate, getAllSummaries,
+    stopwatchState, startStopwatch, stopStopwatch, resetStopwatch, getSummaryForDate, getSessionsForDate, getAllSummaries, addStopwatchLap, setStopwatchStudyGoal, addManualStopwatchSession,
     exportData, importData, signOutUser, refreshUserDoc,
     theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth, setActiveSubjectName,
     showProgressDownloadPrompt

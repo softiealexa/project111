@@ -315,18 +315,18 @@ export default function StopwatchPage() {
                         <CardContent className="p-6 text-center">
                             <div className="flex justify-center items-center gap-4">
                                 {stopwatchState.isRunning ? (
-                                    <Button size="sm" className="w-40 transform transition-transform duration-200 hover:scale-105" onClick={stopStopwatch}>
+                                    <Button size="lg" className="w-40 transform transition-transform duration-200 hover:scale-105" onClick={stopStopwatch}>
                                         <Pause className="mr-2 h-5 w-5" />
                                         {stopwatchState.currentSessionType === 'study' ? 'Take Break' : 'End Break'}
                                     </Button>
                                 ) : (
-                                    <Button size="sm" className="w-40 transform transition-transform duration-200 hover:scale-105" onClick={startStopwatch}>
+                                    <Button size="lg" className="w-40 transform transition-transform duration-200 hover:scale-105" onClick={startStopwatch}>
                                         <Play className="mr-2 h-5 w-5" />
                                         Start Studying
                                     </Button>
                                 )}
                                 {stopwatchState.isRunning && stopwatchState.currentSessionType === 'study' && (
-                                    <Button size="sm" variant="outline" onClick={addStopwatchLap}>Lap</Button>
+                                    <Button size="lg" variant="outline" onClick={addStopwatchLap}>Lap</Button>
                                 )}
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
