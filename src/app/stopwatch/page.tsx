@@ -23,11 +23,21 @@ const formatStopwatchTime = (seconds: number) => {
 };
 
 function LiveDigitalClock() {
-    const [time, setTime] = useState(new Date());
+    const [time, setTime] = useState<Date | null>(null);
+
     useEffect(() => {
+        // Set the initial time on the client
+        setTime(new Date()); 
+        
         const timer = setInterval(() => setTime(new Date()), 1000);
         return () => clearInterval(timer);
     }, []);
+
+    // Render a placeholder on the server and initial client render
+    if (!time) {
+        return <div className="text-xl font-semibold font-mono">--:--:-- --</div>;
+    }
+
     return <div className="text-xl font-semibold font-mono">{format(time, 'p')}</div>;
 }
 
