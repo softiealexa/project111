@@ -177,11 +177,15 @@ export default function StopwatchPage() {
     addManualStopwatchSession,
   } = useData();
 
-  const [selectedDate, setSelectedDate] = useState(startOfDay(new Date()));
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [ticker, setTicker] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   
+  useEffect(() => {
+    setSelectedDate(startOfDay(new Date()));
+  }, []);
+
   useEffect(() => {
     let timer: NodeJS.Timeout | undefined;
     if (stopwatchState.isRunning) {
@@ -193,8 +197,8 @@ export default function StopwatchPage() {
   }, [stopwatchState.isRunning]);
 
   const currentDaySummary = useMemo(() => getSummaryForDate(startOfDay(new Date())), [getSummaryForDate, stopwatchState.lastUpdate]);
-  const selectedDaySummary = useMemo(() => getSummaryForDate(selectedDate), [getSummaryForDate, selectedDate, stopwatchState.lastUpdate]);
-  const selectedDaySessions = useMemo(() => getSessionsForDate(selectedDate), [getSessionsForDate, selectedDate, stopwatchState.lastUpdate]);
+  const selectedDaySummary = useMemo(() => selectedDate ? getSummaryForDate(selectedDate) : null, [getSummaryForDate, selectedDate, stopwatchState.lastUpdate]);
+  const selectedDaySessions = useMemo(() => selectedDate ? getSessionsForDate(selectedDate) : [], [getSessionsForDate, selectedDate, stopwatchState.lastUpdate]);
   const dailyGoal = useMemo(() => activeProfile?.stopwatchStudyGoal || 0, [activeProfile]);
 
   const elapsedTime = useMemo(() => {
@@ -233,8 +237,8 @@ export default function StopwatchPage() {
 
   const allSummaries = getAllSummaries();
   const weeklyReport = useMemo(() => {
-      const start = startOfWeek(selectedDate, { weekStartsOn: 1 });
-      const end = endOfWeek(selectedDate, { weekStartsOn: 1 });
+      const start = startOfWeek(selectedDate || new Date(), { weekStartsOn: 1 });
+      const end = endOfWeek(selectedDate || new Date(), { weekStartsOn: 1 });
       const weekDays = eachDayOfInterval({ start, end });
       return weekDays.map(day => {
           const summary = allSummaries[format(day, 'yyyy-MM-dd')];
@@ -247,8 +251,8 @@ export default function StopwatchPage() {
   }, [selectedDate, allSummaries]);
 
   const monthlyReport = useMemo(() => {
-      const start = startOfMonth(selectedDate);
-      const end = endOfMonth(selectedDate);
+      const start = startOfMonth(selectedDate || new Date());
+      const end = endOfMonth(selectedDate || new Date());
       const monthDays = eachDayOfInterval({ start, end });
       return monthDays.map(day => {
           const summary = allSummaries[format(day, 'yyyy-MM-dd')];
@@ -361,9 +365,9 @@ export default function StopwatchPage() {
                                         <div className="flex items-center gap-2">
                                             <ManualEntryDialog onSave={addManualStopwatchSession} />
                                             <div className='flex items-center rounded-md border bg-card text-sm flex-shrink-0'>
-                                                <Button variant="ghost" onClick={() => setSelectedDate(subDays(selectedDate, 1))} className="rounded-r-none h-9"><ChevronLeft className="mr-1 h-4 w-4"/> Prev</Button>
+                                                <Button variant="ghost" onClick={() => setSelectedDate(subDays(selectedDate || new Date(), 1))} className="rounded-r-none h-9"><ChevronLeft className="mr-1 h-4 w-4"/> Prev</Button>
                                                 <Button variant="ghost" onClick={() => setSelectedDate(new Date())} className="rounded-none border-x h-9">Today</Button>
-                                                <Button variant="ghost" onClick={() => setSelectedDate(addDays(selectedDate, 1))} className="rounded-l-none h-9">Next <ChevronRight className="ml-1 h-4 w-4"/></Button>
+                                                <Button variant="ghost" onClick={() => setSelectedDate(addDays(selectedDate || new Date(), 1))} className="rounded-l-none h-9">Next <ChevronRight className="ml-1 h-4 w-4"/></Button>
                                             </div>
                                         </div>
                                     </CardHeader>
@@ -401,7 +405,7 @@ export default function StopwatchPage() {
                                                     <p className="font-mono font-semibold">{formatStopwatchTime(session.duration)}</p>
                                                 </div>
                                             ))}
-                                            {isSameDay(selectedDate, new Date()) && currentSessionLaps.length > 0 && (
+                                            {selectedDate && isSameDay(selectedDate, new Date()) && currentSessionLaps.length > 0 && (
                                                  <div className="p-3 rounded-md border bg-muted/50">
                                                     <p className="font-semibold text-sm mb-2">Current Session Laps</p>
                                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -424,7 +428,7 @@ export default function StopwatchPage() {
                                 <Card>
                                     <CardHeader>
                                         <CardTitle>Weekly Report</CardTitle>
-                                        <CardDescription>Study vs. break hours for the week of {format(startOfWeek(selectedDate, {weekStartsOn: 1}), 'MMM d')}.</CardDescription>
+                                        <CardDescription>Study vs. break hours for the week of {format(startOfWeek(selectedDate || new Date(), {weekStartsOn: 1}), 'MMM d')}.</CardDescription>
                                     </CardHeader>
                                     <CardContent>
                                         <ChartContainer config={chartConfig} className="h-64">
@@ -443,7 +447,7 @@ export default function StopwatchPage() {
                                 <Card>
                                     <CardHeader>
                                         <CardTitle>Monthly Report</CardTitle>
-                                        <CardDescription>Total study hours for each day in {format(selectedDate, 'MMMM yyyy')}.</CardDescription>
+                                        <CardDescription>Total study hours for each day in {selectedDate ? format(selectedDate, 'MMMM yyyy') : ''}.</CardDescription>
                                     </CardHeader>
                                     <CardContent>
                                         <ChartContainer config={chartConfig} className="h-64">
@@ -481,4 +485,3 @@ export default function StopwatchPage() {
     </TooltipProvider>
   );
 }
-
