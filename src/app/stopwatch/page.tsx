@@ -260,224 +260,225 @@ export default function StopwatchPage() {
       study: { label: "Study", color: "hsl(var(--primary))" },
       break: { label: "Break", color: "hsl(var(--muted-foreground))" },
   };
-  
-  if (isFullscreen) {
-    return (
-        <div ref={containerRef} className="fixed inset-0 bg-background flex flex-col items-center justify-center z-50 text-center p-4">
-            <h2 className="text-3xl md:text-4xl text-muted-foreground mb-8 capitalize">{stopwatchState.currentSessionType} Session</h2>
-            <div className="font-mono text-8xl md:text-9xl font-bold tracking-tighter bg-gradient-to-br from-primary via-foreground to-primary bg-clip-text text-transparent">
-                {formatStopwatchTime(elapsedTime)}
-            </div>
-            <Button variant="ghost" size="icon" onClick={handleFullscreen} className="absolute top-4 right-4">
-                <Minimize className="h-6 w-6" />
-                <span className="sr-only">Exit Fullscreen</span>
-            </Button>
-        </div>
-    );
-  }
 
   return (
     <TooltipProvider>
-        <div ref={containerRef} className="flex flex-col min-h-screen bg-muted/40">
-            <Navbar />
-            <main className="flex-1 p-4 sm:p-6 md:p-8">
-                <div className="max-w-7xl mx-auto space-y-8">
-                    <Card className="overflow-hidden">
-                        <div className="bg-card grid grid-cols-1 md:grid-cols-3">
-                            <div className="p-6 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r">
-                                <CardDescription>Current Time</CardDescription>
-                                <LiveDigitalClock />
-                            </div>
-                            <div className="p-6 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r">
-                                <CardDescription>
-                                    {stopwatchState.currentSessionType === 'study' ? 'Studying' : 'On Break'}
-                                </CardDescription>
-                                <div className="text-5xl font-bold font-mono tracking-tighter">
-                                    {formatStopwatchTime(elapsedTime, true)}
+        <div ref={containerRef} className={cn("flex flex-col min-h-screen", isFullscreen ? "bg-background fixed inset-0 z-50" : "bg-muted/40")}>
+            {isFullscreen ? (
+                <div className="flex flex-col items-center justify-center flex-1 p-4 text-center">
+                    <h2 className="text-3xl md:text-4xl text-muted-foreground mb-8 capitalize">{stopwatchState.currentSessionType} Session</h2>
+                    <div className="font-mono text-8xl md:text-9xl font-bold tracking-tighter bg-gradient-to-br from-primary via-foreground to-primary bg-clip-text text-transparent">
+                        {formatStopwatchTime(elapsedTime)}
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={handleFullscreen} className="absolute top-4 right-4">
+                        <Minimize className="h-6 w-6" />
+                        <span className="sr-only">Exit Fullscreen</span>
+                    </Button>
+                </div>
+            ) : (
+            <>
+                <Navbar />
+                <main className="flex-1 p-4 sm:p-6 md:p-8">
+                    <div className="max-w-7xl mx-auto space-y-8">
+                        <Card className="overflow-hidden">
+                            <div className="bg-card grid grid-cols-1 md:grid-cols-3">
+                                <div className="p-6 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r">
+                                    <CardDescription>Current Time</CardDescription>
+                                    <LiveDigitalClock />
                                 </div>
-                            </div>
-                             <div className="p-6 flex flex-col items-center justify-center bg-primary/5">
-                                <div className="flex items-center gap-2">
-                                    <CardDescription>Total Study Time Today</CardDescription>
-                                    <GoalDialog currentGoal={dailyGoal} onSave={setStopwatchStudyGoal} />
-                                </div>
-                                <div className="text-3xl font-bold font-mono tracking-tighter">
-                                    {formatStopwatchTime(totalStudyTimeToday)}
-                                </div>
-                                {dailyGoal > 0 && (
-                                    <div className="w-full max-w-[200px] mt-2">
-                                        <Progress value={goalProgress} className="h-2" />
-                                        <p className="text-xs text-muted-foreground mt-1 text-center">{Math.round(goalProgress)}% of {formatStopwatchTime(dailyGoal)} goal</p>
+                                <div className="p-6 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r">
+                                    <CardDescription>
+                                        {stopwatchState.currentSessionType === 'study' ? 'Studying' : 'On Break'}
+                                    </CardDescription>
+                                    <div className="text-5xl font-bold font-mono tracking-tighter">
+                                        {formatStopwatchTime(elapsedTime, true)}
                                     </div>
-                                )}
-                            </div>
-                        </div>
-                        <CardContent className="p-6 text-center">
-                            <div className="flex justify-center items-center gap-4">
-                                {stopwatchState.isRunning ? (
-                                    <Button size="lg" className="w-40 transform transition-transform duration-200 hover:scale-105" onClick={stopStopwatch}>
-                                        <Pause className="mr-2 h-5 w-5" />
-                                        {stopwatchState.currentSessionType === 'study' ? 'Take Break' : 'End Break'}
-                                    </Button>
-                                ) : (
-                                    <Button size="lg" className="w-40 transform transition-transform duration-200 hover:scale-105" onClick={startStopwatch}>
-                                        <Play className="mr-2 h-5 w-5" />
-                                        Start Studying
-                                    </Button>
-                                )}
-                                {stopwatchState.isRunning && stopwatchState.currentSessionType === 'study' && (
-                                    <Button size="lg" variant="outline" onClick={addStopwatchLap}>Lap</Button>
-                                )}
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button size="sm" variant="outline">
-                                            <RotateCcw className="mr-2 h-4 w-4" /> Reset Day
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                This will permanently delete all stopwatch data for today and cannot be undone.
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction onClick={resetStopwatch}>Confirm</AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                                <Button size="icon" variant="ghost" onClick={handleFullscreen} className="ml-4"><Maximize className="h-5 w-5"/></Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <div className="lg:col-span-2 space-y-8">
-                            <Card>
-                                <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                                    <div>
-                                        <CardTitle>Daily Log</CardTitle>
-                                        <CardDescription>Breakdown of your activity for the selected day.</CardDescription>
-                                    </div>
+                                </div>
+                                 <div className="p-6 flex flex-col items-center justify-center bg-primary/5">
                                     <div className="flex items-center gap-2">
-                                        <ManualEntryDialog onSave={addManualStopwatchSession} />
-                                        <div className='flex items-center rounded-md border bg-card text-sm flex-shrink-0'>
-                                            <Button variant="ghost" onClick={() => setSelectedDate(subDays(selectedDate, 1))} className="rounded-r-none h-9"><ChevronLeft className="mr-1 h-4 w-4"/> Prev</Button>
-                                            <Button variant="ghost" onClick={() => setSelectedDate(new Date())} className="rounded-none border-x h-9">Today</Button>
-                                            <Button variant="ghost" onClick={() => setSelectedDate(addDays(selectedDate, 1))} className="rounded-l-none h-9">Next <ChevronRight className="ml-1 h-4 w-4"/></Button>
-                                        </div>
+                                        <CardDescription>Total Study Time Today</CardDescription>
+                                        <GoalDialog currentGoal={dailyGoal} onSave={setStopwatchStudyGoal} />
                                     </div>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 text-center">
-                                        <div className="rounded-lg border p-3">
-                                            <p className="text-sm text-muted-foreground">Total Study</p>
-                                            <p className="text-2xl font-bold font-mono">{formatStopwatchTime(selectedDaySummary?.totalStudyTime || 0)}</p>
-                                        </div>
-                                        <div className="rounded-lg border p-3">
-                                            <p className="text-sm text-muted-foreground">Total Break</p>
-                                            <p className="text-2xl font-bold font-mono">{formatStopwatchTime(selectedDaySummary?.totalBreakTime || 0)}</p>
-                                        </div>
-                                        <div className="rounded-lg border p-3">
-                                            <p className="text-sm text-muted-foreground">Study Sessions</p>
-                                            <p className="text-2xl font-bold">{selectedDaySummary?.sessionCount || 0}</p>
-                                        </div>
-                                        <div className="rounded-lg border p-3">
-                                            <p className="text-sm text-muted-foreground">Longest Streak</p>
-                                            <p className="text-2xl font-bold font-mono">{formatStopwatchTime(selectedDaySummary?.longestStreak || 0)}</p>
-                                        </div>
+                                    <div className="text-3xl font-bold font-mono tracking-tighter">
+                                        {formatStopwatchTime(totalStudyTimeToday)}
                                     </div>
-                                    <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
-                                        {selectedDaySessions.map(session => (
-                                            <div key={session.id} className={cn("flex items-center gap-4 p-3 rounded-md border", session.type === 'study' ? 'bg-primary/5 border-primary/20' : 'bg-muted/50')}>
-                                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-card">
-                                                    {session.type === 'study' ? <Sun className="h-5 w-5 text-primary" /> : <Moon className="h-5 w-5 text-muted-foreground" />}
-                                                </div>
-                                                <div className="flex-1">
-                                                    <p className="font-semibold capitalize">{session.type} Session {session.manual && '(Manual)'}</p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {format(new Date(session.startTime), 'p')} - {format(new Date(session.endTime), 'p')}
-                                                    </p>
-                                                </div>
-                                                <p className="font-mono font-semibold">{formatStopwatchTime(session.duration)}</p>
-                                            </div>
-                                        ))}
-                                        {isSameDay(selectedDate, new Date()) && currentSessionLaps.length > 0 && (
-                                             <div className="p-3 rounded-md border bg-muted/50">
-                                                <p className="font-semibold text-sm mb-2">Current Session Laps</p>
-                                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                                    {currentSessionLaps.map((lap, i) => (
-                                                        <div key={i} className="text-xs flex justify-between bg-background p-1.5 rounded">
-                                                            <span className="text-muted-foreground">Lap {i + 1}:</span>
-                                                            <span className="font-mono font-medium">{formatStopwatchTime(lap)}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                             </div>
-                                        )}
-                                        {selectedDaySessions.length === 0 && (
-                                            <div className="text-center py-10 text-muted-foreground">No sessions recorded for this day.</div>
-                                        )}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                            
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Weekly Report</CardTitle>
-                                    <CardDescription>Study vs. break hours for the week of {format(startOfWeek(selectedDate, {weekStartsOn: 1}), 'MMM d')}.</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <ChartContainer config={chartConfig} className="h-64">
-                                        <BarChart data={weeklyReport} margin={{ top: 20, right: 10, left: -20, bottom: 5 }}>
-                                            <CartesianGrid vertical={false} />
-                                            <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} />
-                                            <YAxis unit="h" />
-                                            <ChartTooltip content={<ChartTooltipContent />} />
-                                            <Bar dataKey="study" fill="hsl(var(--primary))" radius={4} />
-                                            <Bar dataKey="break" fill="hsl(var(--muted-foreground))" radius={4} />
-                                        </BarChart>
-                                    </ChartContainer>
-                                </CardContent>
-                            </Card>
+                                    {dailyGoal > 0 && (
+                                        <div className="w-full max-w-[200px] mt-2">
+                                            <Progress value={goalProgress} className="h-2" />
+                                            <p className="text-xs text-muted-foreground mt-1 text-center">{Math.round(goalProgress)}% of {formatStopwatchTime(dailyGoal)} goal</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <CardContent className="p-6 text-center">
+                                <div className="flex justify-center items-center gap-4">
+                                    {stopwatchState.isRunning ? (
+                                        <Button size="lg" className="w-40 transform transition-transform duration-200 hover:scale-105" onClick={stopStopwatch}>
+                                            <Pause className="mr-2 h-5 w-5" />
+                                            {stopwatchState.currentSessionType === 'study' ? 'Take Break' : 'End Break'}
+                                        </Button>
+                                    ) : (
+                                        <Button size="lg" className="w-40 transform transition-transform duration-200 hover:scale-105" onClick={startStopwatch}>
+                                            <Play className="mr-2 h-5 w-5" />
+                                            Start Studying
+                                        </Button>
+                                    )}
+                                    {stopwatchState.isRunning && stopwatchState.currentSessionType === 'study' && (
+                                        <Button size="lg" variant="outline" onClick={addStopwatchLap}>Lap</Button>
+                                    )}
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button size="sm" variant="outline">
+                                                <RotateCcw className="mr-2 h-4 w-4" /> Reset Day
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    This will permanently delete all stopwatch data for today and cannot be undone.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction onClick={resetStopwatch}>Confirm</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                    <Button size="icon" variant="ghost" onClick={handleFullscreen} className="ml-4"><Maximize className="h-5 w-5"/></Button>
+                                </div>
+                            </CardContent>
+                        </Card>
 
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Monthly Report</CardTitle>
-                                    <CardDescription>Total study hours for each day in {format(selectedDate, 'MMMM yyyy')}.</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <ChartContainer config={chartConfig} className="h-64">
-                                        <BarChart data={monthlyReport} margin={{ top: 20, right: 10, left: -20, bottom: 5 }}>
-                                            <CartesianGrid vertical={false} />
-                                            <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} interval="preserveStartEnd" />
-                                            <YAxis unit="h" />
-                                            <ChartTooltip content={<ChartTooltipContent />} />
-                                            <Bar dataKey="study" fill="hsl(var(--primary))" radius={4} />
-                                        </BarChart>
-                                    </ChartContainer>
-                                </CardContent>
-                            </Card>
-                        </div>
-                        <div className="lg:col-span-1 flex justify-center">
-                            <style>{`.has-data:not([aria-selected]) { 
-                                font-weight: bold;
-                                background-color: hsl(var(--primary) / 0.1);
-                            }`}</style>
-                            <Calendar
-                                mode="single"
-                                selected={selectedDate}
-                                onSelect={(day) => day && setSelectedDate(day)}
-                                className="rounded-md border bg-card"
-                                modifiers={{ hasData: (date: Date) => !!getAllSummaries()[format(date, 'yyyy-MM-dd')] }}
-                                modifiersClassNames={{ hasData: 'has-data' }}
-                            />
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <div className="lg:col-span-2 space-y-8">
+                                <Card>
+                                    <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                        <div>
+                                            <CardTitle>Daily Log</CardTitle>
+                                            <CardDescription>Breakdown of your activity for the selected day.</CardDescription>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <ManualEntryDialog onSave={addManualStopwatchSession} />
+                                            <div className='flex items-center rounded-md border bg-card text-sm flex-shrink-0'>
+                                                <Button variant="ghost" onClick={() => setSelectedDate(subDays(selectedDate, 1))} className="rounded-r-none h-9"><ChevronLeft className="mr-1 h-4 w-4"/> Prev</Button>
+                                                <Button variant="ghost" onClick={() => setSelectedDate(new Date())} className="rounded-none border-x h-9">Today</Button>
+                                                <Button variant="ghost" onClick={() => setSelectedDate(addDays(selectedDate, 1))} className="rounded-l-none h-9">Next <ChevronRight className="ml-1 h-4 w-4"/></Button>
+                                            </div>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 text-center">
+                                            <div className="rounded-lg border p-3">
+                                                <p className="text-sm text-muted-foreground">Total Study</p>
+                                                <p className="text-2xl font-bold font-mono">{formatStopwatchTime(selectedDaySummary?.totalStudyTime || 0)}</p>
+                                            </div>
+                                            <div className="rounded-lg border p-3">
+                                                <p className="text-sm text-muted-foreground">Total Break</p>
+                                                <p className="text-2xl font-bold font-mono">{formatStopwatchTime(selectedDaySummary?.totalBreakTime || 0)}</p>
+                                            </div>
+                                            <div className="rounded-lg border p-3">
+                                                <p className="text-sm text-muted-foreground">Study Sessions</p>
+                                                <p className="text-2xl font-bold">{selectedDaySummary?.sessionCount || 0}</p>
+                                            </div>
+                                            <div className="rounded-lg border p-3">
+                                                <p className="text-sm text-muted-foreground">Longest Streak</p>
+                                                <p className="text-2xl font-bold font-mono">{formatStopwatchTime(selectedDaySummary?.longestStreak || 0)}</p>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                                            {selectedDaySessions.map(session => (
+                                                <div key={session.id} className={cn("flex items-center gap-4 p-3 rounded-md border", session.type === 'study' ? 'bg-primary/5 border-primary/20' : 'bg-muted/50')}>
+                                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-card">
+                                                        {session.type === 'study' ? <Sun className="h-5 w-5 text-primary" /> : <Moon className="h-5 w-5 text-muted-foreground" />}
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <p className="font-semibold capitalize">{session.type} Session {session.manual && '(Manual)'}</p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {format(new Date(session.startTime), 'p')} - {format(new Date(session.endTime), 'p')}
+                                                        </p>
+                                                    </div>
+                                                    <p className="font-mono font-semibold">{formatStopwatchTime(session.duration)}</p>
+                                                </div>
+                                            ))}
+                                            {isSameDay(selectedDate, new Date()) && currentSessionLaps.length > 0 && (
+                                                 <div className="p-3 rounded-md border bg-muted/50">
+                                                    <p className="font-semibold text-sm mb-2">Current Session Laps</p>
+                                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                                        {currentSessionLaps.map((lap, i) => (
+                                                            <div key={i} className="text-xs flex justify-between bg-background p-1.5 rounded">
+                                                                <span className="text-muted-foreground">Lap {i + 1}:</span>
+                                                                <span className="font-mono font-medium">{formatStopwatchTime(lap)}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                 </div>
+                                            )}
+                                            {selectedDaySessions.length === 0 && (
+                                                <div className="text-center py-10 text-muted-foreground">No sessions recorded for this day.</div>
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                                
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Weekly Report</CardTitle>
+                                        <CardDescription>Study vs. break hours for the week of {format(startOfWeek(selectedDate, {weekStartsOn: 1}), 'MMM d')}.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <ChartContainer config={chartConfig} className="h-64">
+                                            <BarChart data={weeklyReport} margin={{ top: 20, right: 10, left: -20, bottom: 5 }}>
+                                                <CartesianGrid vertical={false} />
+                                                <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} />
+                                                <YAxis unit="h" />
+                                                <ChartTooltip content={<ChartTooltipContent />} />
+                                                <Bar dataKey="study" fill="hsl(var(--primary))" radius={4} />
+                                                <Bar dataKey="break" fill="hsl(var(--muted-foreground))" radius={4} />
+                                            </BarChart>
+                                        </ChartContainer>
+                                    </CardContent>
+                                </Card>
+
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Monthly Report</CardTitle>
+                                        <CardDescription>Total study hours for each day in {format(selectedDate, 'MMMM yyyy')}.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <ChartContainer config={chartConfig} className="h-64">
+                                            <BarChart data={monthlyReport} margin={{ top: 20, right: 10, left: -20, bottom: 5 }}>
+                                                <CartesianGrid vertical={false} />
+                                                <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} interval="preserveStartEnd" />
+                                                <YAxis unit="h" />
+                                                <ChartTooltip content={<ChartTooltipContent />} />
+                                                <Bar dataKey="study" fill="hsl(var(--primary))" radius={4} />
+                                            </BarChart>
+                                        </ChartContainer>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                            <div className="lg:col-span-1 flex justify-center">
+                                <style>{`.has-data:not([aria-selected]) { 
+                                    font-weight: bold;
+                                    background-color: hsl(var(--primary) / 0.1);
+                                }`}</style>
+                                <Calendar
+                                    mode="single"
+                                    selected={selectedDate}
+                                    onSelect={(day) => day && setSelectedDate(day)}
+                                    className="rounded-md border bg-card"
+                                    modifiers={{ hasData: (date: Date) => !!getAllSummaries()[format(date, 'yyyy-MM-dd')] }}
+                                    modifiersClassNames={{ hasData: 'has-data' }}
+                                />
+                            </div>
                         </div>
                     </div>
-                </div>
-            </main>
+                </main>
+            </>
+            )}
         </div>
     </TooltipProvider>
   );
 }
+
