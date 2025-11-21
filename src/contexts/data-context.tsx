@@ -1,10 +1,11 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback, Suspense, lazy } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
-import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, SimpleTodo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus, CheckedState, ExamCountdown, TimeOffPolicy, TimeOffRequest, Shift, TeamMember, Topic, StopwatchSession, StopwatchDaySummary, Friend, Expense } from '@/lib/types';
+import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, SimpleTodo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus, CheckedState, ExamCountdown, TimeOffPolicy, TimeOffRequest, Shift, TeamMember, Topic, StopwatchSession, StopwatchDaySummary, Friend, Expense, ExpenseGroup } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
 import { format, getISOWeek, getYear, startOfDay } from 'date-fns';
@@ -97,6 +98,10 @@ interface DataContextType {
   addTeamMember: (name: string) => void;
   updateTeamMember: (member: TeamMember) => void;
   deleteTeamMember: (memberId: string) => void;
+  addExpenseGroup: (name: string) => void;
+  deleteExpenseGroup: (groupId: string) => void;
+  renameExpenseGroup: (groupId: string, newName: string) => void;
+  switchExpenseGroup: (groupId: string) => void;
   setFriends: (friends: Friend[]) => void;
   setExpenses: (expenses: Expense[]) => void;
   stopwatchState: StopwatchState;
@@ -204,8 +209,7 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
             shifts: profile.shifts || [],
             stopwatchSessions: profile.stopwatchSessions || {},
             stopwatchSummaries: profile.stopwatchSummaries || {},
-            friends: profile.friends || [],
-            expenses: profile.expenses || [],
+            expenseGroups: profile.expenseGroups || [],
         };
     });
 };
@@ -1157,16 +1161,72 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateProfiles(newProfiles, activeProfileName, { team: updatedTeam, shifts: updatedShifts });
   }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
+    const addExpenseGroup = useCallback((name: string) => {
+        if (!activeProfile) return;
+        const newGroup: ExpenseGroup = {
+            id: crypto.randomUUID(),
+            name,
+            createdAt: Date.now(),
+            friends: [],
+            expenses: [],
+        };
+        const updatedGroups = [...(activeProfile.expenseGroups || []), newGroup];
+        const newProfiles = profiles.map(p => 
+            p.name === activeProfileName ? { ...p, expenseGroups: updatedGroups, activeExpenseGroupId: newGroup.id } : p
+        );
+        updateProfiles(newProfiles, activeProfileName, { expenseGroups: updatedGroups, activeExpenseGroupId: newGroup.id });
+    }, [activeProfile, activeProfileName, profiles, updateProfiles]);
+
+    const deleteExpenseGroup = useCallback((groupId: string) => {
+        if (!activeProfile) return;
+        const updatedGroups = (activeProfile.expenseGroups || []).filter(g => g.id !== groupId);
+        let newActiveGroupId = activeProfile.activeExpenseGroupId;
+        if (newActiveGroupId === groupId) {
+            newActiveGroupId = updatedGroups[0]?.id || null;
+        }
+        const newProfiles = profiles.map(p => 
+            p.name === activeProfileName ? { ...p, expenseGroups: updatedGroups, activeExpenseGroupId: newActiveGroupId } : p
+        );
+        updateProfiles(newProfiles, activeProfileName, { expenseGroups: updatedGroups, activeExpenseGroupId: newActiveGroupId });
+    }, [activeProfile, activeProfileName, profiles, updateProfiles]);
+
+    const renameExpenseGroup = useCallback((groupId: string, newName: string) => {
+        if (!activeProfile) return;
+        const updatedGroups = (activeProfile.expenseGroups || []).map(g => 
+            g.id === groupId ? { ...g, name: newName } : g
+        );
+        const newProfiles = profiles.map(p => 
+            p.name === activeProfileName ? { ...p, expenseGroups: updatedGroups } : p
+        );
+        updateProfiles(newProfiles, activeProfileName, { expenseGroups: updatedGroups });
+    }, [activeProfile, activeProfileName, profiles, updateProfiles]);
+
+    const switchExpenseGroup = useCallback((groupId: string) => {
+        if (!activeProfile) return;
+        const newProfiles = profiles.map(p => 
+            p.name === activeProfileName ? { ...p, activeExpenseGroupId: groupId } : p
+        );
+        updateProfiles(newProfiles, activeProfileName, { activeExpenseGroupId: groupId });
+    }, [activeProfile, activeProfileName, profiles, updateProfiles]);
+
   const setFriends = useCallback((friends: Friend[]) => {
-    if (!activeProfile) return;
-    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, friends } : p);
-    updateProfiles(newProfiles, activeProfileName, { friends });
+    if (!activeProfile || !activeProfile.activeExpenseGroupId) return;
+    const groupId = activeProfile.activeExpenseGroupId;
+    const updatedGroups = (activeProfile.expenseGroups || []).map(g => 
+        g.id === groupId ? { ...g, friends } : g
+    );
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, expenseGroups: updatedGroups } : p);
+    updateProfiles(newProfiles, activeProfileName, { expenseGroups: updatedGroups });
   }, [activeProfile, activeProfileName, profiles, updateProfiles]);
   
   const setExpenses = useCallback((expenses: Expense[]) => {
-    if (!activeProfile) return;
-    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, expenses } : p);
-    updateProfiles(newProfiles, activeProfileName, { expenses });
+    if (!activeProfile || !activeProfile.activeExpenseGroupId) return;
+    const groupId = activeProfile.activeExpenseGroupId;
+    const updatedGroups = (activeProfile.expenseGroups || []).map(g => 
+        g.id === groupId ? { ...g, expenses } : g
+    );
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, expenseGroups: updatedGroups } : p);
+    updateProfiles(newProfiles, activeProfileName, { expenseGroups: updatedGroups });
   }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
   // --- Stopwatch Logic ---
@@ -1429,7 +1489,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addProject, updateProject, deleteProject, updateTimesheetEntry, setTimesheetData,
     addExamCountdown, updateExamCountdown, deleteExamCountdown, setExamCountdowns, setPinnedCountdownId,
     addTimeOffRequest, addShift, updateShift, deleteShift, addTeamMember, updateTeamMember, deleteTeamMember,
-    setFriends, setExpenses,
+    addExpenseGroup, deleteExpenseGroup, renameExpenseGroup, switchExpenseGroup, setFriends, setExpenses,
     stopwatchState, startStopwatch, stopStopwatch, resetStopwatch, getSummaryForDate, getSessionsForDate, getAllSummaries, addStopwatchLap, setStopwatchStudyGoal, addManualStopwatchSession,
     exportData, importData, signOutUser, refreshUserDoc, startImpersonation, endImpersonation,
     theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth,
@@ -1445,7 +1505,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addProject, updateProject, deleteProject, updateTimesheetEntry, setTimesheetData,
     addExamCountdown, updateExamCountdown, deleteExamCountdown, setExamCountdowns, setPinnedCountdownId,
     addTimeOffRequest, addShift, updateShift, deleteShift, addTeamMember, updateTeamMember, deleteTeamMember,
-    setFriends, setExpenses,
+    addExpenseGroup, deleteExpenseGroup, renameExpenseGroup, switchExpenseGroup, setFriends, setExpenses,
     stopwatchState, startStopwatch, stopStopwatch, resetStopwatch, getSummaryForDate, getSessionsForDate, getAllSummaries, addStopwatchLap, setStopwatchStudyGoal, addManualStopwatchSession,
     exportData, importData, signOutUser, refreshUserDoc,
     theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth, setActiveSubjectName,

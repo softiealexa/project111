@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -8,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Trash2, ArrowRightLeft, Coins } from 'lucide-react';
+import { Plus, Trash2, Coins, MoreVertical, Pencil, Check as CheckIcon, ChevronsUpDown } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -16,8 +17,9 @@ import Navbar from '@/components/navbar';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { useData } from '@/contexts/data-context';
-import type { Friend, Expense, ExpenseItem } from '@/lib/types';
-
+import type { Friend, Expense, ExpenseItem, ExpenseGroup } from '@/lib/types';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Dialog, DialogHeader, DialogFooter, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 interface Balance {
   friend: string;
@@ -30,17 +32,46 @@ interface Settlement {
   amount: number;
 }
 
+const NewGroupDialog = ({ open, onOpenChange, onAdd }: { open: boolean, onOpenChange: (open: boolean) => void, onAdd: (name: string) => void }) => {
+    const [name, setName] = useState('');
+    
+    const handleAdd = () => {
+        if(name.trim()) {
+            onAdd(name.trim());
+            setName('');
+            onOpenChange(false);
+        }
+    }
+    
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Create New Expense Group</DialogTitle>
+                    <DialogDescription>Enter a name for your new group (e.g., "Goa Trip").</DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                    <Label htmlFor="group-name">Group Name</Label>
+                    <Input id="group-name" value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()} />
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                    <Button onClick={handleAdd}>Create Group</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
 export default function ExpenseSplitterPage() {
-  const { activeProfile, setFriends, setExpenses } = useData();
+  const { activeProfile, setFriends, setExpenses, addExpenseGroup, deleteExpenseGroup, renameExpenseGroup, switchExpenseGroup } = useData();
   const { toast } = useToast();
   
-  const friends = useMemo(() => activeProfile?.friends || [], [activeProfile]);
-  const expenses = useMemo(() => activeProfile?.expenses || [], [activeProfile]);
-
   const [friendName, setFriendName] = useState('');
   const [expenseName, setExpenseName] = useState('');
   const [expenseTotal, setExpenseTotal] = useState('');
   const [mode, setMode] = useState<'equal' | 'individual'>('equal');
+  const [isNewGroupDialogOpen, setIsNewGroupDialogOpen] = useState(false);
 
   // State for Equal Split
   const [paidBy, setPaidBy] = useState<Record<string, { checked: boolean, amount: string }>>({});
@@ -50,6 +81,29 @@ export default function ExpenseSplitterPage() {
   const [individualItems, setIndividualItems] = useState<{ id: number, person: string, itemName: string, price: string }[]>([]);
   const [itemCounter, setItemCounter] = useState(0);
 
+  const expenseGroups = useMemo(() => activeProfile?.expenseGroups || [], [activeProfile]);
+  const activeGroupId = useMemo(() => activeProfile?.activeExpenseGroupId, [activeProfile]);
+  const activeGroup = useMemo(() => expenseGroups.find(g => g.id === activeGroupId), [expenseGroups, activeGroupId]);
+
+  const friends = useMemo(() => activeGroup?.friends || [], [activeGroup]);
+  const expenses = useMemo(() => activeGroup?.expenses || [], [activeGroup]);
+
+  useEffect(() => {
+    // When the active group changes, reset the form state
+    resetEqualSplitForm();
+    resetIndividualItemsForm();
+    setFriendName('');
+  }, [activeGroupId]);
+
+  useEffect(() => {
+    // If there are no groups, create a default one.
+    if (!activeProfile) return;
+    if (activeProfile.expenseGroups === undefined || activeProfile.expenseGroups.length === 0) {
+      addExpenseGroup("My First Group");
+    } else if (!activeGroupId && activeProfile.expenseGroups.length > 0) {
+      switchExpenseGroup(activeProfile.expenseGroups[0].id);
+    }
+  }, [activeProfile, activeGroupId, addExpenseGroup, switchExpenseGroup]);
 
   const addFriend = () => {
     const name = friendName.trim();
@@ -191,6 +245,7 @@ export default function ExpenseSplitterPage() {
   };
   
   const resetAll = () => {
+    if(!activeGroup) return;
     setFriends && setFriends([]);
     setExpenses && setExpenses([]);
     setFriendName('');
@@ -248,7 +303,8 @@ export default function ExpenseSplitterPage() {
   }, [friends, expenses]);
 
   const shareSummary = () => {
-     let summary = `💰 Group Expense Summary\n\n`;
+     if (!activeGroup) return;
+     let summary = `💰 Expense Summary: ${activeGroup.name}\n\n`;
      summary += `👥 Friends: ${friends.map(f => f.name).join(', ')}\n`;
      summary += `💵 Total Spent: ₹${totalSpent.toFixed(2)}\n`;
      summary += `📊 Per Person Avg: ₹${avgPerPerson.toFixed(2)}\n\n`;
@@ -280,12 +336,56 @@ export default function ExpenseSplitterPage() {
     <TooltipProvider>
       <Navbar />
       <div className="container mx-auto max-w-7xl p-4 sm:p-6 md:p-8">
-        <h1 className="text-3xl font-bold flex items-center gap-3 mb-6">
-          <Coins className="h-8 w-8 text-primary"/>
-          Group Expense Splitter
-        </h1>
+        <div className="mb-8">
+            <h1 className="text-3xl font-bold flex items-center gap-3 mb-2">
+            <Coins className="h-8 w-8 text-primary"/>
+            Group Expense Splitter
+            </h1>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>Manage Groups</CardTitle>
+                        <CardDescription>Create or switch between different expense groups.</CardDescription>
+                    </div>
+                     <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" className="w-[200px] justify-between">
+                                <span className="truncate">{activeGroup?.name || 'Select Group'}</span>
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-[200px]">
+                            <DropdownMenuLabel>Switch Group</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            {expenseGroups.map(group => (
+                                <DropdownMenuItem key={group.id} onSelect={() => switchExpenseGroup(group.id)}>
+                                    <CheckIcon className={activeGroupId === group.id ? "mr-2 h-4 w-4" : "mr-2 h-4 w-4 opacity-0"} />
+                                    {group.name}
+                                </DropdownMenuItem>
+                            ))}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onSelect={() => setIsNewGroupDialogOpen(true)}>
+                                <Plus className="mr-2 h-4 w-4" />
+                                <span>New Group</span>
+                            </DropdownMenuItem>
+                             <DropdownMenuItem disabled={!activeGroup} onSelect={() => {
+                                const newName = prompt('Enter new group name:', activeGroup?.name);
+                                if (newName && activeGroup) renameExpenseGroup(activeGroup.id, newName);
+                            }}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                <span>Rename</span>
+                            </DropdownMenuItem>
+                             <DropdownMenuItem disabled={!activeGroup} onSelect={() => activeGroup && deleteExpenseGroup(activeGroup.id)} className="text-destructive">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                <span>Delete</span>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </CardHeader>
+            </Card>
+        </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="space-y-6">
                 {/* Friends Card */}
                 <Card>
@@ -300,8 +400,9 @@ export default function ExpenseSplitterPage() {
                                 value={friendName}
                                 onChange={(e) => setFriendName(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && addFriend()}
+                                disabled={!activeGroup}
                             />
-                            <Button onClick={addFriend}><Plus className="mr-2 h-4 w-4" /> Add</Button>
+                            <Button onClick={addFriend} disabled={!activeGroup}><Plus className="mr-2 h-4 w-4" /> Add</Button>
                         </div>
                         <div className="mt-4 space-y-2">
                             {friends.length === 0 ? (
@@ -324,13 +425,13 @@ export default function ExpenseSplitterPage() {
                     <CardContent>
                         <Tabs value={mode} onValueChange={(v) => setMode(v as 'equal' | 'individual')} className="w-full">
                             <TabsList className="grid w-full grid-cols-2">
-                                <TabsTrigger value="equal">📊 Equal Split</TabsTrigger>
-                                <TabsTrigger value="individual">🛍️ Individual Items</TabsTrigger>
+                                <TabsTrigger value="equal" disabled={!activeGroup}>📊 Equal Split</TabsTrigger>
+                                <TabsTrigger value="individual" disabled={!activeGroup}>🛍️ Individual Items</TabsTrigger>
                             </TabsList>
                             
                             <div className="my-4">
                             <Label htmlFor="expenseName">Expense Name</Label>
-                            <Input id="expenseName" placeholder="e.g., Dinner at Restaurant" value={expenseName} onChange={(e) => setExpenseName(e.target.value)} />
+                            <Input id="expenseName" placeholder="e.g., Dinner at Restaurant" value={expenseName} onChange={(e) => setExpenseName(e.target.value)} disabled={!activeGroup} />
                             </div>
 
                             <TabsContent value="equal" className="space-y-4">
@@ -379,7 +480,7 @@ export default function ExpenseSplitterPage() {
                                 <Button variant="outline" onClick={addIndividualItem} className="w-full"><Plus className="mr-2 h-4 w-4" /> Add Item</Button>
                             </TabsContent>
                         </Tabs>
-                        <Button onClick={addExpense} className="w-full mt-6"><Plus className="mr-2 h-4 w-4" /> Add Expense</Button>
+                        <Button onClick={addExpense} className="w-full mt-6" disabled={!activeGroup}><Plus className="mr-2 h-4 w-4" /> Add Expense</Button>
                     </CardContent>
                 </Card>
             </div>
@@ -459,15 +560,15 @@ export default function ExpenseSplitterPage() {
                         </div>
                         
                         <div className="flex gap-2 mt-6">
-                            <Button onClick={shareSummary} className="flex-1">📤 Share Summary</Button>
+                            <Button onClick={shareSummary} className="flex-1" disabled={!activeGroup}>📤 Share Summary</Button>
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <Button variant="outline" className="flex-1">🔄 Reset</Button>
+                                    <Button variant="outline" className="flex-1" disabled={!activeGroup}>🔄 Reset Group</Button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
                                         <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                        <AlertDialogDescription>This will delete all friends, expenses, and summaries. This action cannot be undone.</AlertDialogDescription>
+                                        <AlertDialogDescription>This will delete all friends and expenses in this group. This action cannot be undone.</AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
                                         <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -481,8 +582,7 @@ export default function ExpenseSplitterPage() {
             </div>
         </div>
       </div>
+      <NewGroupDialog open={isNewGroupDialogOpen} onOpenChange={setIsNewGroupDialogOpen} onAdd={addExpenseGroup} />
     </TooltipProvider>
   );
 }
-
-    

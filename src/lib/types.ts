@@ -183,6 +183,14 @@ export interface Expense {
   items?: ExpenseItem[];
 }
 
+export interface ExpenseGroup {
+    id: string;
+    name: string;
+    createdAt: number;
+    friends: Friend[];
+    expenses: Expense[];
+}
+
 export interface Profile {
   name:string;
   subjects: Subject[];
@@ -205,8 +213,8 @@ export interface Profile {
   stopwatchSessions?: Record<string, StopwatchSession[]>;
   stopwatchSummaries?: Record<string, StopwatchDaySummary>;
   stopwatchStudyGoal?: number; // Daily goal in seconds
-  friends?: Friend[];
-  expenses?: Expense[];
+  expenseGroups?: ExpenseGroup[];
+  activeExpenseGroupId?: string | null;
 }
 
 export interface AppUser {
@@ -235,5 +243,3 @@ export interface Feedback {
     createdAt: any; // Firestore ServerTimestamp
     status?: FeedbackStatus;
 }
-
-    
