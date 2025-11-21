@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -13,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import Navbar from '@/components/navbar';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
 
 interface Friend {
   id: string;
@@ -466,7 +468,7 @@ export default function ExpenseSplitterPage() {
                            <p className="text-sm text-center text-muted-foreground py-4">All settled up! 🎉</p>
                         ) : settlements.map((s, i) => (
                             <div key={i} className="p-3 bg-blue-500/10 rounded-md text-center">
-                                <strong>{s.from}</strong> pays <strong className="text-primary">₹{s.amount.toFixed(2)}</strong> to <strong>{s.to}</strong>
+                                <strong>{s.from}</strong> pays <strong className="text-primary">₹{s.amount.toFixed(2)}</strong> to <strong>${s.to}</strong>
                             </div>
                         ))}
                     </div>
@@ -496,3 +498,5 @@ export default function ExpenseSplitterPage() {
     </TooltipProvider>
   );
 }
+
+    
