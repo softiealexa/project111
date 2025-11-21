@@ -578,7 +578,7 @@ export default function ExpenseSplitterPage() {
                             <p className="text-sm text-center text-muted-foreground py-4">All settled up! 🎉</p>
                             ) : settlements.map((s, i) => (
                                 <div key={i} className="p-3 bg-blue-500/10 rounded-md text-center">
-                                    <strong>{s.from}</strong> pays <strong className="text-primary">₹${s.amount.toFixed(2)}</strong> to <strong>${s.to}</strong>
+                                    <strong>{s.from}</strong> pays <strong className="text-primary">₹{s.amount.toFixed(2)}</strong> to <strong>{s.to}</strong>
                                 </div>
                             ))}
                         </div>
