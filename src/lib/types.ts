@@ -160,6 +160,29 @@ export interface StopwatchDaySummary {
     longestStreak: number;
 }
 
+export interface Friend {
+  id: string;
+  name: string;
+}
+
+export interface ExpenseItem {
+  person: string;
+  itemName: string;
+  price: number;
+}
+
+export interface Expense {
+  id: string;
+  name: string;
+  mode: 'equal' | 'individual';
+  total: number;
+  // Equal mode
+  paidBy?: { name: string; amount: number }[];
+  splitAmong?: string[];
+  // Individual mode
+  items?: ExpenseItem[];
+}
+
 export interface Profile {
   name:string;
   subjects: Subject[];
@@ -182,6 +205,8 @@ export interface Profile {
   stopwatchSessions?: Record<string, StopwatchSession[]>;
   stopwatchSummaries?: Record<string, StopwatchDaySummary>;
   stopwatchStudyGoal?: number; // Daily goal in seconds
+  friends?: Friend[];
+  expenses?: Expense[];
 }
 
 export interface AppUser {
@@ -210,3 +235,5 @@ export interface Feedback {
     createdAt: any; // Firestore ServerTimestamp
     status?: FeedbackStatus;
 }
+
+    

@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback, Suspense, lazy } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
-import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, SimpleTodo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus, CheckedState, ExamCountdown, TimeOffPolicy, TimeOffRequest, Shift, TeamMember, Topic, StopwatchSession, StopwatchDaySummary } from '@/lib/types';
+import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, SimpleTodo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus, CheckedState, ExamCountdown, TimeOffPolicy, TimeOffRequest, Shift, TeamMember, Topic, StopwatchSession, StopwatchDaySummary, Friend, Expense } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
 import { format, getISOWeek, getYear, startOfDay } from 'date-fns';
@@ -97,6 +97,8 @@ interface DataContextType {
   addTeamMember: (name: string) => void;
   updateTeamMember: (member: TeamMember) => void;
   deleteTeamMember: (memberId: string) => void;
+  setFriends: (friends: Friend[]) => void;
+  setExpenses: (expenses: Expense[]) => void;
   stopwatchState: StopwatchState;
   startStopwatch: (subject: string | null) => void;
   stopStopwatch: () => void;
@@ -202,6 +204,8 @@ const migrateAndHydrateProfiles = (profiles: any[]): Profile[] => {
             shifts: profile.shifts || [],
             stopwatchSessions: profile.stopwatchSessions || {},
             stopwatchSummaries: profile.stopwatchSummaries || {},
+            friends: profile.friends || [],
+            expenses: profile.expenses || [],
         };
     });
 };
@@ -352,23 +356,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
 }, []);
 
   const updateProfileWithProgress = useCallback((profile: Profile): Profile => {
-    const currentProgress = calculateOverallProgress(profile);
     const todayStr = format(new Date(), 'yyyy-MM-dd');
-    let history = [...(profile.progressHistory || [])];
-    const todayIndex = history.findIndex(h => h.date === todayStr);
+    const newProgress = calculateOverallProgress(profile);
+    const history = [...(profile.progressHistory || [])];
+    const todayIndex = history.findIndex(p => p.date === todayStr);
 
-    if (todayIndex > -1) {
-        history[todayIndex] = { ...history[todayIndex], progress: currentProgress };
+    if (todayIndex !== -1) {
+        history[todayIndex] = { ...history[todayIndex], progress: newProgress };
     } else {
-        history.push({ date: todayStr, progress: currentProgress });
+        history.push({ date: todayStr, progress: newProgress });
     }
 
-    if (history.length > 90) {
-      history = history.slice(history.length - 90);
-    }
-    
-    return { ...profile, progressHistory: history };
+    // Keep only the last 365 days of history to prevent data bloat
+    const sortedHistory = history.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const recentHistory = sortedHistory.slice(-365);
+
+    return { ...profile, progressHistory: recentHistory };
   }, [calculateOverallProgress]);
+
 
   const updateProfiles = useCallback((newProfiles: Profile[], newActiveProfileName: string | null, dataToSync?: DataToSave) => {
     const profileToUpdate = newProfiles.find(p => p.name === newActiveProfileName);
@@ -1152,6 +1157,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateProfiles(newProfiles, activeProfileName, { team: updatedTeam, shifts: updatedShifts });
   }, [activeProfile, activeProfileName, profiles, updateProfiles]);
 
+  const setFriends = useCallback((friends: Friend[]) => {
+    if (!activeProfile) return;
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, friends } : p);
+    updateProfiles(newProfiles, activeProfileName, { friends });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
+  
+  const setExpenses = useCallback((expenses: Expense[]) => {
+    if (!activeProfile) return;
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, expenses } : p);
+    updateProfiles(newProfiles, activeProfileName, { expenses });
+  }, [activeProfile, activeProfileName, profiles, updateProfiles]);
+
   // --- Stopwatch Logic ---
   const updateStopwatchData = useCallback((sessions: Record<string, StopwatchSession[]>, summaries: Record<string, StopwatchDaySummary>) => {
       if (!activeProfile) return;
@@ -1170,7 +1187,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         endTime: 0,
         duration: 0,
         laps: [],
-        subject: stopwatchState.currentSessionType === 'study' ? subject : null
+        subject: stopwatchState.currentSessionType === 'study' ? subject : null,
     };
     
     if (activeProfile) {
@@ -1412,6 +1429,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addProject, updateProject, deleteProject, updateTimesheetEntry, setTimesheetData,
     addExamCountdown, updateExamCountdown, deleteExamCountdown, setExamCountdowns, setPinnedCountdownId,
     addTimeOffRequest, addShift, updateShift, deleteShift, addTeamMember, updateTeamMember, deleteTeamMember,
+    setFriends, setExpenses,
     stopwatchState, startStopwatch, stopStopwatch, resetStopwatch, getSummaryForDate, getSessionsForDate, getAllSummaries, addStopwatchLap, setStopwatchStudyGoal, addManualStopwatchSession,
     exportData, importData, signOutUser, refreshUserDoc, startImpersonation, endImpersonation,
     theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth,
@@ -1427,6 +1445,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addProject, updateProject, deleteProject, updateTimesheetEntry, setTimesheetData,
     addExamCountdown, updateExamCountdown, deleteExamCountdown, setExamCountdowns, setPinnedCountdownId,
     addTimeOffRequest, addShift, updateShift, deleteShift, addTeamMember, updateTeamMember, deleteTeamMember,
+    setFriends, setExpenses,
     stopwatchState, startStopwatch, stopStopwatch, resetStopwatch, getSummaryForDate, getSessionsForDate, getAllSummaries, addStopwatchLap, setStopwatchStudyGoal, addManualStopwatchSession,
     exportData, importData, signOutUser, refreshUserDoc,
     theme, setTheme, mode, setMode, isThemeHydrated, sidebarWidth, setSidebarWidth, setActiveSubjectName,
@@ -1434,7 +1453,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   ]);
   
   const shouldShowCreateProfile = useMemo(() => {
-    const protectedPages = ['/dashboard', '/settings', '/clockify', '/admin', '/notes', '/stopwatch'];
+    const protectedPages = ['/dashboard', '/settings', '/clockify', '/admin', '/notes', '/stopwatch', '/expense-splitter'];
     
     if (loading) return false;
     

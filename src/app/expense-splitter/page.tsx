@@ -15,29 +15,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import Navbar from '@/components/navbar';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
+import { useData } from '@/contexts/data-context';
+import type { Friend, Expense, ExpenseItem } from '@/lib/types';
 
-interface Friend {
-  id: string;
-  name: string;
-}
-
-interface ExpenseItem {
-  person: string;
-  itemName: string;
-  price: number;
-}
-
-interface Expense {
-  id: string;
-  name: string;
-  mode: 'equal' | 'individual';
-  total: number;
-  // Equal mode
-  paidBy?: { name: string; amount: number }[];
-  splitAmong?: string[];
-  // Individual mode
-  items?: ExpenseItem[];
-}
 
 interface Balance {
   friend: string;
@@ -51,8 +31,12 @@ interface Settlement {
 }
 
 export default function ExpenseSplitterPage() {
-  const [friends, setFriends] = useState<Friend[]>([]);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const { activeProfile, setFriends, setExpenses } = useData();
+  const { toast } = useToast();
+  
+  const friends = useMemo(() => activeProfile?.friends || [], [activeProfile]);
+  const expenses = useMemo(() => activeProfile?.expenses || [], [activeProfile]);
+
   const [friendName, setFriendName] = useState('');
   const [expenseName, setExpenseName] = useState('');
   const [expenseTotal, setExpenseTotal] = useState('');
@@ -66,7 +50,6 @@ export default function ExpenseSplitterPage() {
   const [individualItems, setIndividualItems] = useState<{ id: number, person: string, itemName: string, price: string }[]>([]);
   const [itemCounter, setItemCounter] = useState(0);
 
-  const { toast } = useToast();
 
   const addFriend = () => {
     const name = friendName.trim();
@@ -78,7 +61,8 @@ export default function ExpenseSplitterPage() {
       toast({ title: 'Error', description: 'This friend is already added.', variant: 'destructive' });
       return;
     }
-    setFriends(prev => [...prev, { id: crypto.randomUUID(), name }]);
+    const newFriends = [...friends, { id: crypto.randomUUID(), name }];
+    setFriends && setFriends(newFriends);
     setFriendName('');
   };
 
@@ -86,15 +70,17 @@ export default function ExpenseSplitterPage() {
     const friendToRemove = friends.find(f => f.id === id);
     if (!friendToRemove) return;
     
-    setFriends(prev => prev.filter(f => f.id !== id));
+    const newFriends = friends.filter(f => f.id !== id);
+    setFriends && setFriends(newFriends);
     
-    setExpenses(prev => prev.filter(e => {
+    const newExpenses = expenses.filter(e => {
         if (e.mode === 'equal') {
             return !e.paidBy?.some(p => p.name === friendToRemove.name) && !e.splitAmong?.includes(friendToRemove.name);
         } else {
             return !e.items?.some(item => item.person === friendToRemove.name);
         }
-    }));
+    });
+    setExpenses && setExpenses(newExpenses);
   };
 
   const addIndividualItem = () => {
@@ -163,7 +149,8 @@ export default function ExpenseSplitterPage() {
         payments = paidByPeople.map(p => ({ name: p, amount: total / paidByPeople.length }));
       }
       
-      setExpenses(prev => [...prev, { id: crypto.randomUUID(), name, mode: 'equal', total, paidBy: payments, splitAmong: splitAmongPeople }]);
+      const newExpense: Expense = { id: crypto.randomUUID(), name, mode: 'equal', total, paidBy: payments, splitAmong: splitAmongPeople };
+      setExpenses && setExpenses([...expenses, newExpense]);
       resetEqualSplitForm();
   };
 
@@ -181,7 +168,8 @@ export default function ExpenseSplitterPage() {
       const items = validItems.map(item => ({ person: item.person, itemName: item.itemName, price: parseFloat(item.price)}));
       const total = items.reduce((sum, item) => sum + item.price, 0);
       
-      setExpenses(prev => [...prev, { id: crypto.randomUUID(), name, mode: 'individual', total, items }]);
+      const newExpense: Expense = { id: crypto.randomUUID(), name, mode: 'individual', total, items };
+      setExpenses && setExpenses([...expenses, newExpense]);
       resetIndividualItemsForm();
   };
 
@@ -198,12 +186,13 @@ export default function ExpenseSplitterPage() {
   };
 
   const removeExpense = (id: string) => {
-    setExpenses(prev => prev.filter(e => e.id !== id));
+    const newExpenses = expenses.filter(e => e.id !== id);
+    setExpenses && setExpenses(newExpenses);
   };
   
   const resetAll = () => {
-    setFriends([]);
-    setExpenses([]);
+    setFriends && setFriends([]);
+    setExpenses && setExpenses([]);
     setFriendName('');
     resetEqualSplitForm();
     resetIndividualItemsForm();
@@ -464,7 +453,7 @@ export default function ExpenseSplitterPage() {
                             <p className="text-sm text-center text-muted-foreground py-4">All settled up! 🎉</p>
                             ) : settlements.map((s, i) => (
                                 <div key={i} className="p-3 bg-blue-500/10 rounded-md text-center">
-                                    <strong>{s.from}</strong> pays <strong className="text-primary">₹{s.amount.toFixed(2)}</strong> to <strong>${s.to}</strong>
+                                    <strong>{s.from}</strong> pays <strong className="text-primary">₹${s.amount.toFixed(2)}</strong> to <strong>${s.to}</strong>
                                 </div>
                             ))}
                         </div>
@@ -495,3 +484,5 @@ export default function ExpenseSplitterPage() {
     </TooltipProvider>
   );
 }
+
+    
