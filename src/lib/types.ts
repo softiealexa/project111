@@ -176,8 +176,8 @@ export interface Expense {
   name: string;
   mode: 'equal' | 'individual';
   total: number;
+  paidBy: { name: string; amount: number }[];
   // Equal mode
-  paidBy?: { name: string; amount: number }[];
   splitAmong?: string[];
   // Individual mode
   items?: ExpenseItem[];

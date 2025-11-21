@@ -79,6 +79,7 @@ export default function ExpenseSplitterPage() {
   
   // State for Individual Split
   const [individualItems, setIndividualItems] = useState<{ id: number, person: string, itemName: string, price: string }[]>([]);
+  const [individualPaidBy, setIndividualPaidBy] = useState<string>('');
   const [itemCounter, setItemCounter] = useState(0);
 
   const expenseGroups = useMemo(() => activeProfile?.expenseGroups || [], [activeProfile]);
@@ -128,8 +129,9 @@ export default function ExpenseSplitterPage() {
     setFriends && setFriends(newFriends);
     
     const newExpenses = expenses.filter(e => {
+        if (e.paidBy?.some(p => p.name === friendToRemove.name)) return false;
         if (e.mode === 'equal') {
-            return !e.paidBy?.some(p => p.name === friendToRemove.name) && !e.splitAmong?.includes(friendToRemove.name);
+            return !e.splitAmong?.includes(friendToRemove.name);
         } else {
             return !e.items?.some(item => item.person === friendToRemove.name);
         }
@@ -218,11 +220,22 @@ export default function ExpenseSplitterPage() {
           toast({ title: 'Error', description: 'Please fill all item details correctly.', variant: 'destructive' });
           return;
       }
+      if (!individualPaidBy) {
+        toast({ title: 'Error', description: 'Please select who paid for the items.', variant: 'destructive' });
+        return;
+      }
 
       const items = validItems.map(item => ({ person: item.person, itemName: item.itemName, price: parseFloat(item.price)}));
       const total = items.reduce((sum, item) => sum + item.price, 0);
       
-      const newExpense: Expense = { id: crypto.randomUUID(), name, mode: 'individual', total, items };
+      const newExpense: Expense = {
+        id: crypto.randomUUID(),
+        name,
+        mode: 'individual',
+        total,
+        paidBy: [{ name: individualPaidBy, amount: total }],
+        items
+      };
       setExpenses && setExpenses([...expenses, newExpense]);
       resetIndividualItemsForm();
   };
@@ -237,6 +250,7 @@ export default function ExpenseSplitterPage() {
   const resetIndividualItemsForm = () => {
     setExpenseName('');
     setIndividualItems([]);
+    setIndividualPaidBy('');
   };
 
   const removeExpense = (id: string) => {
@@ -258,21 +272,26 @@ export default function ExpenseSplitterPage() {
     friends.forEach(f => balancesMap[f.name] = 0);
 
     expenses.forEach(expense => {
-      if (expense.mode === 'equal') {
-        const perPerson = expense.total / expense.splitAmong!.length;
-        expense.paidBy!.forEach(payment => {
-          balancesMap[payment.name] += payment.amount;
+        expense.paidBy.forEach(payment => {
+            if (balancesMap[payment.name] !== undefined) {
+                balancesMap[payment.name] += payment.amount;
+            }
         });
-        expense.splitAmong!.forEach(person => {
-          balancesMap[person] -= perPerson;
-        });
-      } else { // individual
-        expense.items!.forEach(item => {
-           if(balancesMap[item.person] !== undefined) {
-             balancesMap[item.person] -= item.price;
-           }
-        });
-      }
+        
+        if (expense.mode === 'equal') {
+            const perPerson = expense.total / expense.splitAmong!.length;
+            expense.splitAmong!.forEach(person => {
+                if (balancesMap[person] !== undefined) {
+                    balancesMap[person] -= perPerson;
+                }
+            });
+        } else { // individual
+            expense.items!.forEach(item => {
+                if(balancesMap[item.person] !== undefined) {
+                    balancesMap[item.person] -= item.price;
+                }
+            });
+        }
     });
 
     const debtors = Object.entries(balancesMap).filter(([,b]) => b < -0.01).map(([p, a]) => ({ person: p, amount: -a }));
@@ -295,7 +314,7 @@ export default function ExpenseSplitterPage() {
     const avgPerPerson = friends.length > 0 ? totalSpent / friends.length : 0;
     
     return {
-      balances: friends.map(f => ({ friend: f.name, amount: balancesMap[f.name] })),
+      balances: friends.map(f => ({ friend: f.name, amount: balancesMap[f.name] || 0 })),
       settlements,
       totalSpent,
       avgPerPerson,
@@ -464,6 +483,13 @@ export default function ExpenseSplitterPage() {
                                 </div>
                             </TabsContent>
                             <TabsContent value="individual" className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label>Paid By</Label>
+                                    <Select value={individualPaidBy} onValueChange={setIndividualPaidBy}>
+                                        <SelectTrigger><SelectValue placeholder="Who paid?"/></SelectTrigger>
+                                        <SelectContent>{friends.map(f => <SelectItem key={f.id} value={f.name}>{f.name}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                </div>
                                 <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
                                 {individualItems.map(item => (
                                     <div key={item.id} className="flex items-center gap-2">
@@ -502,11 +528,9 @@ export default function ExpenseSplitterPage() {
                                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeExpense(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                                 </div>
                                 <div className="text-xs text-muted-foreground mt-2 space-y-1">
+                                    <p><strong>Paid by:</strong> {e.paidBy?.map(p => `${p.name} (₹${p.amount.toFixed(2)})`).join(', ')}</p>
                                     {e.mode === 'equal' ? (
-                                        <>
-                                            <p><strong>Paid by:</strong> {e.paidBy?.map(p => `${p.name} (₹${p.amount.toFixed(2)})`).join(', ')}</p>
-                                            <p><strong>Split among:</strong> {e.splitAmong?.join(', ')}</p>
-                                        </>
+                                        <p><strong>Split among:</strong> {e.splitAmong?.join(', ')}</p>
                                     ) : (
                                         e.items?.map((item, idx) => (
                                             <p key={idx}>{item.person}: {item.itemName} (₹{item.price.toFixed(2)})</p>
