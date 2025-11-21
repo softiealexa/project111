@@ -5,7 +5,7 @@
 import Link from 'next/link';
 import { useData } from '@/contexts/data-context';
 import { Button } from '@/components/ui/button';
-import { Book, LogOut, UserPlus, LogIn, SlidersHorizontal, Settings, Clock, FileText, CheckSquare, Timer } from 'lucide-react';
+import { Book, LogOut, UserPlus, LogIn, SlidersHorizontal, Settings, Clock, FileText, CheckSquare, Timer, Coins } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import {
@@ -65,6 +65,20 @@ export default function Navbar() {
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>Syllabus (Coming Soon)</p>
+                      </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                         <Button asChild variant="ghost" size="icon">
+                          <Link href="/expense-splitter">
+                            <Coins className="h-5 w-5" />
+                            <span className="sr-only">Expense Splitter</span>
+                          </Link>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Expense Splitter</p>
                       </TooltipContent>
                     </Tooltip>
 

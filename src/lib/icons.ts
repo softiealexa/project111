@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import {
@@ -29,6 +30,7 @@ import {
   Cake,
   CheckSquare,
   Timer,
+  Coins,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -60,6 +62,7 @@ export const iconMap: Record<string, LucideIcon> = {
   Cake,
   CheckSquare,
   Timer,
+  Coins,
 };
 
 export const iconNames = Object.keys(iconMap);
