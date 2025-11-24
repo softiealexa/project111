@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -128,7 +128,7 @@ function SortableSubjectCard({ subject, children }: { subject: JeeSubject, child
                         {childrenArray[0]} {/* This will render the task editor part */}
                     </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-0 p-6">
                     {childrenArray[1]} {/* This will render the chapters and add chapter part */}
                 </CardContent>
             </Card>
@@ -164,23 +164,32 @@ export default function JeeSyllabusPage() {
   };
 
   const handleAddChapter = (subjectId: string) => {
-    const chapterName = newChapterNames[subjectId]?.trim();
-    if (!chapterName) return;
+    const chapterNamesInput = newChapterNames[subjectId]?.trim();
+    if (!chapterNamesInput) return;
+
+    const chapterNames = chapterNamesInput.split(',').map(name => name.trim()).filter(name => name);
+
+    if (chapterNames.length === 0) return;
 
     const newSubjects = subjects.map(subject => {
       if (subject.id === subjectId) {
-        const newChapter: JeeChapter = {
+        const newChapters = chapterNames.map(name => ({
           id: crypto.randomUUID(),
-          name: chapterName,
+          name,
           tasks: subject.tasks.reduce((acc, task) => ({ ...acc, [task]: false }), {}),
-        };
-        return { ...subject, chapters: [...subject.chapters, newChapter] };
+        }));
+        return { ...subject, chapters: [...subject.chapters, ...newChapters] };
       }
       return subject;
     });
     setJeeSyllabus(newSubjects);
     setNewChapterNames(prev => ({...prev, [subjectId]: ''}));
-    toast({ title: "Chapter Added", description: `"${chapterName}" has been added.`});
+    
+    if (chapterNames.length > 1) {
+        toast({ title: "Chapters Added", description: `${chapterNames.length} chapters have been added.`});
+    } else {
+        toast({ title: "Chapter Added", description: `"${chapterNames[0]}" has been added.`});
+    }
   };
 
   const handleToggleTask = (subjectId: string, chapterId: string, taskName: string) => {
@@ -344,7 +353,7 @@ export default function JeeSyllabusPage() {
                                 </DndContext>
                                 <div className="flex gap-2 mt-4">
                                         <Input
-                                            placeholder="Add new chapter..."
+                                            placeholder="Add new chapter(s), separated by commas..."
                                             value={newChapterNames[subject.id] || ''}
                                             onChange={e => setNewChapterNames(prev => ({...prev, [subject.id]: e.target.value}))}
                                             onKeyDown={e => e.key === 'Enter' && handleAddChapter(subject.id)}
@@ -377,3 +386,5 @@ export default function JeeSyllabusPage() {
     </TooltipProvider>
   );
 }
+
+    
