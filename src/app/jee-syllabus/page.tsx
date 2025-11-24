@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Trash2, Edit, GripVertical, ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import Navbar from '@/components/navbar';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { useData } from '@/contexts/data-context';
@@ -31,7 +31,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import {
   Accordion,
@@ -94,6 +94,7 @@ function SortableChapterRow({
                           id={`${chapter.id}-${task}`}
                           checked={chapter.tasks[task]}
                           onCheckedChange={() => onToggleTask(chapter.id, task)}
+                          className="self-center"
                       />
                       <label htmlFor={`${chapter.id}-${task}`} className="ml-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
                           {task}
@@ -173,7 +174,7 @@ function SortableSubjectCard({ subject, children }: { subject: JeeSubject, child
              <Card className="transition-all hover:shadow-lg hover:border-primary/20">
                 <Accordion type="single" collapsible>
                     <AccordionItem value={subject.id} className="border-b-0">
-                        <AccordionTrigger className="p-4 hover:no-underline [&[data-state=open]>svg]:rotate-180">
+                         <AccordionTrigger className="p-4 hover:no-underline [&[data-state=open]>svg]:rotate-180">
                              <div className="flex justify-between items-center w-full">
                                 <div className="flex items-center gap-2">
                                      <div {...listeners} {...attributes} aria-label={`Drag to reorder subject ${subject.name}`} className="cursor-grab touch-none p-1.5 text-muted-foreground hover:text-foreground">
@@ -181,11 +182,10 @@ function SortableSubjectCard({ subject, children }: { subject: JeeSubject, child
                                     </div>
                                     <CardTitle className="text-xl">{subject.name}</CardTitle>
                                 </div>
-                                {childrenArray[0]}
                             </div>
                         </AccordionTrigger>
                         <AccordionContent className="p-4 pt-0">
-                            {childrenArray[1]}
+                            {childrenArray}
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
@@ -226,18 +226,26 @@ export default function JeeSyllabusPage() {
 
   const handleDeleteSubject = () => {
     if (!subjectToDelete) return;
-    const subjectName = subjects.find(s => s.id === subjectToDelete)?.name || 'Subject';
+    const subject = subjects.find(s => s.id === subjectToDelete);
+    if (!subject) return;
+
     const newSubjects = subjects.filter(s => s.id !== subjectToDelete);
     setJeeSyllabus(newSubjects);
-    toast({ title: 'Subject Deleted', description: `"${subjectName}" has been deleted.`, variant: 'destructive'});
+    toast({ title: 'Subject Deleted', description: `"${subject.name}" has been deleted.`, variant: 'destructive'});
     setSubjectToDelete(null);
   };
 
   const handleDeleteChapterFromControl = () => {
     if (!chapterDeletionSubjectId || !chapterToDelete) return;
-    const chapterName = subjects.find(s => s.id === chapterDeletionSubjectId)?.chapters.find(c => c.id === chapterToDelete)?.name || 'Chapter';
+    
+    const subject = subjects.find(s => s.id === chapterDeletionSubjectId);
+    if (!subject) return;
+
+    const chapter = subject.chapters.find(c => c.id === chapterToDelete);
+    if (!chapter) return;
+    
     handleDeleteChapter(chapterDeletionSubjectId, chapterToDelete);
-    toast({ title: 'Chapter Deleted', description: `"${chapterName}" has been deleted.`, variant: 'destructive'});
+    toast({ title: 'Chapter Deleted', description: `"${chapter.name}" has been deleted.`, variant: 'destructive'});
     setChapterDeletionSubjectId(null);
     setChapterToDelete(null);
   };
@@ -386,10 +394,6 @@ export default function JeeSyllabusPage() {
                 <div className="space-y-6">
                     {subjects.map(subject => (
                         <SortableSubjectCard key={subject.id} subject={subject}>
-                            <>
-                                {/* This section is left empty as task editing is now per-chapter */}
-                            </>
-                            <>
                                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleChapterDragEnd(e, subject.id)}>
                                     <SortableContext items={subject.chapters.map(c => c.id)} strategy={verticalListSortingStrategy}>
                                     {subject.chapters.map((chapter: JeeChapter) => (
@@ -414,7 +418,6 @@ export default function JeeSyllabusPage() {
                                             <Plus className="mr-2 h-4 w-4" /> Add Chapter
                                         </Button>
                                 </div>
-                            </>
                         </SortableSubjectCard>
                     ))}
                 </div>
@@ -437,7 +440,7 @@ export default function JeeSyllabusPage() {
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md mt-6">
             <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-1">Syllabus Controls</h3>
             <p className="text-sm text-muted-foreground mb-4">Delete subjects or specific chapters from this panel.</p>
-            <div className="space-y-4">
+            <div className="space-y-6">
                 <div className="space-y-2">
                     <Label className="font-semibold">Delete Subject</Label>
                     <div className="flex gap-2">
