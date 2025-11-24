@@ -5,7 +5,7 @@
 import Link from 'next/link';
 import { useData } from '@/contexts/data-context';
 import { Button } from '@/components/ui/button';
-import { Book, LogOut, UserPlus, LogIn, SlidersHorizontal, Settings, Clock, FileText, CheckSquare, Timer, Coins } from 'lucide-react';
+import { Book, LogOut, UserPlus, LogIn, SlidersHorizontal, Settings, Clock, FileText, CheckSquare, Timer, Coins, AppWindow } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import {
@@ -15,11 +15,21 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CustomizationSheet } from './customization-sheet';
 import { Sheet, SheetTrigger } from './ui/sheet';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import { cn } from '@/lib/utils';
+
+const navLinks = [
+    { href: "/jee-syllabus", icon: CheckSquare, label: "JEE Syllabus" },
+    { href: "/expense-splitter", icon: Coins, label: "Expenses" },
+    { href: "/stopwatch", icon: Timer, label: "Stopwatch" },
+    { href: "/clockify", icon: Clock, label: "Clockify" },
+    { href: "/notes", icon: FileText, label: "Notes" },
+];
 
 export default function Navbar() {
   const { activeProfile, user, signOutUser } = useData();
@@ -54,64 +64,18 @@ export default function Navbar() {
             <div className="flex items-center gap-1 sm:gap-2">
               {user ? (
                 <>
+                   <div className="hidden md:flex items-center gap-1">
+                     {navLinks.map(link => (
+                         <Button key={link.href} asChild variant="ghost" size="sm">
+                            <Link href={link.href}>
+                                <link.icon className="mr-2 h-4 w-4" />
+                                {link.label}
+                            </Link>
+                        </Button>
+                     ))}
+                   </div>
                   <Sheet open={isCustomizationOpen} onOpenChange={handleCustomizationStateChange}>
                     
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                         <Button asChild variant="ghost" size="icon">
-                          <Link href="/jee-syllabus">
-                            <CheckSquare className="h-5 w-5" />
-                            <span className="sr-only">JEE Syllabus</span>
-                          </Link>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>JEE Syllabus</p>
-                      </TooltipContent>
-                    </Tooltip>
-
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                         <Button asChild variant="ghost" size="icon">
-                          <Link href="/expense-splitter">
-                            <Coins className="h-5 w-5" />
-                            <span className="sr-only">Expense Splitter</span>
-                          </Link>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Expense Splitter</p>
-                      </TooltipContent>
-                    </Tooltip>
-
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                         <Button asChild variant="ghost" size="icon">
-                          <Link href="/stopwatch">
-                            <Timer className="h-5 w-5" />
-                            <span className="sr-only">Stopwatch</span>
-                          </Link>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Stopwatch</p>
-                      </TooltipContent>
-                    </Tooltip>
-
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                         <Button asChild variant="ghost" size="icon">
-                          <Link href="/clockify">
-                            <Clock className="h-5 w-5" />
-                            <span className="sr-only">Clockify</span>
-                          </Link>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Clockify</p>
-                      </TooltipContent>
-                    </Tooltip>
-
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <SheetTrigger asChild>
@@ -145,31 +109,29 @@ export default function Navbar() {
                             <p className="text-xs leading-none text-muted-foreground">Student Profile</p>
                           </div>
                         </DropdownMenuLabel>
+
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onSelect={() => router.push('/jee-syllabus')}>
-                          <CheckSquare className="mr-2 h-4 w-4" />
-                          <span>JEE Syllabus</span>
-                        </DropdownMenuItem>
-                         <DropdownMenuItem onSelect={() => router.push('/stopwatch')}>
-                          <Timer className="mr-2 h-4 w-4" />
-                          <span>Stopwatch</span>
-                        </DropdownMenuItem>
-                         <DropdownMenuItem onSelect={() => router.push('/clockify')}>
-                          <Clock className="mr-2 h-4 w-4" />
-                          <span>Clockify</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => setIsCustomizationOpen(true)} disabled={!activeProfile}>
-                          <SlidersHorizontal className="mr-2 h-4 w-4" />
-                          <span>Customization</span>
-                        </DropdownMenuItem>
-                         <DropdownMenuItem onSelect={() => router.push('/notes')}>
-                          <FileText className="mr-2 h-4 w-4" />
-                          <span>Notes</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => router.push('/settings')}>
-                          <Settings className="mr-2 h-4 w-4" />
-                          <span>Settings</span>
-                        </DropdownMenuItem>
+                        <DropdownMenuGroup className="md:hidden">
+                            {navLinks.map(link => (
+                                 <DropdownMenuItem key={link.href} onSelect={() => router.push(link.href)}>
+                                    <link.icon className="mr-2 h-4 w-4" />
+                                    <span>{link.label}</span>
+                                </DropdownMenuItem>
+                            ))}
+                        </DropdownMenuGroup>
+                        <DropdownMenuSeparator className="md:hidden" />
+                        
+                        <DropdownMenuGroup>
+                            <DropdownMenuItem onSelect={() => setIsCustomizationOpen(true)} disabled={!activeProfile}>
+                                <SlidersHorizontal className="mr-2 h-4 w-4" />
+                                <span>Customization</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => router.push('/settings')}>
+                                <Settings className="mr-2 h-4 w-4" />
+                                <span>Settings</span>
+                            </DropdownMenuItem>
+                        </DropdownMenuGroup>
+                        
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onSelect={handleSignOut} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
                           <LogOut className="mr-2 h-4 w-4" />
