@@ -62,7 +62,7 @@ export default function SyllabusChecklistPage() {
                     {activeProfile.subjects.map((subject) => (
                     <TabsContent key={subject.name} value={subject.name} className="mt-6">
                        <div className="space-y-4">
-                        {subject.chapters.map((chapter: Chapter, index) => (
+                        {subject.chapters.map((chapter: Chapter, index: number) => (
                           <SyllabusChapterItem 
                             key={`${subject.name}-${chapter.name}-${index}`}
                             chapter={{ name: chapter.name, syllabus: chapter.syllabus }}
