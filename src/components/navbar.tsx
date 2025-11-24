@@ -58,13 +58,15 @@ export default function Navbar() {
                     
                     <Tooltip>
                       <TooltipTrigger asChild>
-                         <Button variant="ghost" size="icon" disabled>
-                          <CheckSquare className="h-5 w-5" />
-                          <span className="sr-only">Syllabus</span>
+                         <Button asChild variant="ghost" size="icon">
+                          <Link href="/jee-syllabus">
+                            <CheckSquare className="h-5 w-5" />
+                            <span className="sr-only">JEE Syllabus</span>
+                          </Link>
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Syllabus (Coming Soon)</p>
+                        <p>JEE Syllabus</p>
                       </TooltipContent>
                     </Tooltip>
 
@@ -144,9 +146,9 @@ export default function Navbar() {
                           </div>
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onSelect={() => router.push('/syllabus')} disabled>
+                        <DropdownMenuItem onSelect={() => router.push('/jee-syllabus')}>
                           <CheckSquare className="mr-2 h-4 w-4" />
-                          <span>Syllabus</span>
+                          <span>JEE Syllabus</span>
                         </DropdownMenuItem>
                          <DropdownMenuItem onSelect={() => router.push('/stopwatch')}>
                           <Timer className="mr-2 h-4 w-4" />
