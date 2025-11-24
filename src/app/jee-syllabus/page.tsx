@@ -33,37 +33,6 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 
-const initialData: JeeSubject[] = [
-  {
-    id: 'phy',
-    name: 'Physics',
-    tasks: ['Notes', 'Lecture', 'Teacher'],
-    chapters: [
-      { id: 'phy-1', name: 'Chapter 1 – Electric Charge & Field', tasks: { 'Notes': false, 'Lecture': false, 'Teacher': false } },
-      { id: 'phy-2', name: 'Chapter 2 – Electrostatic Potential', tasks: { 'Notes': false, 'Lecture': false, 'Teacher': false } },
-      { id: 'phy-3', name: 'Chapter 3 – Current Electricity', tasks: { 'Notes': false, 'Lecture': false, 'Teacher': false } },
-    ],
-  },
-  {
-    id: 'chem',
-    name: 'Chemistry',
-    tasks: ['Notes', 'Lecture', 'Teacher'],
-    chapters: [
-      { id: 'chem-1', name: 'Chapter 1 – Mole Concept', tasks: { 'Notes': false, 'Lecture': false, 'Teacher': false } },
-      { id: 'chem-2', name: 'Chapter 2 – Atomic Structure', tasks: { 'Notes': false, 'Lecture': false, 'Teacher': false } },
-    ],
-  },
-  {
-    id: 'math',
-    name: 'Maths',
-    tasks: ['Notes', 'Lecture', 'Teacher'],
-    chapters: [
-      { id: 'math-1', name: 'Chapter 1 – Sets & Relations', tasks: { 'Notes': false, 'Lecture': false, 'Teacher': false } },
-      { id: 'math-2', name: 'Chapter 2 – Quadratic Equations', tasks: { 'Notes': false, 'Lecture': false, 'Teacher': false } },
-    ],
-  },
-];
-
 function SortableChapterRow({
   chapter,
   subject,
@@ -135,6 +104,37 @@ function SortableChapterRow({
   );
 }
 
+function SortableSubjectCard({ subject, children }: { subject: JeeSubject, children: React.ReactNode }) {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: subject.id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 10 : 'auto',
+    };
+
+    return (
+        <div ref={setNodeRef} style={style} className={cn(isDragging && "shadow-2xl")}>
+             <Card>
+                <CardHeader>
+                    <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                             <button {...listeners} {...attributes} aria-label={`Drag to reorder subject ${subject.name}`} className="cursor-grab touch-none p-1.5 text-muted-foreground hover:text-foreground">
+                                <GripVertical className="h-5 w-5" />
+                            </button>
+                            <CardTitle className="text-xl">{subject.name}</CardTitle>
+                        </div>
+                        {children[0]} {/* This will render the task editor part */}
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    {children[1]} {/* This will render the chapters and add chapter part */}
+                </CardContent>
+            </Card>
+        </div>
+    )
+}
+
 
 export default function JeeSyllabusPage() {
   const { activeProfile, setJeeSyllabus, loading } = useData();
@@ -145,18 +145,8 @@ export default function JeeSyllabusPage() {
   const { toast } = useToast();
 
   const subjects = useMemo(() => {
-    if (activeProfile?.jeeSyllabus === undefined || activeProfile?.jeeSyllabus.length === 0) {
-      return initialData;
-    }
-    return activeProfile.jeeSyllabus;
+    return activeProfile?.jeeSyllabus || [];
   }, [activeProfile?.jeeSyllabus]);
-
-
-  useEffect(() => {
-    if (!loading && activeProfile && (activeProfile.jeeSyllabus === undefined || activeProfile.jeeSyllabus.length === 0)) {
-        setJeeSyllabus(initialData);
-    }
-  }, [loading, activeProfile, setJeeSyllabus]);
 
 
   const handleAddSubject = () => {
@@ -256,17 +246,14 @@ export default function JeeSyllabusPage() {
   };
   
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor)
   );
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over, data } = event;
+  const handleChapterDragEnd = (event: DragEndEvent, subjectId: string) => {
+    const { active, over } = event;
     if (!over || active.id === over.id) return;
     
-    const subjectId = data.current?.subjectId;
-    if (!subjectId) return;
-
     const subject = subjects.find(s => s.id === subjectId);
     if (!subject) return;
 
@@ -275,15 +262,25 @@ export default function JeeSyllabusPage() {
 
     if (oldIndex !== -1 && newIndex !== -1) {
       const reorderedChapters = arrayMove(subject.chapters, oldIndex, newIndex);
-      const newSubjects = subjects.map(s => {
-        if (s.id === subjectId) {
-          return { ...s, chapters: reorderedChapters };
-        }
-        return s;
-      });
+      const newSubjects = subjects.map(s => 
+        s.id === subjectId ? { ...s, chapters: reorderedChapters } : s
+      );
       setJeeSyllabus(newSubjects);
     }
   };
+
+  const handleSubjectDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = subjects.findIndex(s => s.id === active.id);
+    const newIndex = subjects.findIndex(s => s.id === over.id);
+
+    if (oldIndex !== -1 && newIndex !== -1) {
+        const reorderedSubjects = arrayMove(subjects, oldIndex, newIndex);
+        setJeeSyllabus(reorderedSubjects);
+    }
+  }
 
   if (loading || !activeProfile) {
     return (
@@ -300,72 +297,79 @@ export default function JeeSyllabusPage() {
     <TooltipProvider>
     <Navbar />
     <div className="bg-gray-100 dark:bg-gray-900 min-h-screen p-4 sm:p-6 md:p-8">
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
-        <h2 className="text-2xl font-bold mb-6 text-center text-gray-800 dark:text-gray-200">JEE Mains – Syllabus Progress Checker</h2>
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        {subjects.map(subject => (
-          <Card key={subject.id} className="mb-6">
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-xl">{subject.name}</CardTitle>
-                {editingTasks[subject.id] !== undefined ? (
-                    <div className="flex items-center gap-2">
-                        <Input
-                            value={editingTasks[subject.id]}
-                            onChange={e => setEditingTasks(prev => ({...prev, [subject.id]: e.target.value}))}
-                            className="h-8 text-xs"
-                            placeholder="Task 1 | Task 2"
-                        />
-                        <Button size="icon" className="h-8 w-8" onClick={() => handleSaveTasks(subject.id)}><Save className="h-4 w-4" /></Button>
-                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingTasks(prev => { const n = {...prev}; delete n[subject.id]; return n; })}><X className="h-4 w-4" /></Button>
-                    </div>
-                ) : (
-                    <div className="flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400">
-                        <span>{subject.tasks.join(' | ')}</span>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditTasks(subject.id, subject.tasks)}>
-                            <Edit className="h-4 w-4" />
-                        </Button>
-                    </div>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <SortableContext items={subject.chapters.map(c => c.id)} strategy={verticalListSortingStrategy}>
-                {subject.chapters.map(chapter => (
-                  <SortableChapterRow
-                    key={chapter.id}
-                    chapter={chapter}
-                    subject={subject}
-                    onToggleTask={handleToggleTask}
-                    onDeleteChapter={handleDeleteChapter}
-                  />
-                ))}
-              </SortableContext>
-               <div className="flex gap-2 mt-4">
-                    <Input
-                        placeholder="Add new chapter..."
-                        value={newChapterNames[subject.id] || ''}
-                        onChange={e => setNewChapterNames(prev => ({...prev, [subject.id]: e.target.value}))}
-                        onKeyDown={e => e.key === 'Enter' && handleAddChapter(subject.id)}
-                    />
-                    <Button onClick={() => handleAddChapter(subject.id)}>
-                        <Plus className="mr-2 h-4 w-4" /> Add Chapter
-                    </Button>
-               </div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="space-y-6">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+            <h2 className="text-2xl font-bold mb-6 text-center text-gray-800 dark:text-gray-200">JEE Mains – Syllabus Progress Checker</h2>
+        </div>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSubjectDragEnd}>
+            <SortableContext items={subjects.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-6">
+                    {subjects.map(subject => (
+                        <SortableSubjectCard key={subject.id} subject={subject}>
+                            <>
+                                {editingTasks[subject.id] !== undefined ? (
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            value={editingTasks[subject.id]}
+                                            onChange={e => setEditingTasks(prev => ({...prev, [subject.id]: e.target.value}))}
+                                            className="h-8 text-xs"
+                                            placeholder="Task 1 | Task 2"
+                                        />
+                                        <Button size="icon" className="h-8 w-8" onClick={() => handleSaveTasks(subject.id)}><Save className="h-4 w-4" /></Button>
+                                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingTasks(prev => { const n = {...prev}; delete n[subject.id]; return n; })}><X className="h-4 w-4" /></Button>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                                        <span>{subject.tasks.join(' | ')}</span>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditTasks(subject.id, subject.tasks)}>
+                                            <Edit className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                )}
+                            </>
+                            <>
+                                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleChapterDragEnd(e, subject.id)}>
+                                    <SortableContext items={subject.chapters.map(c => c.id)} strategy={verticalListSortingStrategy}>
+                                    {subject.chapters.map(chapter => (
+                                        <SortableChapterRow
+                                            key={chapter.id}
+                                            chapter={chapter}
+                                            subject={subject}
+                                            onToggleTask={handleToggleTask}
+                                            onDeleteChapter={handleDeleteChapter}
+                                        />
+                                    ))}
+                                    </SortableContext>
+                                </DndContext>
+                                <div className="flex gap-2 mt-4">
+                                        <Input
+                                            placeholder="Add new chapter..."
+                                            value={newChapterNames[subject.id] || ''}
+                                            onChange={e => setNewChapterNames(prev => ({...prev, [subject.id]: e.target.value}))}
+                                            onKeyDown={e => e.key === 'Enter' && handleAddChapter(subject.id)}
+                                        />
+                                        <Button onClick={() => handleAddChapter(subject.id)}>
+                                            <Plus className="mr-2 h-4 w-4" /> Add Chapter
+                                        </Button>
+                                </div>
+                            </>
+                        </SortableSubjectCard>
+                    ))}
+                </div>
+            </SortableContext>
         </DndContext>
-        <div className="flex gap-2 mt-8">
-            <Input
-                placeholder="Add new subject..."
-                value={newSubjectName}
-                onChange={e => setNewSubjectName(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleAddSubject()}
-            />
-            <Button onClick={handleAddSubject}>
-                <Plus className="mr-2 h-4 w-4" /> Add Subject
-            </Button>
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md mt-6">
+            <div className="flex gap-2">
+                <Input
+                    placeholder="Add new subject..."
+                    value={newSubjectName}
+                    onChange={e => setNewSubjectName(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleAddSubject()}
+                />
+                <Button onClick={handleAddSubject}>
+                    <Plus className="mr-2 h-4 w-4" /> Add Subject
+                </Button>
+            </div>
         </div>
       </div>
     </div>
