@@ -83,13 +83,6 @@ export interface Chapter {
   syllabus?: Topic[];
 }
 
-export interface Subject {
-  name: string;
-  icon: string;
-  chapters: Chapter[];
-  tasks: string[];
-}
-
 export interface JeeChapter {
   id: string;
   name: string;
@@ -99,8 +92,9 @@ export interface JeeChapter {
 export interface JeeSubject {
   id: string;
   name: string;
-  tasks: string[];
   chapters: JeeChapter[];
+  /** @deprecated Tasks are now managed per-chapter in the UI */
+  tasks: string[];
 }
 
 export interface ProgressPoint {
