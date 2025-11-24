@@ -83,6 +83,13 @@ export interface Chapter {
   syllabus?: Topic[];
 }
 
+export interface Subject {
+  name: string;
+  icon: string;
+  chapters: Chapter[];
+  tasks: string[];
+}
+
 export interface JeeChapter {
   id: string;
   name: string;
