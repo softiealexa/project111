@@ -56,7 +56,7 @@ function SortableChapterRow({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "group flex flex-col sm:flex-row justify-between items-start sm:items-center py-3 border-b dark:border-gray-700 last:border-b-0",
+        "group flex flex-col sm:flex-row justify-between items-start sm:items-center py-3 border-b dark:border-gray-700 last:border-b-0 transition-shadow",
         isDragging && "shadow-lg bg-card"
       )}
     >
@@ -111,11 +111,13 @@ function SortableSubjectCard({ subject, children }: { subject: JeeSubject, child
         transition,
         zIndex: isDragging ? 10 : 'auto',
     };
+    
+    const childrenArray = React.Children.toArray(children);
 
     return (
         <div ref={setNodeRef} style={style} className={cn(isDragging && "shadow-2xl")}>
-             <Card>
-                <CardHeader>
+             <Card className="transition-all hover:shadow-lg hover:border-primary/20">
+                <CardHeader className="p-4">
                     <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2">
                              <button {...listeners} {...attributes} aria-label={`Drag to reorder subject ${subject.name}`} className="cursor-grab touch-none p-1.5 text-muted-foreground hover:text-foreground">
@@ -123,11 +125,11 @@ function SortableSubjectCard({ subject, children }: { subject: JeeSubject, child
                             </button>
                             <CardTitle className="text-xl">{subject.name}</CardTitle>
                         </div>
-                        {children[0]} {/* This will render the task editor part */}
+                        {childrenArray[0]} {/* This will render the task editor part */}
                     </div>
                 </CardHeader>
                 <CardContent>
-                    {children[1]} {/* This will render the chapters and add chapter part */}
+                    {childrenArray[1]} {/* This will render the chapters and add chapter part */}
                 </CardContent>
             </Card>
         </div>
@@ -298,7 +300,7 @@ export default function JeeSyllabusPage() {
     <div className="bg-gray-100 dark:bg-gray-900 min-h-screen p-4 sm:p-6 md:p-8">
       <div className="space-y-6">
         <div className="bg-white dark:bg-gray-800 p-1 rounded-xl shadow-md">
-            <h2 className="text-2xl font-bold text-center text-gray-800 dark:text-gray-200">JEE Mains – Syllabus Progress Checker</h2>
+            <h2 className="text-xl font-bold text-center text-gray-800 dark:text-gray-200">JEE Mains – Syllabus Progress Checker</h2>
         </div>
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSubjectDragEnd}>
             <SortableContext items={subjects.map(s => s.id)} strategy={verticalListSortingStrategy}>
