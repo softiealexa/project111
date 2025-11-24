@@ -14,6 +14,7 @@ import { CheckSquare } from 'lucide-react';
 import LiveClock from '@/components/live-clock';
 import MiniCountdown from '@/components/mini-countdown';
 import SyllabusChapterItem from '@/components/syllabus-chapter-item';
+import type { Chapter } from '@/lib/types';
 
 export default function SyllabusChecklistPage() {
   const { activeProfile, activeSubjectName, setActiveSubjectName } = useData();
@@ -61,10 +62,10 @@ export default function SyllabusChecklistPage() {
                     {activeProfile.subjects.map((subject) => (
                     <TabsContent key={subject.name} value={subject.name} className="mt-6">
                        <div className="space-y-4">
-                        {subject.chapters.map((chapter, index) => (
+                        {subject.chapters.map((chapter: Chapter, index) => (
                           <SyllabusChapterItem 
                             key={`${subject.name}-${chapter.name}-${index}`}
-                            chapter={{ name: chapter.name }}
+                            chapter={{ name: chapter.name, syllabus: chapter.syllabus }}
                             subject={subject}
                           />
                         ))}
