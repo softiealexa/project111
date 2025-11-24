@@ -90,6 +90,19 @@ export interface Subject {
   tasks: string[];
 }
 
+export interface JeeChapter {
+  id: string;
+  name: string;
+  tasks: Record<string, boolean>;
+}
+
+export interface JeeSubject {
+  id: string;
+  name: string;
+  tasks: string[];
+  chapters: JeeChapter[];
+}
+
 export interface ProgressPoint {
   date: string; // 'YYYY-MM-DD'
   progress: number;
@@ -194,6 +207,7 @@ export interface ExpenseGroup {
 export interface Profile {
   name:string;
   subjects: Subject[];
+  jeeSyllabus?: JeeSubject[];
   plannerNotes?: Record<string, string>;
   notes?: Note[];
   importantLinks?: ImportantLink[];

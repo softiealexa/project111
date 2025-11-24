@@ -5,7 +5,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback, Suspense, lazy } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import type { User as FirebaseUser } from 'firebase/auth';
-import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, SimpleTodo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus, CheckedState, ExamCountdown, TimeOffPolicy, TimeOffRequest, Shift, TeamMember, Topic, StopwatchSession, StopwatchDaySummary, Friend, Expense, ExpenseGroup } from '@/lib/types';
+import type { Subject, Profile, Chapter, Note, ImportantLink, SmartTodo, SimpleTodo, Priority, ProgressPoint, QuestionSession, AppUser, TimeEntry, Project, TimesheetData, SidebarWidth, TaskStatus, CheckedState, ExamCountdown, TimeOffPolicy, TimeOffRequest, Shift, TeamMember, Topic, StopwatchSession, StopwatchDaySummary, Friend, Expense, ExpenseGroup, JeeSubject } from '@/lib/types';
 import { useToast } from "@/hooks/use-toast";
 import { onAuthChanged, signOut, getUserData, saveUserData } from '@/lib/auth';
 import { format, getISOWeek, getYear, startOfDay } from 'date-fns';
@@ -48,6 +48,7 @@ interface DataContextType {
   renameProfile: (oldName: string, newName: string) => void;
   switchProfile: (name: string) => void;
   updateSubjects: (newSubjects: Subject[]) => void;
+  setJeeSyllabus: (subjects: JeeSubject[]) => void;
   addSubject: (subjectName: string, iconName: string) => void;
   removeSubject: (subjectNameToRemove: string) => void;
   renameSubject: (oldName: string, newName: string) => void;
@@ -611,6 +612,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (!activeProfileName) return;
     const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, subjects: newSubjects } : p);
     updateProfiles(newProfiles, activeProfileName, { subjects: newSubjects });
+  }, [activeProfileName, profiles, updateProfiles]);
+
+  const setJeeSyllabus = useCallback((jeeSyllabus: JeeSubject[]) => {
+    if (!activeProfileName) return;
+    const newProfiles = profiles.map(p => p.name === activeProfileName ? { ...p, jeeSyllabus } : p);
+    updateProfiles(newProfiles, activeProfileName, { jeeSyllabus });
   }, [activeProfileName, profiles, updateProfiles]);
 
   const addSubject = useCallback((subjectName: string, iconName: string) => {
@@ -1480,7 +1487,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(() => ({
     user, userDoc, impersonatedUser, loading, profiles, activeProfile, activeSubjectName, setActiveSubjectName,
-    addProfile, removeProfile, renameProfile, switchProfile, updateSubjects, addSubject, removeSubject, renameSubject,
+    addProfile, removeProfile, renameProfile, switchProfile, updateSubjects, setJeeSyllabus, addSubject, removeSubject, renameSubject,
     addChapter, removeChapter, updateChapter, renameChapter, updateChapterDeadline, updateChapterSyllabus, updateTasks, renameTask,
     updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
     addTodo, updateTodo, deleteTodo, setTodos,
@@ -1496,7 +1503,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     showProgressDownloadPrompt, setShowProgressDownloadPrompt,
   }), [
     user, userDoc, impersonatedUser, loading, profiles, activeProfile, activeSubjectName,
-    addProfile, removeProfile, renameProfile, switchProfile, updateSubjects, addSubject, removeSubject, renameSubject,
+    addProfile, removeProfile, renameProfile, switchProfile, updateSubjects, setJeeSyllabus, addSubject, removeSubject, renameSubject,
     addChapter, removeChapter, updateChapter, renameChapter, updateChapterDeadline, updateChapterSyllabus, updateTasks, renameTask,
     updatePlannerNote, addNote, updateNote, deleteNote, setNotes, addLink, updateLink, deleteLink, setLinks,
     addTodo, updateTodo, deleteTodo, setTodos,

@@ -1,8 +1,9 @@
 
+
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -11,25 +12,11 @@ import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import Navbar from '@/components/navbar';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { useData } from '@/contexts/data-context';
+import type { JeeSubject, JeeChapter } from '@/lib/types';
+import { LoadingSpinner } from '@/components/loading-spinner';
 
-// --- Types for this page's state ---
-interface Chapter {
-  id: string;
-  name: string;
-  tasks: Record<string, boolean>;
-}
-
-interface Subject {
-  id: string;
-  name: string;
-  tasks: string[];
-  chapters: Chapter[];
-}
-
-const LOCAL_STORAGE_KEY = 'jee_syllabus_data';
-
-// --- Initial Data ---
-const initialData: Subject[] = [
+const initialData: JeeSubject[] = [
   {
     id: 'phy',
     name: 'Physics',
@@ -61,44 +48,38 @@ const initialData: Subject[] = [
 ];
 
 export default function JeeSyllabusPage() {
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [isClient, setIsClient] = useState(false);
+  const { activeProfile, setJeeSyllabus, loading } = useData();
   const [newSubjectName, setNewSubjectName] = useState('');
   const [newChapterNames, setNewChapterNames] = useState<Record<string, string>>({});
   const [editingTasks, setEditingTasks] = useState<Record<string, string>>({});
 
   const { toast } = useToast();
 
-  useEffect(() => {
-    setIsClient(true);
-    try {
-      const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (storedData) {
-        setSubjects(JSON.parse(storedData));
-      } else {
-        setSubjects(initialData);
-      }
-    } catch (error) {
-      console.error("Failed to load data from local storage", error);
-      setSubjects(initialData);
+  const subjects = useMemo(() => {
+    if (activeProfile?.jeeSyllabus === undefined || activeProfile?.jeeSyllabus.length === 0) {
+      return initialData;
     }
-  }, []);
+    return activeProfile.jeeSyllabus;
+  }, [activeProfile?.jeeSyllabus]);
+
 
   useEffect(() => {
-    if (isClient) {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(subjects));
+    // This effect ensures that if the loaded data is empty, the initial data is set and saved.
+    if (!loading && activeProfile && (activeProfile.jeeSyllabus === undefined || activeProfile.jeeSyllabus.length === 0)) {
+        setJeeSyllabus(initialData);
     }
-  }, [subjects, isClient]);
+  }, [loading, activeProfile, setJeeSyllabus]);
+
 
   const handleAddSubject = () => {
     if (!newSubjectName.trim()) return;
-    const newSubject: Subject = {
+    const newSubject: JeeSubject = {
       id: crypto.randomUUID(),
       name: newSubjectName.trim(),
       tasks: ['Notes', 'Lecture', 'Teacher'],
       chapters: [],
     };
-    setSubjects(prev => [...prev, newSubject]);
+    setJeeSyllabus([...subjects, newSubject]);
     setNewSubjectName('');
     toast({ title: "Subject Added", description: `"${newSubject.name}" has been added.`});
   };
@@ -107,9 +88,9 @@ export default function JeeSyllabusPage() {
     const chapterName = newChapterNames[subjectId]?.trim();
     if (!chapterName) return;
 
-    setSubjects(prevSubjects => prevSubjects.map(subject => {
+    const newSubjects = subjects.map(subject => {
       if (subject.id === subjectId) {
-        const newChapter: Chapter = {
+        const newChapter: JeeChapter = {
           id: crypto.randomUUID(),
           name: chapterName,
           tasks: subject.tasks.reduce((acc, task) => ({ ...acc, [task]: false }), {}),
@@ -117,14 +98,14 @@ export default function JeeSyllabusPage() {
         return { ...subject, chapters: [...subject.chapters, newChapter] };
       }
       return subject;
-    }));
-    
+    });
+    setJeeSyllabus(newSubjects);
     setNewChapterNames(prev => ({...prev, [subjectId]: ''}));
     toast({ title: "Chapter Added", description: `"${chapterName}" has been added.`});
   };
 
   const handleToggleTask = (subjectId: string, chapterId: string, taskName: string) => {
-    setSubjects(prevSubjects => prevSubjects.map(subject => {
+    const newSubjects = subjects.map(subject => {
       if (subject.id === subjectId) {
         const newChapters = subject.chapters.map(chapter => {
           if (chapter.id === chapterId) {
@@ -136,16 +117,18 @@ export default function JeeSyllabusPage() {
         return { ...subject, chapters: newChapters };
       }
       return subject;
-    }));
+    });
+    setJeeSyllabus(newSubjects);
   };
 
   const handleDeleteChapter = (subjectId: string, chapterId: string) => {
-      setSubjects(prev => prev.map(subject => {
+      const newSubjects = subjects.map(subject => {
           if(subject.id === subjectId) {
               return {...subject, chapters: subject.chapters.filter(c => c.id !== chapterId)};
           }
           return subject;
-      }))
+      });
+      setJeeSyllabus(newSubjects);
   };
 
   const handleSaveTasks = (subjectId: string) => {
@@ -159,7 +142,7 @@ export default function JeeSyllabusPage() {
           return;
       }
       
-      setSubjects(prev => prev.map(subject => {
+      const newSubjects = subjects.map(subject => {
           if (subject.id === subjectId) {
               const updatedChapters = subject.chapters.map(chapter => {
                   const newChapterTasks: Record<string, boolean> = {};
@@ -171,7 +154,8 @@ export default function JeeSyllabusPage() {
               return { ...subject, tasks: newTasks, chapters: updatedChapters };
           }
           return subject;
-      }));
+      });
+      setJeeSyllabus(newSubjects);
       setEditingTasks(prev => {
           const newEditing = {...prev};
           delete newEditing[subjectId];
@@ -183,8 +167,15 @@ export default function JeeSyllabusPage() {
       setEditingTasks(prev => ({...prev, [subjectId]: currentTasks.join(' | ')}));
   };
   
-  if (!isClient) {
-    return <div className="flex h-screen w-full items-center justify-center"><p>Loading...</p></div>;
+  if (loading || !activeProfile) {
+    return (
+        <TooltipProvider>
+            <Navbar />
+            <div className="flex h-[calc(100vh-4rem)] w-full items-center justify-center">
+                <LoadingSpinner text="Loading Syllabus..."/>
+            </div>
+        </TooltipProvider>
+    );
   }
 
   return (
