@@ -17,6 +17,7 @@ import { Calendar } from './ui/calendar';
 import { useData } from '@/contexts/data-context';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import type { Chapter } from '@/lib/types';
 
 
 type PlannerMode = 'calculateDays' | 'calculatePace';
@@ -46,7 +47,7 @@ export default function BacklogPlanner() {
                 return;
             }
 
-            subject.chapters.forEach(chapter => {
+            subject.chapters.forEach((chapter: Chapter) => {
                 for (let i = 1; i <= chapter.lectureCount; i++) {
                     const lectureKey = `Lecture-${i}`;
                     const checkboxId = `${subject.name}-${chapter.name}-${lectureKey}-${lectureTaskName}`;
