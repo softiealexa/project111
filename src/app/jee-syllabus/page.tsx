@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -39,6 +39,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 
 function SortableChapterRow({
   chapter,
@@ -79,15 +81,15 @@ function SortableChapterRow({
       )}
     >
       <div className="flex items-center mb-2 sm:mb-0">
-        <button {...listeners} {...attributes} aria-label="Drag to reorder chapter" className="cursor-grab touch-none p-1.5 text-muted-foreground hover:text-foreground">
+        <div {...listeners} {...attributes} aria-label="Drag to reorder chapter" className="cursor-grab touch-none p-1.5 text-muted-foreground hover:text-foreground">
           <GripVertical className="h-5 w-5" />
-        </button>
+        </div>
         <div className="font-medium text-gray-700 dark:text-gray-300">{chapter.name}</div>
       </div>
       <div className="flex items-center gap-4 pl-8 sm:pl-0">
           <div className="flex items-center gap-3">
               {chapterTasks.map(task => (
-                  <div key={task} className="flex items-center">
+                  <div key={task} className="flex items-center self-center">
                       <Checkbox
                           id={`${chapter.id}-${task}`}
                           checked={chapter.tasks[task]}
@@ -182,7 +184,7 @@ function SortableSubjectCard({ subject, children }: { subject: JeeSubject, child
                                 {childrenArray[0]}
                             </div>
                         </AccordionTrigger>
-                        <AccordionContent className="pt-0 p-4">
+                        <AccordionContent className="p-4 pt-0">
                             {childrenArray[1]}
                         </AccordionContent>
                     </AccordionItem>
@@ -198,6 +200,10 @@ export default function JeeSyllabusPage() {
   const [newSubjectName, setNewSubjectName] = useState('');
   const [newChapterNames, setNewChapterNames] = useState<Record<string, string>>({});
   
+  const [subjectToDelete, setSubjectToDelete] = useState<string | null>(null);
+  const [chapterDeletionSubject, setChapterDeletionSubject] = useState<string | null>(null);
+  const [chapterToDelete, setChapterToDelete] = useState<string | null>(null);
+
   const { toast } = useToast();
 
   const subjects = useMemo(() => {
@@ -211,11 +217,27 @@ export default function JeeSyllabusPage() {
       id: crypto.randomUUID(),
       name: newSubjectName.trim(),
       chapters: [],
-      tasks: ['Notes', 'Lecture', 'PYQs'], // This field is deprecated but kept for compatibility
+      tasks: ['Notes', 'Lecture', 'PYQs'],
     };
     setJeeSyllabus([...subjects, newSubject]);
     setNewSubjectName('');
     toast({ title: "Subject Added", description: `"${newSubject.name}" has been added.`});
+  };
+
+  const handleDeleteSubject = () => {
+    if (!subjectToDelete) return;
+    const newSubjects = subjects.filter(s => s.name !== subjectToDelete);
+    setJeeSyllabus(newSubjects);
+    toast({ title: 'Subject Deleted', description: `"${subjectToDelete}" has been deleted.`, variant: 'destructive'});
+    setSubjectToDelete(null);
+  };
+
+  const handleDeleteChapterFromControl = () => {
+    if (!chapterDeletionSubject || !chapterToDelete) return;
+    handleDeleteChapter(chapterDeletionSubject, chapterToDelete);
+    toast({ title: 'Chapter Deleted', description: `"${chapterToDelete}" has been deleted.`, variant: 'destructive'});
+    setChapterDeletionSubject(null);
+    setChapterToDelete(null);
   };
 
   const handleAddChapter = (subjectId: string) => {
@@ -330,6 +352,13 @@ export default function JeeSyllabusPage() {
         setJeeSyllabus(reorderedSubjects);
     }
   }
+  
+  const chaptersForSelectedSubject = useMemo(() => {
+    if (!chapterDeletionSubject) return [];
+    const subject = subjects.find(s => s.name === chapterDeletionSubject);
+    return subject ? subject.chapters : [];
+  }, [chapterDeletionSubject, subjects]);
+
 
   if (loading || !activeProfile) {
     return (
@@ -346,7 +375,7 @@ export default function JeeSyllabusPage() {
     <TooltipProvider>
     <Navbar />
     <div className="bg-gray-100 dark:bg-gray-900 min-h-screen p-4 sm:p-6 md:p-8">
-      <div className="space-y-6">
+      <div className="max-w-4xl mx-auto space-y-6">
         <div className="bg-white dark:bg-gray-800 p-1 rounded-xl shadow-md">
             <h2 className="text-xl font-bold text-center text-gray-800 dark:text-gray-200">JEE Mains – Syllabus Progress Checker</h2>
         </div>
@@ -402,6 +431,84 @@ export default function JeeSyllabusPage() {
                 </Button>
             </div>
         </div>
+
+        <Card>
+            <CardHeader>
+                <CardTitle>Syllabus Controls</CardTitle>
+                <CardDescription>Delete subjects or specific chapters from this panel.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div className="space-y-2 p-4 border rounded-lg">
+                    <Label className="font-semibold">Delete Subject</Label>
+                    <div className="flex gap-2">
+                        <Select onValueChange={setSubjectToDelete} value={subjectToDelete || ''}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a subject to delete" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {subjects.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" disabled={!subjectToDelete}><Trash2 className="mr-2 h-4 w-4" /> Delete</Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This will permanently delete the subject "{subjectToDelete}" and all of its chapters. This action cannot be undone.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel onClick={() => setSubjectToDelete(null)}>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleDeleteSubject}>Delete Subject</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </div>
+                </div>
+
+                <div className="space-y-2 p-4 border rounded-lg">
+                    <Label className="font-semibold">Delete Chapter</Label>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                        <Select onValueChange={(val) => {setChapterDeletionSubject(val); setChapterToDelete(null);}} value={chapterDeletionSubject || ''}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select subject" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {subjects.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <Select onValueChange={setChapterToDelete} value={chapterToDelete || ''} disabled={!chapterDeletionSubject}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select chapter" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {chaptersForSelectedSubject.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" disabled={!chapterToDelete || !chapterDeletionSubject}><Trash2 className="mr-2 h-4 w-4" /> Delete</Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This will permanently delete the chapter "{chapterToDelete}" from "{chapterDeletionSubject}". This action cannot be undone.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel onClick={() => setChapterToDelete(null)}>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleDeleteChapterFromControl}>Delete Chapter</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
       </div>
     </div>
     </TooltipProvider>
