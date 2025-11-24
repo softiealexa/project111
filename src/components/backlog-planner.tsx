@@ -39,7 +39,7 @@ export default function BacklogPlanner() {
         let incompleteLectureCount = 0;
         activeProfile.subjects.forEach(subject => {
             // Find a task that is explicitly named 'Lecture', case-insensitive
-            const lectureTaskName = subject.tasks.find(t => t.toLowerCase() === 'lecture');
+            const lectureTaskName = subject.tasks.find((t: string) => t.toLowerCase() === 'lecture');
             
             // If no 'Lecture' task is defined for this subject, we cannot calculate its backlog.
             if (!lectureTaskName) {
