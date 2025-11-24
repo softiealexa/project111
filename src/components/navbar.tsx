@@ -27,8 +27,6 @@ const navLinks = [
     { href: "/jee-syllabus", icon: CheckSquare, label: "JEE Syllabus" },
     { href: "/expense-splitter", icon: Coins, label: "Expenses" },
     { href: "/stopwatch", icon: Timer, label: "Stopwatch" },
-    { href: "/clockify", icon: Clock, label: "Clockify" },
-    { href: "/notes", icon: FileText, label: "Notes" },
 ];
 
 export default function Navbar() {
@@ -66,12 +64,16 @@ export default function Navbar() {
                 <>
                    <div className="hidden md:flex items-center gap-1">
                      {navLinks.map(link => (
-                         <Button key={link.href} asChild variant="ghost" size="sm">
-                            <Link href={link.href}>
-                                <link.icon className="mr-2 h-4 w-4" />
-                                {link.label}
-                            </Link>
-                        </Button>
+                         <Tooltip key={link.href}>
+                            <TooltipTrigger asChild>
+                                <Button asChild variant="ghost" size="icon">
+                                    <Link href={link.href}><link.icon /></Link>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>{link.label}</p>
+                            </TooltipContent>
+                        </Tooltip>
                      ))}
                    </div>
                   <Sheet open={isCustomizationOpen} onOpenChange={handleCustomizationStateChange}>
@@ -111,7 +113,8 @@ export default function Navbar() {
                         </DropdownMenuLabel>
 
                         <DropdownMenuSeparator />
-                        <DropdownMenuGroup className="md:hidden">
+                        <DropdownMenuGroup>
+                            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground px-2">Tools</DropdownMenuLabel>
                             {navLinks.map(link => (
                                  <DropdownMenuItem key={link.href} onSelect={() => router.push(link.href)}>
                                     <link.icon className="mr-2 h-4 w-4" />
@@ -119,9 +122,18 @@ export default function Navbar() {
                                 </DropdownMenuItem>
                             ))}
                         </DropdownMenuGroup>
-                        <DropdownMenuSeparator className="md:hidden" />
+                        <DropdownMenuSeparator/>
                         
                         <DropdownMenuGroup>
+                            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground px-2">Account</DropdownMenuLabel>
+                             <DropdownMenuItem onSelect={() => router.push('/clockify')}>
+                                <Clock className="mr-2 h-4 w-4" />
+                                <span>Clockify</span>
+                            </DropdownMenuItem>
+                             <DropdownMenuItem onSelect={() => router.push('/notes')}>
+                                <FileText className="mr-2 h-4 w-4" />
+                                <span>Notes</span>
+                            </DropdownMenuItem>
                             <DropdownMenuItem onSelect={() => setIsCustomizationOpen(true)} disabled={!activeProfile}>
                                 <SlidersHorizontal className="mr-2 h-4 w-4" />
                                 <span>Customization</span>
