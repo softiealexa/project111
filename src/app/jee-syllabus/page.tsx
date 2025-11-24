@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Trash2, Edit, Save, X, GripVertical, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, Edit, GripVertical, ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import Navbar from '@/components/navbar';
@@ -201,7 +201,7 @@ export default function JeeSyllabusPage() {
   const [newChapterNames, setNewChapterNames] = useState<Record<string, string>>({});
   
   const [subjectToDelete, setSubjectToDelete] = useState<string | null>(null);
-  const [chapterDeletionSubject, setChapterDeletionSubject] = useState<string | null>(null);
+  const [chapterDeletionSubjectId, setChapterDeletionSubjectId] = useState<string | null>(null);
   const [chapterToDelete, setChapterToDelete] = useState<string | null>(null);
 
   const { toast } = useToast();
@@ -226,17 +226,19 @@ export default function JeeSyllabusPage() {
 
   const handleDeleteSubject = () => {
     if (!subjectToDelete) return;
-    const newSubjects = subjects.filter(s => s.name !== subjectToDelete);
+    const subjectName = subjects.find(s => s.id === subjectToDelete)?.name || 'Subject';
+    const newSubjects = subjects.filter(s => s.id !== subjectToDelete);
     setJeeSyllabus(newSubjects);
-    toast({ title: 'Subject Deleted', description: `"${subjectToDelete}" has been deleted.`, variant: 'destructive'});
+    toast({ title: 'Subject Deleted', description: `"${subjectName}" has been deleted.`, variant: 'destructive'});
     setSubjectToDelete(null);
   };
 
   const handleDeleteChapterFromControl = () => {
-    if (!chapterDeletionSubject || !chapterToDelete) return;
-    handleDeleteChapter(chapterDeletionSubject, chapterToDelete);
-    toast({ title: 'Chapter Deleted', description: `"${chapterToDelete}" has been deleted.`, variant: 'destructive'});
-    setChapterDeletionSubject(null);
+    if (!chapterDeletionSubjectId || !chapterToDelete) return;
+    const chapterName = subjects.find(s => s.id === chapterDeletionSubjectId)?.chapters.find(c => c.id === chapterToDelete)?.name || 'Chapter';
+    handleDeleteChapter(chapterDeletionSubjectId, chapterToDelete);
+    toast({ title: 'Chapter Deleted', description: `"${chapterName}" has been deleted.`, variant: 'destructive'});
+    setChapterDeletionSubjectId(null);
     setChapterToDelete(null);
   };
 
@@ -354,10 +356,10 @@ export default function JeeSyllabusPage() {
   }
   
   const chaptersForSelectedSubject = useMemo(() => {
-    if (!chapterDeletionSubject) return [];
-    const subject = subjects.find(s => s.name === chapterDeletionSubject);
+    if (!chapterDeletionSubjectId) return [];
+    const subject = subjects.find(s => s.id === chapterDeletionSubjectId);
     return subject ? subject.chapters : [];
-  }, [chapterDeletionSubject, subjects]);
+  }, [chapterDeletionSubjectId, subjects]);
 
 
   if (loading || !activeProfile) {
@@ -446,7 +448,7 @@ export default function JeeSyllabusPage() {
                                 <SelectValue placeholder="Select a subject to delete" />
                             </SelectTrigger>
                             <SelectContent>
-                                {subjects.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
+                                {subjects.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                             </SelectContent>
                         </Select>
                         <AlertDialog>
@@ -457,7 +459,7 @@ export default function JeeSyllabusPage() {
                                 <AlertDialogHeader>
                                     <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                        This will permanently delete the subject "{subjectToDelete}" and all of its chapters. This action cannot be undone.
+                                        This will permanently delete the subject "{subjects.find(s => s.id === subjectToDelete)?.name}" and all of its chapters. This action cannot be undone.
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -472,31 +474,31 @@ export default function JeeSyllabusPage() {
                 <div className="space-y-2 p-4 border rounded-lg">
                     <Label className="font-semibold">Delete Chapter</Label>
                     <div className="flex flex-col sm:flex-row gap-2">
-                        <Select onValueChange={(val) => {setChapterDeletionSubject(val); setChapterToDelete(null);}} value={chapterDeletionSubject || ''}>
+                        <Select onValueChange={(val) => {setChapterDeletionSubjectId(val); setChapterToDelete(null);}} value={chapterDeletionSubjectId || ''}>
                             <SelectTrigger>
                                 <SelectValue placeholder="Select subject" />
                             </SelectTrigger>
                             <SelectContent>
-                                {subjects.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
+                                {subjects.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                             </SelectContent>
                         </Select>
-                        <Select onValueChange={setChapterToDelete} value={chapterToDelete || ''} disabled={!chapterDeletionSubject}>
+                        <Select onValueChange={setChapterToDelete} value={chapterToDelete || ''} disabled={!chapterDeletionSubjectId}>
                             <SelectTrigger>
                                 <SelectValue placeholder="Select chapter" />
                             </SelectTrigger>
                             <SelectContent>
-                                {chaptersForSelectedSubject.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                                {chaptersForSelectedSubject.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                             </SelectContent>
                         </Select>
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
-                                <Button variant="destructive" disabled={!chapterToDelete || !chapterDeletionSubject}><Trash2 className="mr-2 h-4 w-4" /> Delete</Button>
+                                <Button variant="destructive" disabled={!chapterToDelete || !chapterDeletionSubjectId}><Trash2 className="mr-2 h-4 w-4" /> Delete</Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                                 <AlertDialogHeader>
                                     <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                        This will permanently delete the chapter "{chapterToDelete}" from "{chapterDeletionSubject}". This action cannot be undone.
+                                        This will permanently delete the chapter "{chaptersForSelectedSubject.find(c => c.id === chapterToDelete)?.name}" from "{subjects.find(s => s.id === chapterDeletionSubjectId)?.name}". This action cannot be undone.
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -514,3 +516,5 @@ export default function JeeSyllabusPage() {
     </TooltipProvider>
   );
 }
+
+    
