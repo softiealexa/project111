@@ -297,8 +297,8 @@ export default function JeeSyllabusPage() {
     <Navbar />
     <div className="bg-gray-100 dark:bg-gray-900 min-h-screen p-4 sm:p-6 md:p-8">
       <div className="space-y-6">
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md">
-            <h2 className="text-xl font-bold mb-4 text-center text-gray-800 dark:text-gray-200">JEE Mains – Syllabus Progress Checker</h2>
+        <div className="bg-white dark:bg-gray-800 p-1 rounded-xl shadow-md">
+            <h2 className="text-2xl font-bold text-center text-gray-800 dark:text-gray-200">JEE Mains – Syllabus Progress Checker</h2>
         </div>
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSubjectDragEnd}>
             <SortableContext items={subjects.map(s => s.id)} strategy={verticalListSortingStrategy}>
