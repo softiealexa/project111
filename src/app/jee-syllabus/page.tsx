@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Trash2, Edit, Save, X, GripVertical } from 'lucide-react';
+import { Plus, Trash2, Edit, Save, X, GripVertical, ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import Navbar from '@/components/navbar';
@@ -33,6 +33,12 @@ import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 function SortableChapterRow({
   chapter,
@@ -163,20 +169,24 @@ function SortableSubjectCard({ subject, children }: { subject: JeeSubject, child
     return (
         <div ref={setNodeRef} style={style} className={cn(isDragging && "shadow-2xl")}>
              <Card className="transition-all hover:shadow-lg hover:border-primary/20">
-                <CardHeader className="p-4">
-                    <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                             <button {...listeners} {...attributes} aria-label={`Drag to reorder subject ${subject.name}`} className="cursor-grab touch-none p-1.5 text-muted-foreground hover:text-foreground">
-                                <GripVertical className="h-5 w-5" />
-                            </button>
-                            <CardTitle className="text-xl">{subject.name}</CardTitle>
-                        </div>
-                        {childrenArray[0]}
-                    </div>
-                </CardHeader>
-                <CardContent className="pt-0 p-6">
-                    {childrenArray[1]}
-                </CardContent>
+                <Accordion type="single" collapsible>
+                    <AccordionItem value={subject.id} className="border-b-0">
+                        <AccordionTrigger className="p-4 hover:no-underline [&[data-state=open]>svg]:rotate-180">
+                             <div className="flex justify-between items-center w-full">
+                                <div className="flex items-center gap-2">
+                                     <button {...listeners} {...attributes} aria-label={`Drag to reorder subject ${subject.name}`} className="cursor-grab touch-none p-1.5 text-muted-foreground hover:text-foreground">
+                                        <GripVertical className="h-5 w-5" />
+                                    </button>
+                                    <CardTitle className="text-xl">{subject.name}</CardTitle>
+                                </div>
+                                {childrenArray[0]}
+                            </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="pt-0 p-6">
+                            {childrenArray[1]}
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
             </Card>
         </div>
     )
@@ -399,4 +409,3 @@ export default function JeeSyllabusPage() {
 }
 
     
-
