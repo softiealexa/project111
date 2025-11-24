@@ -174,9 +174,9 @@ function SortableSubjectCard({ subject, children }: { subject: JeeSubject, child
                         <AccordionTrigger className="p-4 hover:no-underline [&[data-state=open]>svg]:rotate-180">
                              <div className="flex justify-between items-center w-full">
                                 <div className="flex items-center gap-2">
-                                     <button {...listeners} {...attributes} aria-label={`Drag to reorder subject ${subject.name}`} className="cursor-grab touch-none p-1.5 text-muted-foreground hover:text-foreground">
+                                     <div {...listeners} {...attributes} aria-label={`Drag to reorder subject ${subject.name}`} className="cursor-grab touch-none p-1.5 text-muted-foreground hover:text-foreground">
                                         <GripVertical className="h-5 w-5" />
-                                    </button>
+                                    </div>
                                     <CardTitle className="text-xl">{subject.name}</CardTitle>
                                 </div>
                                 {childrenArray[0]}
@@ -228,7 +228,7 @@ export default function JeeSyllabusPage() {
 
     const newSubjects = subjects.map(subject => {
       if (subject.id === subjectId) {
-        const newChapters = chapterNames.map(name => ({
+        const newChapters = chapterNames.map((name): JeeChapter => ({
           id: crypto.randomUUID(),
           name,
           tasks: { 'Notes': false, 'Lecture': false, 'PYQs': false }, // Default tasks for new chapter
@@ -407,5 +407,3 @@ export default function JeeSyllabusPage() {
     </TooltipProvider>
   );
 }
-
-    
