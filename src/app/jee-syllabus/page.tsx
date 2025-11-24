@@ -201,7 +201,7 @@ export default function JeeSyllabusPage() {
       id: crypto.randomUUID(),
       name: newSubjectName.trim(),
       chapters: [],
-      tasks: ['Notes', 'Lecture', 'Teacher'], // This field is deprecated but kept for compatibility
+      tasks: ['Notes', 'Lecture', 'PYQs'], // This field is deprecated but kept for compatibility
     };
     setJeeSyllabus([...subjects, newSubject]);
     setNewSubjectName('');
@@ -221,7 +221,7 @@ export default function JeeSyllabusPage() {
         const newChapters = chapterNames.map(name => ({
           id: crypto.randomUUID(),
           name,
-          tasks: { 'Notes': false, 'Lecture': false, 'Teacher': false }, // Default tasks for new chapter
+          tasks: { 'Notes': false, 'Lecture': false, 'PYQs': false }, // Default tasks for new chapter
         }));
         return { ...subject, chapters: [...subject.chapters, ...newChapters] };
       }
