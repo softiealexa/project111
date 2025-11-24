@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ShieldAlert, Users, LoaderCircle, MessageSquare, ChevronDown, Archive, ChevronLeft, ChevronRight, Pencil, DownloadCloud, UserPlus, TrendingUp, Eye } from 'lucide-react';
-import { collection, query, orderBy, Timestamp, onSnapshot, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, orderBy, Timestamp, onSnapshot, doc, updateDoc, DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppUser, Feedback, FeedbackStatus, CheckedState, DisplayUser } from '@/lib/types';
 import Navbar from '@/components/navbar';
@@ -154,7 +154,7 @@ export default function AdminPage() {
 
             const usersCol = collection(db, 'users');
             const usersUnsubscribe = onSnapshot(usersCol, (snapshot) => {
-                const fetchedUsers = snapshot.docs.map(doc => {
+                const fetchedUsers = snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => {
                     const data = doc.data() as AppUser;
                     
                     const isTimestamp = (value: any): value is Timestamp => {
@@ -176,7 +176,7 @@ export default function AdminPage() {
                 });
 
                 // Sort users to show admins at the top
-                fetchedUsers.sort((a, b) => {
+                fetchedUsers.sort((a: DisplayUser, b: DisplayUser) => {
                     if (a.role === 'admin' && b.role !== 'admin') return -1;
                     if (b.role === 'admin' && a.role !== 'admin') return 1;
                     return (a.username || '').localeCompare(b.username || '');
@@ -188,7 +188,7 @@ export default function AdminPage() {
             const feedbackCol = collection(db, 'feedback');
             const feedbackQuery = query(feedbackCol, orderBy('createdAt', 'desc'));
             const feedbackUnsubscribe = onSnapshot(feedbackQuery, (snapshot) => {
-                const fetchedFeedback = snapshot.docs.map(doc => {
+                const fetchedFeedback = snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => {
                     const data = doc.data() as Feedback;
                     const createdAt = data.createdAt as Timestamp;
                     return {
@@ -266,10 +266,10 @@ export default function AdminPage() {
     const { newMessages, resolvedMessages } = useMemo(() => {
         const filtered = feedbackFilter === 'All'
             ? feedback
-            : feedback.filter(item => item.type === feedbackFilter);
+            : feedback.filter((item: DisplayFeedback) => item.type === feedbackFilter);
         
-        const newMessages = filtered.filter(item => item.status === 'Pending' || item.status === 'In Progress');
-        const resolvedMessages = filtered.filter(item => item.status === 'Done' || item.status === 'Fixed');
+        const newMessages = filtered.filter((item: DisplayFeedback) => item.status === 'Pending' || item.status === 'In Progress');
+        const resolvedMessages = filtered.filter((item: DisplayFeedback) => item.status === 'Done' || item.status === 'Fixed');
 
         return { newMessages, resolvedMessages };
     }, [feedback, feedbackFilter]);
@@ -293,7 +293,7 @@ export default function AdminPage() {
         if (isSelected) {
             setSelectedUsers(prev => [...prev, userId]);
         } else {
-            setSelectedUsers(prev => prev.filter(id => id !== userId));
+            setSelectedUsers(prev => prev.filter((id: string) => id !== userId));
         }
     };
 
@@ -303,7 +303,7 @@ export default function AdminPage() {
         if (isSelected) {
             setSelectedUsers(prev => [...new Set([...prev, ...pageUserIds])]);
         } else {
-            setSelectedUsers(prev => prev.filter(id => !pageUserIds.includes(id)));
+            setSelectedUsers(prev => prev.filter((id: string) => !pageUserIds.includes(id)));
         }
     };
 
@@ -317,14 +317,14 @@ export default function AdminPage() {
         const monthStart = startOfMonth(statsDate);
         const monthEnd = endOfMonth(statsDate);
 
-        const newThisWeek = users.filter(u => u.createdAtDate && isWithinInterval(u.createdAtDate, { start: weekStart, end: weekEnd })).length;
-        const newThisMonth = users.filter(u => u.createdAtDate && isWithinInterval(u.createdAtDate, { start: monthStart, end: monthEnd })).length;
+        const newThisWeek = users.filter((u: DisplayUser) => u.createdAtDate && isWithinInterval(u.createdAtDate, { start: weekStart, end: weekEnd })).length;
+        const newThisMonth = users.filter((u: DisplayUser) => u.createdAtDate && isWithinInterval(u.createdAtDate, { start: monthStart, end: monthEnd })).length;
         
         return { newThisWeek, newThisMonth, weekRange: { start: weekStart, end: weekEnd }, month: monthStart };
     }, [users, statsDate]);
 
     const recentSignups = useMemo(() => {
-        const signups = users.filter(u => u.createdAtDate).sort((a,b) => b.createdAtDate!.getTime() - a.createdAtDate!.getTime());
+        const signups = users.filter((u: DisplayUser) => u.createdAtDate).sort((a: DisplayUser, b: DisplayUser) => b.createdAtDate!.getTime() - a.createdAtDate!.getTime());
         const groupedByDate: Record<string, DisplayUser[]> = {};
         signups.forEach(user => {
             const dateKey = format(user.createdAtDate!, 'yyyy-MM-dd');

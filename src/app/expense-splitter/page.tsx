@@ -84,7 +84,7 @@ export default function ExpenseSplitterPage() {
 
   const expenseGroups = useMemo(() => activeProfile?.expenseGroups || [], [activeProfile]);
   const activeGroupId = useMemo(() => activeProfile?.activeExpenseGroupId, [activeProfile]);
-  const activeGroup = useMemo(() => expenseGroups.find(g => g.id === activeGroupId), [expenseGroups, activeGroupId]);
+  const activeGroup = useMemo(() => expenseGroups.find((g: ExpenseGroup) => g.id === activeGroupId), [expenseGroups, activeGroupId]);
 
   const friends = useMemo(() => activeGroup?.friends || [], [activeGroup]);
   const expenses = useMemo(() => activeGroup?.expenses || [], [activeGroup]);
@@ -112,7 +112,7 @@ export default function ExpenseSplitterPage() {
       toast({ title: 'Error', description: 'Friend\'s name cannot be empty.', variant: 'destructive' });
       return;
     }
-    if (friends.some(f => f.name.toLowerCase() === name.toLowerCase())) {
+    if (friends.some((f: Friend) => f.name.toLowerCase() === name.toLowerCase())) {
       toast({ title: 'Error', description: 'This friend is already added.', variant: 'destructive' });
       return;
     }
@@ -122,18 +122,18 @@ export default function ExpenseSplitterPage() {
   };
 
   const removeFriend = (id: string) => {
-    const friendToRemove = friends.find(f => f.id === id);
+    const friendToRemove = friends.find((f: Friend) => f.id === id);
     if (!friendToRemove) return;
     
-    const newFriends = friends.filter(f => f.id !== id);
+    const newFriends = friends.filter((f: Friend) => f.id !== id);
     setFriends && setFriends(newFriends);
     
-    const newExpenses = expenses.filter(e => {
+    const newExpenses = expenses.filter((e: Expense) => {
         if (e.paidBy?.some(p => p.name === friendToRemove.name)) return false;
         if (e.mode === 'equal') {
             return !e.splitAmong?.includes(friendToRemove.name);
         } else {
-            return !e.items?.some(item => item.person === friendToRemove.name);
+            return !e.items?.some((item: ExpenseItem) => item.person === friendToRemove.name);
         }
     });
     setExpenses && setExpenses(newExpenses);
@@ -254,7 +254,7 @@ export default function ExpenseSplitterPage() {
   };
 
   const removeExpense = (id: string) => {
-    const newExpenses = expenses.filter(e => e.id !== id);
+    const newExpenses = expenses.filter((e: Expense) => e.id !== id);
     setExpenses && setExpenses(newExpenses);
   };
   
@@ -269,9 +269,9 @@ export default function ExpenseSplitterPage() {
 
   const { balances, settlements, totalSpent, avgPerPerson } = useMemo(() => {
     const balancesMap: Record<string, number> = {};
-    friends.forEach(f => balancesMap[f.name] = 0);
+    friends.forEach((f: Friend) => balancesMap[f.name] = 0);
 
-    expenses.forEach(expense => {
+    expenses.forEach((expense: Expense) => {
         expense.paidBy.forEach(payment => {
             if (balancesMap[payment.name] !== undefined) {
                 balancesMap[payment.name] += payment.amount;
@@ -286,7 +286,7 @@ export default function ExpenseSplitterPage() {
                 }
             });
         } else { // individual
-            expense.items!.forEach(item => {
+            expense.items!.forEach((item: ExpenseItem) => {
                 if(balancesMap[item.person] !== undefined) {
                     balancesMap[item.person] -= item.price;
                 }
@@ -310,11 +310,11 @@ export default function ExpenseSplitterPage() {
       if (creditors[j].amount < 0.01) j++;
     }
     
-    const totalSpent = expenses.reduce((sum, e) => sum + e.total, 0);
+    const totalSpent = expenses.reduce((sum: number, e: Expense) => sum + e.total, 0);
     const avgPerPerson = friends.length > 0 ? totalSpent / friends.length : 0;
     
     return {
-      balances: friends.map(f => ({ friend: f.name, amount: balancesMap[f.name] || 0 })),
+      balances: friends.map((f: Friend) => ({ friend: f.name, amount: balancesMap[f.name] || 0 })),
       settlements,
       totalSpent,
       avgPerPerson,
@@ -324,18 +324,18 @@ export default function ExpenseSplitterPage() {
   const shareSummary = () => {
      if (!activeGroup) return;
      let summary = `💰 Expense Summary: ${activeGroup.name}\n\n`;
-     summary += `👥 Friends: ${friends.map(f => f.name).join(', ')}\n`;
+     summary += `👥 Friends: ${friends.map((f: Friend) => f.name).join(', ')}\n`;
      summary += `💵 Total Spent: ₹${totalSpent.toFixed(2)}\n`;
      summary += `📊 Per Person Avg: ₹${avgPerPerson.toFixed(2)}\n\n`;
      
      summary += '📝 Expenses:\n';
-     expenses.forEach(e => {
+     expenses.forEach((e: Expense) => {
         summary += `• ${e.name} - ₹${e.total.toFixed(2)}\n`;
      });
      summary += '\n';
 
      summary += '💳 Individual Balances:\n';
-     balances.forEach(b => {
+     balances.forEach((b: Balance) => {
         if (b.amount > 0.01) summary += `• ${b.friend}: Gets back ₹${b.amount.toFixed(2)}\n`;
         else if (b.amount < -0.01) summary += `• ${b.friend}: Owes ₹${Math.abs(b.amount).toFixed(2)}\n`;
         else summary += `• ${b.friend}: All settled\n`;
@@ -376,7 +376,7 @@ export default function ExpenseSplitterPage() {
                         <DropdownMenuContent className="w-[200px]">
                             <DropdownMenuLabel>Switch Group</DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            {expenseGroups.map(group => (
+                            {expenseGroups.map((group: ExpenseGroup) => (
                                 <DropdownMenuItem key={group.id} onSelect={() => switchExpenseGroup(group.id)}>
                                     <CheckIcon className={activeGroupId === group.id ? "mr-2 h-4 w-4" : "mr-2 h-4 w-4 opacity-0"} />
                                     {group.name}
@@ -426,7 +426,7 @@ export default function ExpenseSplitterPage() {
                         <div className="mt-4 space-y-2">
                             {friends.length === 0 ? (
                                 <p className="text-sm text-center text-muted-foreground py-4">No friends added yet.</p>
-                            ) : friends.map(friend => (
+                            ) : friends.map((friend: Friend) => (
                                 <div key={friend.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
                                 <span>{friend.name}</span>
                                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeFriend(friend.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
@@ -461,7 +461,7 @@ export default function ExpenseSplitterPage() {
                                 <div>
                                     <Label>Who Paid?</Label>
                                     <div className="space-y-2 mt-2 rounded-md border p-3">
-                                    {friends.length > 0 ? friends.map(f => (
+                                    {friends.length > 0 ? friends.map((f: Friend) => (
                                         <div key={`paid-${f.id}`} className="flex items-center gap-2">
                                             <Checkbox id={`paid-${f.id}`} checked={paidBy[f.name]?.checked || false} onCheckedChange={(c) => setPaidBy(prev => ({...prev, [f.name]: {checked: !!c, amount: ''}}))} />
                                             <Label htmlFor={`paid-${f.id}`} className="flex-1">{f.name}</Label>
@@ -473,7 +473,7 @@ export default function ExpenseSplitterPage() {
                                 <div>
                                     <Label>Split Among</Label>
                                     <div className="space-y-2 mt-2 rounded-md border p-3">
-                                    {friends.length > 0 ? friends.map(f => (
+                                    {friends.length > 0 ? friends.map((f: Friend) => (
                                         <div key={`split-${f.id}`} className="flex items-center gap-2">
                                             <Checkbox id={`split-${f.id}`} checked={splitAmong[f.name] || false} onCheckedChange={(c) => setSplitAmong(prev => ({...prev, [f.name]: !!c}))} />
                                             <Label htmlFor={`split-${f.id}`}>{f.name}</Label>
@@ -487,7 +487,7 @@ export default function ExpenseSplitterPage() {
                                     <Label>Paid By</Label>
                                     <Select value={individualPaidBy} onValueChange={setIndividualPaidBy}>
                                         <SelectTrigger><SelectValue placeholder="Who paid?"/></SelectTrigger>
-                                        <SelectContent>{friends.map(f => <SelectItem key={f.id} value={f.name}>{f.name}</SelectItem>)}</SelectContent>
+                                        <SelectContent>{friends.map((f: Friend) => <SelectItem key={f.id} value={f.name}>{f.name}</SelectItem>)}</SelectContent>
                                     </Select>
                                 </div>
                                 <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
@@ -495,7 +495,7 @@ export default function ExpenseSplitterPage() {
                                     <div key={item.id} className="flex items-center gap-2">
                                         <Select value={item.person} onValueChange={(v) => handleIndividualItemChange(item.id, 'person', v)}>
                                                 <SelectTrigger><SelectValue placeholder="Person"/></SelectTrigger>
-                                                <SelectContent>{friends.map(f => <SelectItem key={f.id} value={f.name}>{f.name}</SelectItem>)}</SelectContent>
+                                                <SelectContent>{friends.map((f: Friend) => <SelectItem key={f.id} value={f.name}>{f.name}</SelectItem>)}</SelectContent>
                                         </Select>
                                         <Input placeholder="Item name" value={item.itemName} onChange={(e) => handleIndividualItemChange(item.id, 'itemName', e.target.value)} />
                                         <Input type="number" placeholder="Price" className="w-28" value={item.price} onChange={(e) => handleIndividualItemChange(item.id, 'price', e.target.value)} />
@@ -517,7 +517,7 @@ export default function ExpenseSplitterPage() {
                     <CardContent className="space-y-3">
                         {expenses.length === 0 ? (
                             <p className="text-sm text-center text-muted-foreground py-4">No expenses added yet.</p>
-                        ) : expenses.map(e => (
+                        ) : expenses.map((e: Expense) => (
                             <div key={e.id} className="p-4 border rounded-lg bg-muted/30">
                                 <div className="flex justify-between items-start">
                                     <div>
@@ -551,7 +551,7 @@ export default function ExpenseSplitterPage() {
                             <small className="text-muted-foreground">Average per person: ₹{avgPerPerson.toFixed(2)}</small>
                         </div>
                         <div className="space-y-2 mb-6">
-                            {balances.map(b => {
+                            {balances.map((b: Balance) => {
                                 let className, text;
                                 if (b.amount > 0.01) {
                                     className = "bg-green-500/10 text-green-700 dark:text-green-400 border-l-4 border-green-500";

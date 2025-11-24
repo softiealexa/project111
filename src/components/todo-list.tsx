@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -134,7 +135,7 @@ export default function SimpleTodoList() {
   };
 
   const handleToggleTask = (taskId: string) => {
-    const task = allTasks.find(t => t.id === taskId);
+    const task = allTasks.find((t: SimpleTodo) => t.id === taskId);
     if (task) {
         const newStatus: TaskStatus = task.status === 'unchecked' ? 'checked' : 'unchecked';
         const updatedTask: SimpleTodo = { ...task, status: newStatus };
@@ -164,8 +165,8 @@ export default function SimpleTodoList() {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
-      const oldIndex = allTasks.findIndex(task => task.id === active.id);
-      const newIndex = allTasks.findIndex(task => task.id === over.id);
+      const oldIndex = allTasks.findIndex((task: SimpleTodo) => task.id === active.id);
+      const newIndex = allTasks.findIndex((task: SimpleTodo) => task.id === over.id);
       if (oldIndex !== -1 && newIndex !== -1) {
         setSimpleTodos(arrayMove(allTasks, oldIndex, newIndex));
       }

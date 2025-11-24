@@ -152,7 +152,7 @@ const ReportsView = () => {
     }, [dateRange]);
 
     const filteredEntries = useMemo(() => {
-        return timeEntries.filter(entry => {
+        return timeEntries.filter((entry: TimeEntry) => {
             const entryDate = new Date(entry.startTime);
             const inDateRange = isWithinInterval(entryDate, dateFilter);
             const inProject = selectedProjects.length === 0 || (entry.projectId && selectedProjects.includes(entry.projectId));
@@ -163,7 +163,7 @@ const ReportsView = () => {
     const { totalTime, projectBreakdown } = useMemo(() => {
         const breakdown: Record<string, number> = {};
         
-        filteredEntries.forEach(entry => {
+        filteredEntries.forEach((entry: TimeEntry) => {
             const projectId = entry.projectId || 'no-project';
             if (!breakdown[projectId]) {
                 breakdown[projectId] = 0;
@@ -175,7 +175,7 @@ const ReportsView = () => {
 
         const projectBreakdown = Object.entries(breakdown)
             .map(([projectId, time]) => {
-                const project = projects.find(p => p.id === projectId);
+                const project = projects.find((p: Project) => p.id === projectId);
                 return {
                     name: project?.name || 'No Project',
                     color: project?.color || '#cccccc',
@@ -217,14 +217,14 @@ const ReportsView = () => {
                                 <CommandInput placeholder="Filter projects..." />
                                 <CommandEmpty>No projects found.</CommandEmpty>
                                 <CommandGroup>
-                                    {projects.map(project => (
+                                    {projects.map((project: Project) => (
                                         <CommandItem
                                             key={project.id}
                                             value={project.name}
                                             onSelect={() => {
                                                 setSelectedProjects(prev =>
                                                     prev.includes(project.id)
-                                                        ? prev.filter(id => id !== project.id)
+                                                        ? prev.filter((id: string) => id !== project.id)
                                                         : [...prev, project.id]
                                                 );
                                             }}
@@ -317,15 +317,15 @@ const ReportsView = () => {
                         </TableHeader>
                         <TableBody>
                             {filteredEntries.length > 0 ? (
-                                filteredEntries.map(entry => (
+                                filteredEntries.map((entry: TimeEntry) => (
                                     <TableRow key={entry.id}>
                                         <TableCell>{format(new Date(entry.startTime), 'PPP')}</TableCell>
                                         <TableCell>{entry.task}</TableCell>
                                         <TableCell>
                                             {entry.projectId ? (
                                                 <span className="flex items-center gap-2">
-                                                    <span className="h-2 w-2 rounded-full" style={{backgroundColor: projects.find(p => p.id === entry.projectId)?.color}}></span>
-                                                    {projects.find(p => p.id === entry.projectId)?.name}
+                                                    <span className="h-2 w-2 rounded-full" style={{backgroundColor: projects.find((p: Project) => p.id === entry.projectId)?.color}}></span>
+                                                    {projects.find((p: Project) => p.id === entry.projectId)?.name}
                                                 </span>
                                             ) : (
                                                 <span className="text-muted-foreground">No Project</span>
@@ -441,8 +441,8 @@ const CalendarView = () => {
                     <CardContent>
                         {selectedDayEntries.length > 0 ? (
                             <div className="space-y-3">
-                                {selectedDayEntries.map(entry => {
-                                    const project = projects.find(p => p.id === entry.projectId);
+                                {selectedDayEntries.map((entry: TimeEntry) => {
+                                    const project = projects.find((p: Project) => p.id === entry.projectId);
                                     return (
                                         <div key={entry.id} className="p-3 border rounded-md bg-muted/50">
                                             <p className="font-medium">{entry.task}</p>
@@ -519,7 +519,7 @@ const ProjectsView = () => {
     
     const filteredProjects = useMemo(() => {
         if (!searchTerm) return projects;
-        return projects.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+        return projects.filter((p: Project) => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
     }, [projects, searchTerm]);
 
     const handleEdit = (project: Project) => {
@@ -565,7 +565,7 @@ const ProjectsView = () => {
                         </TableHeader>
                         <TableBody>
                             {filteredProjects.length > 0 ? (
-                                filteredProjects.map((project) => (
+                                filteredProjects.map((project: Project) => (
                                     <TableRow key={project.id}>
                                         <TableCell>
                                             <span 
@@ -687,7 +687,7 @@ const TimesheetView = () => {
 
   const projectTotals = useMemo(() => {
     const relevantDayKeys = daysToDisplay.map(d => format(d, 'yyyy-MM-dd'));
-    return projects.map(project => {
+    return projects.map((project: Project) => {
         return relevantDayKeys.reduce((total, dayKey) => total + (timesheetData[project.id]?.[dayKey] || 0), 0)
     });
   }, [timesheetData, daysToDisplay, projects]);
@@ -826,7 +826,7 @@ const RequestTimeOffDialog = ({ policies, onOpenChange, open }: { policies: Time
                                 <SelectValue placeholder="Select a policy" />
                             </SelectTrigger>
                             <SelectContent>
-                                {policies.map(p => (
+                                {policies.map((p: TimeOffPolicy) => (
                                     <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                                 ))}
                             </SelectContent>
@@ -868,8 +868,8 @@ const TimeOffView = () => {
 
     const absencesThisWeek = useMemo(() => {
         const absences: Record<string, { userName: string, policy: TimeOffPolicy }[]> = {};
-        requests.forEach(req => {
-            const policy = policies.find(p => p.id === req.policyId);
+        requests.forEach((req: TimeOffRequest) => {
+            const policy = policies.find((p: TimeOffPolicy) => p.id === req.policyId);
             if (!policy) return;
 
             const dates = eachDayOfInterval({ start: new Date(req.from), end: new Date(req.to) });
@@ -897,7 +897,7 @@ const TimeOffView = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {policies.map(policy => (
+                {policies.map((policy: TimeOffPolicy) => (
                     <Card key={policy.id}>
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
                             <CardTitle className="text-sm font-medium">{policy.name}</CardTitle>
@@ -956,8 +956,8 @@ const TimeOffView = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {requests.length > 0 ? requests.map(req => {
-                                const policy = policies.find(p => p.id === req.policyId);
+                            {requests.length > 0 ? requests.map((req: TimeOffRequest) => {
+                                const policy = policies.find((p: TimeOffPolicy) => p.id === req.policyId);
                                 return (
                                     <TableRow key={req.id}>
                                         <TableCell>
@@ -1005,7 +1005,7 @@ const ScheduleView = () => {
 
     const shiftsByDay: Record<string, Shift[]> = useMemo(() => {
         const result: Record<string, Shift[]> = {};
-        shifts.forEach(shift => {
+        shifts.forEach((shift: Shift) => {
             const dayKey = format(new Date(shift.startTime), 'yyyy-MM-dd');
             if (!result[dayKey]) result[dayKey] = [];
             result[dayKey].push(shift);
@@ -1049,15 +1049,15 @@ const ScheduleView = () => {
                                 <p className="text-muted-foreground text-sm">{format(day, 'd')}</p>
                             </div>
                         ))}
-                        {team.map(member => (
+                        {team.map((member: TeamMember) => (
                             <React.Fragment key={member.id}>
                                 <div className="p-2 font-semibold border-b border-r flex items-center justify-center bg-muted/50">{member.name}</div>
                                 {weekDays.map(day => {
                                     const dayKey = format(day, 'yyyy-MM-dd');
-                                    const dayShifts = (shiftsByDay[dayKey] || []).filter(s => s.memberId === member.id);
+                                    const dayShifts = (shiftsByDay[dayKey] || []).filter((s: Shift) => s.memberId === member.id);
                                     return (
                                         <div key={day.toString()} className="p-1 border-b border-r min-h-[80px] space-y-1 relative group">
-                                            {dayShifts.map(shift => (
+                                            {dayShifts.map((shift: Shift) => (
                                                 <button key={shift.id} onClick={() => handleOpenShiftDialog(shift)} className="w-full text-left bg-primary/80 text-primary-foreground rounded p-1.5 text-xs">
                                                     <p className="font-semibold">{format(new Date(shift.startTime), 'p')} - {format(new Date(shift.endTime), 'p')}</p>
                                                     <p className="opacity-80 truncate">{shift.role}</p>
@@ -1161,7 +1161,7 @@ const ShiftDialog = ({ open, onOpenChange, shift, date, memberId, team, addShift
                         <Label>Team Member</Label>
                         <Select value={localMemberId} onValueChange={setLocalMemberId}>
                             <SelectTrigger><SelectValue placeholder="Select a member" /></SelectTrigger>
-                            <SelectContent>{team.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
+                            <SelectContent>{team.map((m: TeamMember) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
                         </Select>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
@@ -1223,7 +1223,7 @@ const ManageTeamDialog = ({ open, onOpenChange, team, addMember, updateMember, d
                         <Button onClick={handleAdd}>Add</Button>
                     </div>
                     <div className="space-y-2 max-h-60 overflow-y-auto">
-                        {team.map(member => (
+                        {team.map((member: TeamMember) => (
                             <div key={member.id} className="flex items-center gap-2 p-2 border rounded-md">
                                 <Input value={member.name} onChange={(e) => updateMember({...member, name: e.target.value})} className="border-none"/>
                                 <Button variant="ghost" size="icon" onClick={() => deleteMember(member.id)}><Trash2 className="h-4 w-4 text-destructive"/></Button>
@@ -1253,7 +1253,7 @@ export default function ClockifyPage() {
   
   const timeEntries = useMemo(() => activeProfile?.timeEntries || [], [activeProfile]);
   const projects = useMemo(() => activeProfile?.projects || [], [activeProfile]);
-  const selectedProject = useMemo(() => projects.find(p => p.id === selectedProjectId), [projects, selectedProjectId]);
+  const selectedProject = useMemo(() => projects.find((p: Project) => p.id === selectedProjectId), [projects, selectedProjectId]);
   
   const stopTimer = useCallback((isSwitching = false) => {
     if (timerRef.current) {
@@ -1263,7 +1263,7 @@ export default function ClockifyPage() {
     setTimerRunning(false);
     
     if (activeTimerId && updateTimeEntry) {
-      const entry = timeEntries.find(e => e.id === activeTimerId);
+      const entry = timeEntries.find((e: TimeEntry) => e.id === activeTimerId);
       if(entry) {
         const duration = Math.round((Date.now() - entry.startTime) / 1000);
         updateTimeEntry({ ...entry, endTime: Date.now(), duration });
@@ -1307,7 +1307,7 @@ export default function ClockifyPage() {
   useEffect(() => {
     if (loading) return; // Don't run effect if data is still loading
     
-    const runningEntry = timeEntries.find(e => e.endTime === null);
+    const runningEntry = timeEntries.find((e: TimeEntry) => e.endTime === null);
     if(runningEntry && !timerRunning) { // Prevent re-running if timer is already set
       setActiveTimerId(runningEntry.id);
       setTask(runningEntry.task);
@@ -1421,7 +1421,7 @@ export default function ClockifyPage() {
                                 </CommandGroup>
                                 <CommandSeparator />
                                 <CommandGroup>
-                                {projects.map((project) => (
+                                {projects.map((project: Project) => (
                                     <CommandItem
                                         key={project.id}
                                         value={project.name}
@@ -1478,8 +1478,8 @@ export default function ClockifyPage() {
                               <span className="text-muted-foreground">Total: <span className="font-semibold text-foreground">{formatDurationShort(group.total)}</span></span>
                           </div>
                           <div className="space-y-px bg-card">
-                              {group.items.map((item) => {
-                                  const itemProject = projects.find(p => p.id === item.projectId);
+                              {group.items.map((item: TimeEntry) => {
+                                  const itemProject = projects.find((p: Project) => p.id === item.projectId);
                                   return (
                                   <div key={item.id} className="p-3 border-b last:border-b-0 shadow-sm hover:bg-muted/50">
                                       <div className="flex items-center gap-3">
@@ -1488,7 +1488,7 @@ export default function ClockifyPage() {
                                               {itemProject && <span className={'ml-2 font-semibold'} style={{color: itemProject.color}}>• {itemProject.name}</span>}
                                           </div>
                                           <div className="hidden sm:flex items-center gap-2">
-                                              {item.tags?.map(tag => <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>)}
+                                              {item.tags?.map((tag: string) => <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>)}
                                           </div>
                                           <Button variant="ghost" size="icon" className="h-8 w-8">
                                               <DollarSign className={`h-4 w-4 ${item.billable ? 'text-primary' : 'text-muted-foreground/50'}`} />

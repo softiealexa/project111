@@ -22,7 +22,7 @@ function removeUndefined(obj: any): any {
   }
 
   if (Array.isArray(obj)) {
-    return obj.map(item => removeUndefined(item));
+    return obj.map((item: any) => removeUndefined(item));
   }
 
   const newObj: { [key: string]: any } = {};

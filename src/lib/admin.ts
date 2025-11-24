@@ -1,7 +1,7 @@
 
 'use server';
 
-import { collection, getDocs, query, where, documentId } from 'firebase/firestore';
+import { collection, getDocs, query, where, documentId, DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
 import { db } from './firebase';
 import type { AppUser } from './types';
 
@@ -17,7 +17,7 @@ export async function getAllUsers(): Promise<AppUser[]> {
 
     const usersCol = collection(db, 'users');
     const userSnapshot = await getDocs(usersCol);
-    const userList = userSnapshot.docs.map((doc): AppUser => {
+    const userList = userSnapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>): AppUser => {
         const data = doc.data();
         return {
             uid: doc.id,
@@ -52,7 +52,7 @@ export async function exportUsersData(uids: string[]): Promise<string> {
     for (const chunk of chunks) {
         const usersQuery = query(collection(db, 'users'), where(documentId(), 'in', chunk));
         const userSnapshot = await getDocs(usersQuery);
-        userSnapshot.docs.forEach(doc => {
+        userSnapshot.docs.forEach((doc: QueryDocumentSnapshot<DocumentData>) => {
             allUserData.push(doc.data());
         });
     }
