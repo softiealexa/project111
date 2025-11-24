@@ -182,7 +182,7 @@ function SortableSubjectCard({ subject, children }: { subject: JeeSubject, child
                                 {childrenArray[0]}
                             </div>
                         </AccordionTrigger>
-                        <AccordionContent className="pt-0 p-6">
+                        <AccordionContent className="pt-0 p-4">
                             {childrenArray[1]}
                         </AccordionContent>
                     </AccordionItem>
