@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -9,6 +10,7 @@ import { Plus, Trash2, Edit, Save, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import Navbar from '@/components/navbar';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 // --- Types for this page's state ---
 interface Chapter {
@@ -186,7 +188,7 @@ export default function JeeSyllabusPage() {
   }
 
   return (
-    <>
+    <TooltipProvider>
     <Navbar />
     <div className="bg-gray-100 dark:bg-gray-900 min-h-screen p-4 sm:p-6 md:p-8">
       <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
@@ -285,6 +287,6 @@ export default function JeeSyllabusPage() {
         </div>
       </div>
     </div>
-    </>
+    </TooltipProvider>
   );
 }
