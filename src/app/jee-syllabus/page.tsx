@@ -191,7 +191,7 @@ export default function JeeSyllabusPage() {
     <TooltipProvider>
     <Navbar />
     <div className="bg-gray-100 dark:bg-gray-900 min-h-screen p-4 sm:p-6 md:p-8">
-      <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
         <h2 className="text-2xl font-bold mb-6 text-center text-gray-800 dark:text-gray-200">JEE Mains – Syllabus Progress Checker</h2>
 
         {subjects.map(subject => (
