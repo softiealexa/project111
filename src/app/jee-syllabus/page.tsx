@@ -31,6 +31,8 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 
 function SortableChapterRow({
   chapter,
@@ -44,7 +46,7 @@ function SortableChapterRow({
   onUpdateTasks: (chapterId: string, newTasks: string[]) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: chapter.id });
-  const [isEditingTasks, setIsEditingTasks] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [editableTasks, setEditableTasks] = useState(Object.keys(chapter.tasks).join(' | '));
 
   const style = {
@@ -56,7 +58,7 @@ function SortableChapterRow({
   const handleSaveTasks = () => {
     const newTasks = editableTasks.split('|').map(t => t.trim()).filter(Boolean);
     onUpdateTasks(chapter.id, newTasks);
-    setIsEditingTasks(false);
+    setIsEditing(false);
   };
   
   const chapterTasks = Object.keys(chapter.tasks);
@@ -77,55 +79,71 @@ function SortableChapterRow({
         <div className="font-medium text-gray-700 dark:text-gray-300">{chapter.name}</div>
       </div>
       <div className="flex items-center gap-4 pl-8 sm:pl-0">
-        {isEditingTasks ? (
-           <div className="flex items-center gap-2">
-                <Input
-                    value={editableTasks}
-                    onChange={e => setEditableTasks(e.target.value)}
-                    className="h-8 text-xs"
-                    placeholder="Task 1 | Task 2"
-                />
-                <Button size="icon" className="h-8 w-8" onClick={handleSaveTasks}><Save className="h-4 w-4" /></Button>
-                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setIsEditingTasks(false)}><X className="h-4 w-4" /></Button>
-            </div>
-        ) : (
-            <>
-                <div className="flex items-center gap-3">
-                    {chapterTasks.map(task => (
-                        <div key={task} className="flex items-center">
-                            <Checkbox
-                                id={`${chapter.id}-${task}`}
-                                checked={chapter.tasks[task]}
-                                onCheckedChange={() => onToggleTask(chapter.id, task)}
-                            />
-                            <label htmlFor={`${chapter.id}-${task}`} className="ml-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
-                                {task}
-                            </label>
-                        </div>
-                    ))}
-                </div>
-                <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={() => setIsEditingTasks(true)}>
+          <div className="flex items-center gap-3">
+              {chapterTasks.map(task => (
+                  <div key={task} className="flex items-center">
+                      <Checkbox
+                          id={`${chapter.id}-${task}`}
+                          checked={chapter.tasks[task]}
+                          onCheckedChange={() => onToggleTask(chapter.id, task)}
+                      />
+                      <label htmlFor={`${chapter.id}-${task}`} className="ml-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
+                          {task}
+                      </label>
+                  </div>
+              ))}
+          </div>
+
+          <Dialog open={isEditing} onOpenChange={setIsEditing}>
+            <DialogTrigger asChild>
+               <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100">
                     <Edit className="h-4 w-4"/>
                 </Button>
-            </>
-        )}
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 opacity-0 group-hover:opacity-100">
-              <Trash2 className="h-4 w-4"/>
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-              <AlertDialogDescription>This will permanently delete the chapter "{chapter.name}".</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={() => onDeleteChapter(chapter.id)}>Delete</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Edit Chapter: {chapter.name}</DialogTitle>
+                    <DialogDescription>
+                        Update the task list for this chapter. Use a "|" to separate tasks.
+                    </DialogDescription>
+                </DialogHeader>
+                 <div className="grid gap-2 py-2">
+                    <Label htmlFor="tasks-input">Tasks</Label>
+                    <Input
+                        id="tasks-input"
+                        value={editableTasks}
+                        onChange={e => setEditableTasks(e.target.value)}
+                        placeholder="Task 1 | Task 2"
+                    />
+                </div>
+                <DialogFooter className="justify-between">
+                     <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive">Delete Chapter</Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>This will permanently delete the chapter "{chapter.name}".</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => {
+                                onDeleteChapter(chapter.id);
+                                setIsEditing(false);
+                            }}>Delete</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                    <div className="flex gap-2">
+                        <DialogClose asChild>
+                            <Button variant="outline">Cancel</Button>
+                        </DialogClose>
+                        <Button onClick={handleSaveTasks}>Save Tasks</Button>
+                    </div>
+                </DialogFooter>
+            </DialogContent>
+          </Dialog>
       </div>
     </div>
   );
@@ -183,9 +201,7 @@ export default function JeeSyllabusPage() {
       id: crypto.randomUUID(),
       name: newSubjectName.trim(),
       chapters: [],
-      // 'tasks' on subject is now deprecated for this UI, but we'll keep it for data structure consistency.
-      // New chapters will get default tasks.
-      tasks: ['Notes', 'Lecture', 'Teacher'],
+      tasks: ['Notes', 'Lecture', 'Teacher'], // This field is deprecated but kept for compatibility
     };
     setJeeSyllabus([...subjects, newSubject]);
     setNewSubjectName('');
