@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Trash2, Edit, GripVertical, ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import Navbar from '@/components/navbar';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { useData } from '@/contexts/data-context';
@@ -434,13 +434,11 @@ export default function JeeSyllabusPage() {
             </div>
         </div>
 
-        <Card>
-            <CardHeader>
-                <CardTitle>Syllabus Controls</CardTitle>
-                <CardDescription>Delete subjects or specific chapters from this panel.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <div className="space-y-2 p-4 border rounded-lg">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md mt-6">
+            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-1">Syllabus Controls</h3>
+            <p className="text-sm text-muted-foreground mb-4">Delete subjects or specific chapters from this panel.</p>
+            <div className="space-y-4">
+                <div className="space-y-2">
                     <Label className="font-semibold">Delete Subject</Label>
                     <div className="flex gap-2">
                         <Select onValueChange={setSubjectToDelete} value={subjectToDelete || ''}>
@@ -471,7 +469,7 @@ export default function JeeSyllabusPage() {
                     </div>
                 </div>
 
-                <div className="space-y-2 p-4 border rounded-lg">
+                <div className="space-y-2">
                     <Label className="font-semibold">Delete Chapter</Label>
                     <div className="flex flex-col sm:flex-row gap-2">
                         <Select onValueChange={(val) => {setChapterDeletionSubjectId(val); setChapterToDelete(null);}} value={chapterDeletionSubjectId || ''}>
@@ -509,12 +507,10 @@ export default function JeeSyllabusPage() {
                         </AlertDialog>
                     </div>
                 </div>
-            </CardContent>
-        </Card>
+            </div>
+        </div>
       </div>
     </div>
     </TooltipProvider>
   );
 }
-
-    
