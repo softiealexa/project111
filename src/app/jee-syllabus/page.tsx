@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Trash2, Edit, Save, X } from 'lucide-react';
+import { Plus, Trash2, Edit, Save, X, GripVertical } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import Navbar from '@/components/navbar';
@@ -15,6 +15,23 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { useData } from '@/contexts/data-context';
 import type { JeeSubject, JeeChapter } from '@/lib/types';
 import { LoadingSpinner } from '@/components/loading-spinner';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { cn } from '@/lib/utils';
 
 const initialData: JeeSubject[] = [
   {
@@ -47,6 +64,78 @@ const initialData: JeeSubject[] = [
   },
 ];
 
+function SortableChapterRow({
+  chapter,
+  subject,
+  onToggleTask,
+  onDeleteChapter
+}: {
+  chapter: JeeChapter;
+  subject: JeeSubject;
+  onToggleTask: (subjectId: string, chapterId: string, taskName: string) => void;
+  onDeleteChapter: (subjectId: string, chapterId: string) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: chapter.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : 'auto',
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "group flex flex-col sm:flex-row justify-between items-start sm:items-center py-3 border-b dark:border-gray-700 last:border-b-0",
+        isDragging && "shadow-lg bg-card"
+      )}
+    >
+      <div className="flex items-center">
+        <button {...listeners} {...attributes} aria-label="Drag to reorder chapter" className="cursor-grab touch-none p-1.5 text-muted-foreground hover:text-foreground">
+          <GripVertical className="h-5 w-5" />
+        </button>
+        <div className="font-medium text-gray-700 dark:text-gray-300 mb-2 sm:mb-0">{chapter.name}</div>
+      </div>
+      <div className="flex items-center gap-4 pl-8 sm:pl-0">
+        <div className="flex items-center gap-3">
+          {subject.tasks.map(task => (
+            <div key={task} className="flex items-center">
+              <Checkbox
+                id={`${chapter.id}-${task}`}
+                checked={chapter.tasks[task]}
+                onCheckedChange={() => onToggleTask(subject.id, chapter.id, task)}
+              />
+              <label htmlFor={`${chapter.id}-${task}`} className="ml-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
+                {task}
+              </label>
+            </div>
+          ))}
+        </div>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 opacity-0 group-hover:opacity-100">
+              <Trash2 className="h-4 w-4"/>
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>This will permanently delete the chapter "{chapter.name}".</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={() => onDeleteChapter(subject.id, chapter.id)}>Delete</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </div>
+  );
+}
+
+
 export default function JeeSyllabusPage() {
   const { activeProfile, setJeeSyllabus, loading } = useData();
   const [newSubjectName, setNewSubjectName] = useState('');
@@ -64,7 +153,6 @@ export default function JeeSyllabusPage() {
 
 
   useEffect(() => {
-    // This effect ensures that if the loaded data is empty, the initial data is set and saved.
     if (!loading && activeProfile && (activeProfile.jeeSyllabus === undefined || activeProfile.jeeSyllabus.length === 0)) {
         setJeeSyllabus(initialData);
     }
@@ -167,6 +255,36 @@ export default function JeeSyllabusPage() {
       setEditingTasks(prev => ({...prev, [subjectId]: currentTasks.join(' | ')}));
   };
   
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor)
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over, data } = event;
+    if (!over || active.id === over.id) return;
+    
+    const subjectId = data.current?.subjectId;
+    if (!subjectId) return;
+
+    const subject = subjects.find(s => s.id === subjectId);
+    if (!subject) return;
+
+    const oldIndex = subject.chapters.findIndex(c => c.id === active.id);
+    const newIndex = subject.chapters.findIndex(c => c.id === over.id);
+
+    if (oldIndex !== -1 && newIndex !== -1) {
+      const reorderedChapters = arrayMove(subject.chapters, oldIndex, newIndex);
+      const newSubjects = subjects.map(s => {
+        if (s.id === subjectId) {
+          return { ...s, chapters: reorderedChapters };
+        }
+        return s;
+      });
+      setJeeSyllabus(newSubjects);
+    }
+  };
+
   if (loading || !activeProfile) {
     return (
         <TooltipProvider>
@@ -184,7 +302,7 @@ export default function JeeSyllabusPage() {
     <div className="bg-gray-100 dark:bg-gray-900 min-h-screen p-4 sm:p-6 md:p-8">
       <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
         <h2 className="text-2xl font-bold mb-6 text-center text-gray-800 dark:text-gray-200">JEE Mains – Syllabus Progress Checker</h2>
-
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         {subjects.map(subject => (
           <Card key={subject.id} className="mb-6">
             <CardHeader>
@@ -212,44 +330,17 @@ export default function JeeSyllabusPage() {
               </div>
             </CardHeader>
             <CardContent>
-              {subject.chapters.map(chapter => (
-                <div key={chapter.id} className="group flex flex-col sm:flex-row justify-between items-start sm:items-center py-3 border-b dark:border-gray-700 last:border-b-0">
-                  <div className="font-medium text-gray-700 dark:text-gray-300 mb-2 sm:mb-0">{chapter.name}</div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-3">
-                        {subject.tasks.map(task => (
-                            <div key={task} className="flex items-center">
-                                <Checkbox
-                                id={`${chapter.id}-${task}`}
-                                checked={chapter.tasks[task]}
-                                onCheckedChange={() => handleToggleTask(subject.id, chapter.id, task)}
-                                />
-                                <label htmlFor={`${chapter.id}-${task}`} className="ml-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
-                                {task}
-                                </label>
-                            </div>
-                        ))}
-                    </div>
-                     <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 opacity-0 group-hover:opacity-100">
-                                <Trash2 className="h-4 w-4"/>
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                <AlertDialogDescription>This will permanently delete the chapter "{chapter.name}".</AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeleteChapter(subject.id, chapter.id)}>Delete</AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </div>
-              ))}
+              <SortableContext items={subject.chapters.map(c => c.id)} strategy={verticalListSortingStrategy}>
+                {subject.chapters.map(chapter => (
+                  <SortableChapterRow
+                    key={chapter.id}
+                    chapter={chapter}
+                    subject={subject}
+                    onToggleTask={handleToggleTask}
+                    onDeleteChapter={handleDeleteChapter}
+                  />
+                ))}
+              </SortableContext>
                <div className="flex gap-2 mt-4">
                     <Input
                         placeholder="Add new chapter..."
@@ -264,7 +355,7 @@ export default function JeeSyllabusPage() {
             </CardContent>
           </Card>
         ))}
-
+        </DndContext>
         <div className="flex gap-2 mt-8">
             <Input
                 placeholder="Add new subject..."
