@@ -351,7 +351,7 @@ export default function JeeSyllabusPage() {
                             <>
                                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleChapterDragEnd(e, subject.id)}>
                                     <SortableContext items={subject.chapters.map(c => c.id)} strategy={verticalListSortingStrategy}>
-                                    {subject.chapters.map(chapter => (
+                                    {subject.chapters.map((chapter: JeeChapter) => (
                                         <SortableChapterRow
                                             key={chapter.id}
                                             chapter={chapter}
@@ -399,3 +399,4 @@ export default function JeeSyllabusPage() {
 }
 
     
+
