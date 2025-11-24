@@ -22,6 +22,7 @@ import { CustomizationSheet } from './customization-sheet';
 import { Sheet, SheetTrigger } from './ui/sheet';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const navLinks = [
     { href: "/jee-syllabus", icon: CheckSquare, label: "JEE Syllabus" },
@@ -33,6 +34,7 @@ export default function Navbar() {
   const { activeProfile, user, signOutUser } = useData();
   const router = useRouter();
   const [isCustomizationOpen, setIsCustomizationOpen] = useState(false);
+  const isMobile = useIsMobile();
 
 
   const handleSignOut = async () => {
@@ -66,15 +68,32 @@ export default function Navbar() {
                      {navLinks.map(link => (
                          <Tooltip key={link.href}>
                             <TooltipTrigger asChild>
-                                <Button asChild variant="ghost" size="icon">
-                                    <Link href={link.href}><link.icon /></Link>
+                               <Button asChild variant="ghost" className="hidden md:flex">
+                                  <Link href={link.href}>
+                                    <link.icon className="mr-2 h-4 w-4" />
+                                    {link.label}
+                                  </Link>
                                 </Button>
                             </TooltipTrigger>
-                            <TooltipContent>
+                             <TooltipContent className="md:hidden">
                                 <p>{link.label}</p>
                             </TooltipContent>
                         </Tooltip>
                      ))}
+                     <div className="flex md:hidden">
+                       {navLinks.map(link => (
+                         <Tooltip key={link.href}>
+                            <TooltipTrigger asChild>
+                                <Button asChild variant="ghost" size="icon">
+                                    <Link href={link.href}><link.icon /></Link>
+                                </Button>
+                            </TooltipTrigger>
+                             <TooltipContent>
+                                <p>{link.label}</p>
+                            </TooltipContent>
+                         </Tooltip>
+                        ))}
+                     </div>
                    </div>
                   <Sheet open={isCustomizationOpen} onOpenChange={handleCustomizationStateChange}>
                     
@@ -114,7 +133,7 @@ export default function Navbar() {
 
                         <DropdownMenuSeparator />
                         <DropdownMenuGroup>
-                            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground px-2">Tools</DropdownMenuLabel>
+                            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground px-2">Main Tools</DropdownMenuLabel>
                             {navLinks.map(link => (
                                  <DropdownMenuItem key={link.href} onSelect={() => router.push(link.href)}>
                                     <link.icon className="mr-2 h-4 w-4" />
