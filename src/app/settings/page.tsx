@@ -15,7 +15,6 @@ import { LoaderCircle, User, Palette, Shield, Download, Upload, MessageSquarePlu
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { Separator } from '@/components/ui/separator';
 import { linkGoogleEmail } from '@/lib/auth';
 import Navbar from '@/components/navbar';
 import { Skeleton } from '@/components/ui/skeleton';

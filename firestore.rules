@@ -34,5 +34,17 @@ service cloud.firestore {
       // Only admins should be able to read, update, or delete feedback.
       allow read, update, delete: if request.auth != null && isAdmin();
     }
+    
+    // Rules for the 'templates' collection
+    match /templates/{templateId} {
+      // Any authenticated user can read active templates
+      allow read: if request.auth != null && resource.data.isActive == true;
+      
+      // Only admins can read inactive templates (for editing)
+      allow read: if request.auth != null && isAdmin();
+      
+      // Only admins can create, update, or delete templates
+      allow create, update, delete: if request.auth != null && isAdmin();
+    }
   }
 }

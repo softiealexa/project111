@@ -258,3 +258,72 @@ export interface Feedback {
     createdAt: any; // Firestore ServerTimestamp
     status?: FeedbackStatus;
 }
+
+// Template Management Types
+export type ExamType = 'JEE' | 'NEET' | 'BOARDS' | 'CUSTOM';
+export type TemplateViewMode = 'visual' | 'code';
+
+export interface TemplateTopic {
+    name: string;
+    completed: boolean;
+}
+
+export interface TemplateChapter {
+    name: string;
+    lectureCount: number;
+    syllabus: TemplateTopic[];
+}
+
+export interface TemplateSubject {
+    name: string;
+    icon: string;
+    tasks: string[];
+    chapters: TemplateChapter[];
+}
+
+export interface TemplateTodo {
+    text: string;
+    priority: Priority;
+}
+
+export interface ProfileTemplate {
+    id: string;
+    name: string;
+    description: string;
+    examType: ExamType;
+    class?: number; // 11, 12, or undefined for both
+    icon: string;
+    subjects: TemplateSubject[];
+    defaultTodos?: TemplateTodo[];
+    isActive: boolean;
+    isPopular?: boolean;
+    usageCount: number;
+    shareCode?: string;
+    createdAt?: Timestamp;
+    updatedAt?: Timestamp;
+    createdBy: string;
+}
+
+// JSON Import/Export Types
+export interface TemplateJSON {
+    name: string;
+    description: string;
+    examType: ExamType;
+    class?: number;
+    icon: string;
+    subjects: TemplateSubject[];
+    defaultTodos?: TemplateTodo[];
+}
+
+export interface TemplateValidationError {
+    line?: number;
+    field: string;
+    message: string;
+    severity: 'error' | 'warning';
+}
+
+export interface TemplateValidationResult {
+    isValid: boolean;
+    errors: TemplateValidationError[];
+    data?: TemplateJSON;
+}
