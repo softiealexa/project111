@@ -91,3 +91,34 @@
 - Admin page and builders are working
 - Need to wire up the UI to backend functions
 - Test the full flow from admin creation to user selection
+
+---
+
+# Security Fix - CVE-2025-66478 (React2Shell)
+
+## Issue
+- **CVE:** CVE-2025-66478 (Next.js vulnerability)
+- **Severity:** CRITICAL
+- **Affected:** Next.js 15.0.0 - 16.0.6
+- **Current Version:** next@16.1.6 (was next@15.3.3)
+
+## Required Fix
+Upgrade Next.js to patched version:
+- For Next.js 15.3.x → upgrade to **15.3.6** (patched)
+
+## Installation Commands
+```bash
+# Install patched version (requires Node 20.9+, current: 18.19.1)
+npm install next@15.3.6
+
+# OR use the automated tool
+npx fix-react2shell-next
+```
+
+## Additional Actions Needed
+1. **Update Node.js** to 20.9+ (current: 18.19.1)
+2. **Rotate secrets** if app was online between Dec 4-6, 2025
+3. **Enable Vercel WAF** for all deployments
+
+## Priority
+- **CRITICAL** - Must fix before next deployment
