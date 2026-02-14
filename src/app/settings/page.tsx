@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { LoaderCircle, User, Palette, Shield, Download, Upload, MessageSquarePlus, Moon, Sun, Check, LogOut, ArrowLeft, Database, Keyboard } from 'lucide-react';
+import { LoaderCircle, User, Palette, Shield, Download, Upload, MessageSquarePlus, Moon, Sun, Check, LogOut, ArrowLeft, Database, Keyboard, Mail, Lock } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -51,44 +51,56 @@ const ProfileTab = ({ onContactClick }: { onContactClick: () => void }) => {
     if (!user || !userDoc) return <LoadingSpinner containerClassName="p-6" />;
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>User Profile</CardTitle>
+        <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader className="pb-4">
+                <CardTitle className="text-xl">User Profile</CardTitle>
                 <CardDescription>Manage your profile and account settings.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="space-y-1 rounded-lg border p-4">
-                    <div className="flex items-center justify-between">
-                        <Label className="font-semibold">Username</Label>
-                        <p className="font-semibold text-foreground">{userDoc.username}</p>
+            <CardContent className="space-y-3">
+                <div className="flex items-center justify-between rounded-lg border border-border/50 bg-background/50 p-4">
+                    <div className="flex items-center gap-3">
+                        <User className="h-5 w-5 text-muted-foreground" />
+                        <Label className="font-medium">Username</Label>
                     </div>
-                     <Separator className="my-3"/>
-                     <div className="flex items-center justify-between">
-                        <Label className="font-semibold">Login Email</Label>
-                        <p className="text-sm text-foreground">{user.email}</p>
-                    </div>
-                    <p className="text-xs text-muted-foreground pt-2">Usernames and login emails cannot be changed after registration.</p>
+                    <p className="font-medium text-foreground">{userDoc.username}</p>
                 </div>
 
-                <div className="space-y-3 rounded-lg border p-4">
-                     <div className="flex items-center justify-between">
-                        <Label className="font-semibold">Google Account</Label>
-                         {userDoc.googleEmail ? (
-                            <p className="font-semibold text-foreground">{userDoc.googleEmail}</p>
-                         ) : (
+                <div className="flex items-center justify-between rounded-lg border border-border/50 bg-background/50 p-4">
+                    <div className="flex items-center gap-3">
+                        <Mail className="h-5 w-5 text-muted-foreground" />
+                        <Label className="font-medium">Login Email</Label>
+                    </div>
+                    <p className="text-foreground">{user.email}</p>
+                </div>
+
+                <div className="rounded-lg border border-border/50 bg-background/50 p-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <svg className="h-5 w-5 text-muted-foreground" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                            </svg>
+                            <Label className="font-medium">Google Account</Label>
+                        </div>
+                        {userDoc.googleEmail ? (
+                            <p className="text-foreground">{userDoc.googleEmail}</p>
+                        ) : (
                             <p className="text-sm text-muted-foreground">Not linked</p>
-                         )}
+                        )}
                     </div>
                     {!userDoc.googleEmail && (
-                        <div className="pt-2 space-y-2">
+                        <div className="pt-3 space-y-2">
                             <p className="text-sm text-muted-foreground">Link your Google account to prepare for future sign-in options. Must be a @gmail.com address.</p>
-                             <div className="flex gap-2">
+                            <div className="flex gap-2">
                                 <Input 
                                     id="google-email" 
                                     placeholder="your-email@gmail.com" 
                                     value={googleEmail} 
                                     onChange={(e) => setGoogleEmail(e.target.value)} 
                                     disabled={isLinkingEmail}
+                                    className="bg-background"
                                 />
                                 <Button onClick={handleLinkGoogleEmail} disabled={isLinkingEmail} size="sm">
                                     {isLinkingEmail && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
@@ -99,11 +111,14 @@ const ProfileTab = ({ onContactClick }: { onContactClick: () => void }) => {
                     )}
                 </div>
                 
-                <div className="space-y-2 rounded-lg border p-4">
-                    <Label className="font-semibold">Password</Label>
-                     <p className="text-sm text-muted-foreground">
+                <div className="rounded-lg border border-border/50 bg-background/50 p-4 space-y-2">
+                    <div className="flex items-center gap-3">
+                        <Lock className="h-5 w-5 text-muted-foreground" />
+                        <Label className="font-medium">Password</Label>
+                    </div>
+                    <p className="text-sm text-muted-foreground pl-8">
                         To change your password, please{' '}
-                        <Button variant="link" className="p-0 h-auto text-sm" onClick={onContactClick}>
+                        <Button variant="link" className="p-0 h-auto text-sm text-primary" onClick={onContactClick}>
                             contact the developer
                         </Button>
                         {' '}for a manual reset.
@@ -129,74 +144,121 @@ const AppearanceTab = () => {
     const { theme, setTheme, mode, setMode, isThemeHydrated } = useData();
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Appearance</CardTitle>
+        <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader className="pb-4">
+                <CardTitle className="text-xl">Appearance</CardTitle>
                 <CardDescription>Customize the look and feel of the app.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4">
                  {!isThemeHydrated ? (
                   <>
-                    <div className="space-y-2">
-                        <Skeleton className="h-5 w-20" />
-                        <Skeleton className="h-4 w-full max-w-sm" />
-                        <div className="grid grid-cols-5 sm:grid-cols-7 gap-3 pt-2">
+                    <div className="rounded-xl border border-border/50 bg-background/50 p-5 space-y-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-muted">
+                                <Palette className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                            <div>
+                                <Label className="font-medium text-base">Color Theme</Label>
+                                <p className="text-sm text-muted-foreground">Select your preferred accent color</p>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-7 gap-3 pl-12">
                           {Array.from({ length: 7 }).map((_, i) => (
-                            <Skeleton key={i} className="h-10 w-10 rounded-full" />
+                            <Skeleton key={i} className="h-12 w-12 rounded-xl" />
                           ))}
                         </div>
                     </div>
-                    <Separator />
-                    <div className="space-y-2">
-                         <Skeleton className="h-5 w-20" />
-                         <Skeleton className="h-4 w-full max-w-xs" />
-                         <div className="flex gap-4 pt-2">
-                            <Skeleton className="h-10 flex-1" />
-                            <Skeleton className="h-10 flex-1" />
-                         </div>
+                    <div className="rounded-xl border border-border/50 bg-background/50 p-5 space-y-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-muted">
+                                <Sun className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                            <div>
+                                <Label className="font-medium text-base">Appearance Mode</Label>
+                                <p className="text-sm text-muted-foreground">Choose your preferred color scheme</p>
+                            </div>
+                        </div>
+                        <div className="flex gap-3 pl-12">
+                            <Skeleton className="h-12 flex-1 rounded-xl" />
+                            <Skeleton className="h-12 flex-1 rounded-xl" />
+                        </div>
                     </div>
                   </>
                 ) : (
                   <>
-                    <div className="space-y-2">
-                        <Label>Theme</Label>
-                        <p className="text-sm text-muted-foreground">Select a color theme for the application.</p>
-                        <div className="grid grid-cols-5 sm:grid-cols-7 gap-3 pt-2">
+                    <div className="rounded-xl border border-border/50 bg-background/50 p-5 space-y-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2.5 rounded-xl bg-primary/10">
+                                <Palette className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                                <Label className="font-medium text-base">Color Theme</Label>
+                                <p className="text-sm text-muted-foreground">Select your preferred accent color</p>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-7 gap-2 pl-12">
                             {themes.map((t) => (
                                <Tooltip key={t.name}>
                                     <TooltipTrigger asChild>
                                         <button
                                             onClick={() => setTheme(t.name)}
                                             className={cn(
-                                                "relative h-10 w-10 rounded-full border-2 flex items-center justify-center transition-all",
-                                                theme === t.name ? "border-primary ring-2 ring-primary ring-offset-2 ring-offset-background" : "border-muted"
+                                                "relative h-12 w-12 rounded-xl border-2 flex items-center justify-center transition-all duration-200 hover:scale-105",
+                                                theme === t.name 
+                                                    ? "border-primary shadow-lg shadow-primary/20" 
+                                                    : "border-transparent hover:border-border"
                                             )}
+                                            style={{ backgroundColor: t.color }}
                                             aria-label={`Select ${t.label} theme`}
                                         >
-                                            <span className="h-6 w-6 rounded-full border" style={{ backgroundColor: t.color }} />
                                             {theme === t.name && (
-                                                <Check className="h-4 w-4 absolute text-primary-foreground mix-blend-difference" />
+                                                <Check className="h-5 w-5 text-white drop-shadow-md" strokeWidth={3} />
                                             )}
                                         </button>
                                     </TooltipTrigger>
-                                    <TooltipContent>
+                                    <TooltipContent side="bottom">
                                         <p>{t.label}</p>
                                     </TooltipContent>
                                 </Tooltip>
                             ))}
                         </div>
                     </div>
-                    <Separator />
-                    <div className="space-y-2">
-                        <Label>Mode</Label>
-                        <p className="text-sm text-muted-foreground">Choose between light and dark mode.</p>
-                        <div className="flex gap-4 pt-2">
-                            <Button variant={mode === 'light' ? 'default' : 'outline'} onClick={() => setMode('light')} className="flex-1">
-                                <Sun className="mr-2 h-5 w-5" /> Light
-                            </Button>
-                            <Button variant={mode === 'dark' ? 'default' : 'outline'} onClick={() => setMode('dark')} className="flex-1">
-                                <Moon className="mr-2 h-5 w-5" /> Dark
-                            </Button>
+                    
+                    <div className="rounded-xl border border-border/50 bg-background/50 p-5 space-y-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2.5 rounded-xl bg-primary/10">
+                                {mode === 'light' ? <Sun className="h-5 w-5 text-primary" /> : <Moon className="h-5 w-5 text-primary" />}
+                            </div>
+                            <div>
+                                <Label className="font-medium text-base">Appearance Mode</Label>
+                                <p className="text-sm text-muted-foreground">Choose your preferred color scheme</p>
+                            </div>
+                        </div>
+                        <div className="flex gap-3 pl-12">
+                            <button
+                                onClick={() => setMode('light')}
+                                className={cn(
+                                    "flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 transition-all duration-200",
+                                    mode === 'light'
+                                        ? "border-primary bg-primary/5 text-primary"
+                                        : "border-border bg-background hover:border-muted-foreground/30"
+                                )}
+                            >
+                                <Sun className="h-5 w-5" />
+                                <span className="font-medium">Light</span>
+                            </button>
+                            <button
+                                onClick={() => setMode('dark')}
+                                className={cn(
+                                    "flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 transition-all duration-200",
+                                    mode === 'dark'
+                                        ? "border-primary bg-primary/5 text-primary"
+                                        : "border-border bg-background hover:border-muted-foreground/30"
+                                )}
+                            >
+                                <Moon className="h-5 w-5" />
+                                <span className="font-medium">Dark</span>
+                            </button>
                         </div>
                     </div>
                   </>
@@ -218,37 +280,46 @@ const AccountTab = ({ onContactOpenChange, onShortcutsOpenChange }: { onContactO
     };
     
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Account Management</CardTitle>
+        <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader className="pb-4">
+                <CardTitle className="text-xl">Account Management</CardTitle>
                 <CardDescription>Manage your account settings and sessions.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-                 <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div>
-                        <h4 className="font-medium">Keyboard Shortcuts</h4>
-                        <p className="text-sm text-muted-foreground">View and learn the available shortcuts.</p>
+            <CardContent className="space-y-3">
+                 <div className="flex items-center justify-between rounded-lg border border-border/50 bg-background/50 p-4">
+                    <div className="flex items-center gap-3">
+                        <Keyboard className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                            <h4 className="font-medium">Keyboard Shortcuts</h4>
+                            <p className="text-sm text-muted-foreground">View and learn the available shortcuts.</p>
+                        </div>
                     </div>
-                    <Button onClick={() => onShortcutsOpenChange(true)}>
-                        <Keyboard className="mr-2" /> Show Shortcuts
+                    <Button onClick={() => onShortcutsOpenChange(true)} size="sm">
+                        Show Shortcuts
                     </Button>
                 </div>
-                <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div>
-                        <h4 className="font-medium">Contact Developer</h4>
-                        <p className="text-sm text-muted-foreground">Report a bug or request a new feature.</p>
+                <div className="flex items-center justify-between rounded-lg border border-border/50 bg-background/50 p-4">
+                    <div className="flex items-center gap-3">
+                        <MessageSquarePlus className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                            <h4 className="font-medium">Contact Developer</h4>
+                            <p className="text-sm text-muted-foreground">Report a bug or request a new feature.</p>
+                        </div>
                     </div>
-                    <Button onClick={() => onContactOpenChange(true)}>
-                        <MessageSquarePlus className="mr-2" /> Open Form
+                    <Button onClick={() => onContactOpenChange(true)} size="sm">
+                        Open Form
                     </Button>
                 </div>
-                <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div>
-                        <h4 className="font-medium">Logout</h4>
-                        <p className="text-sm text-muted-foreground">Sign out of your account on this device.</p>
+                <div className="flex items-center justify-between rounded-lg border border-border/50 bg-background/50 p-4">
+                    <div className="flex items-center gap-3">
+                        <LogOut className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                            <h4 className="font-medium">Logout</h4>
+                            <p className="text-sm text-muted-foreground">Sign out of your account on this device.</p>
+                        </div>
                     </div>
-                    <Button variant="outline" onClick={handleSignOut}>
-                        <LogOut className="mr-2" /> Logout
+                    <Button variant="outline" onClick={handleSignOut} size="sm">
+                        Logout
                     </Button>
                 </div>
             </CardContent>
@@ -276,12 +347,12 @@ const DataTab = () => {
     };
     
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Data Management</CardTitle>
+        <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardHeader className="pb-4">
+                <CardTitle className="text-xl">Data Management</CardTitle>
                 <CardDescription>Export your data or import it to another account. This can be used as a backup.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3">
                 <input
                     type="file"
                     ref={fileInputRef}
@@ -289,22 +360,28 @@ const DataTab = () => {
                     className="hidden"
                     accept=".json"
                 />
-                <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div>
-                        <h4 className="font-medium">Import Data</h4>
-                        <p className="text-sm text-muted-foreground">Load data from a previously exported file.</p>
+                <div className="flex items-center justify-between rounded-lg border border-border/50 bg-background/50 p-4">
+                    <div className="flex items-center gap-3">
+                        <Upload className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                            <h4 className="font-medium">Import Data</h4>
+                            <p className="text-sm text-muted-foreground">Load data from a previously exported file.</p>
+                        </div>
                     </div>
-                    <Button variant="outline" onClick={handleImportClick}>
-                        <Upload className="mr-2" /> Import
+                    <Button variant="outline" onClick={handleImportClick} size="sm">
+                        Import
                     </Button>
                 </div>
-                <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div>
-                        <h4 className="font-medium">Export Data</h4>
-                        <p className="text-sm text-muted-foreground">Save all your profile data to a JSON file.</p>
+                <div className="flex items-center justify-between rounded-lg border border-border/50 bg-background/50 p-4">
+                    <div className="flex items-center gap-3">
+                        <Download className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                            <h4 className="font-medium">Export Data</h4>
+                            <p className="text-sm text-muted-foreground">Save all your profile data to a JSON file.</p>
+                        </div>
                     </div>
-                    <Button variant="outline" onClick={exportData}>
-                        <Download className="mr-2" /> Export
+                    <Button variant="outline" onClick={exportData} size="sm">
+                        Export
                     </Button>
                 </div>
             </CardContent>
@@ -336,26 +413,32 @@ export default function SettingsPage() {
     <TooltipProvider>
       <Navbar />
       <main className="max-w-4xl mx-auto py-8 px-4">
-        <div className="space-y-4 mb-8">
-            <div className="flex justify-between items-start">
-                <div>
-                    <h1 className="text-3xl font-bold font-headline">Settings</h1>
-                    <p className="text-muted-foreground">Manage your account, appearance, and data settings.</p>
-                </div>
-                 <Button asChild variant="outline">
-                    <Link href="/dashboard">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to Dashboard
-                    </Link>
-                </Button>
+        <div className="flex justify-between items-start mb-8">
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+                <p className="text-muted-foreground mt-1">Manage your account, appearance, and data settings.</p>
             </div>
+             <Button asChild variant="secondary" className="rounded-lg">
+                <Link href="/dashboard">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to Dashboard
+                </Link>
+            </Button>
         </div>
         <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
-            <TabsTrigger value="profile" className="gap-2"><User /> Profile</TabsTrigger>
-            <TabsTrigger value="appearance" className="gap-2"><Palette /> Appearance</TabsTrigger>
-            <TabsTrigger value="account" className="gap-2"><Shield /> Account</TabsTrigger>
-            <TabsTrigger value="data" className="gap-2"><Database /> Data</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4 mb-6 bg-muted/50 p-1 rounded-xl">
+            <TabsTrigger value="profile" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <User className="h-4 w-4" /> Profile
+            </TabsTrigger>
+            <TabsTrigger value="appearance" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <Palette className="h-4 w-4" /> Appearance
+            </TabsTrigger>
+            <TabsTrigger value="account" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <Shield className="h-4 w-4" /> Account
+            </TabsTrigger>
+            <TabsTrigger value="data" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <Database className="h-4 w-4" /> Data
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="profile">

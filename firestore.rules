@@ -1,0 +1,38 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to check if the requesting user is an admin.
+    function isAdmin() {
+      // First check if user is authenticated
+      return request.auth != null && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Rules for the 'users' collection
+    match /users/{userId} {
+      // Allow create only if the authenticated user is creating their own document
+      allow create: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow read for authenticated users getting their own data
+      // Also allow list queries for username availability (public during registration)
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow list: if true; // Allow listing for username availability checks
+      
+      // A user can update/delete their own data.
+      // An admin can update/delete any user's data.
+      allow update, delete: if request.auth != null && (request.auth.uid == userId || isAdmin());
+    }
+    
+    // Rules for the 'feedback' collection
+    match /feedback/{feedbackId} {
+      // Any authenticated user can create feedback.
+      allow create: if request.auth != null;
+
+      // Only admins should be able to read, update, or delete feedback.
+      allow read, update, delete: if request.auth != null && isAdmin();
+    }
+  }
+}

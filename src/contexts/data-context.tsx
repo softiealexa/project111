@@ -560,13 +560,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [activeProfile, loading, profiles, activeProfileName, updateProfiles, impersonatedUser]);
 
 
-  const addProfile = useCallback((name: string) => {
+  const addProfile = useCallback(async (name: string) => {
     const newProfile: Profile = { name, subjects: [], todos: [] };
     const newProfiles = [...profiles, newProfile];
     setProfiles(newProfiles);
     setActiveProfileName(name);
-    saveData({ profiles: newProfiles, activeProfileName: name });
-    window.location.reload();
+    await saveData({ profiles: newProfiles, activeProfileName: name });
+    // Don't reload - let the state update naturally
+    // The shouldShowCreateProfile check will re-evaluate and hide the screen
   }, [profiles, saveData]);
   
   const removeProfile = useCallback((name: string) => {

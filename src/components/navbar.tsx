@@ -95,21 +95,23 @@ export default function Navbar() {
                         ))}
                      </div>
                    </div>
-                  <Sheet open={isCustomizationOpen} onOpenChange={handleCustomizationStateChange}>
-                    
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <SheetTrigger asChild>
-                          <Button variant="ghost" size="icon" disabled={!activeProfile}>
-                            <SlidersHorizontal className="h-5 w-5" />
-                            <span className="sr-only">Customization</span>
-                          </Button>
-                        </SheetTrigger>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Customization</p>
-                      </TooltipContent>
-                    </Tooltip>
+                  <div className="flex items-center gap-1">
+                    <Sheet open={isCustomizationOpen} onOpenChange={handleCustomizationStateChange}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <SheetTrigger asChild>
+                            <Button variant="ghost" size="icon" disabled={!activeProfile}>
+                              <SlidersHorizontal className="h-5 w-5" />
+                              <span className="sr-only">Customization</span>
+                            </Button>
+                          </SheetTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Customization</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <CustomizationSheet />
+                    </Sheet>
 
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -170,8 +172,7 @@ export default function Navbar() {
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                     <CustomizationSheet />
-                  </Sheet>
+                  </div>
                 </>
               ) : (
                 <div className="flex items-center gap-2">
